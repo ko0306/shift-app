@@ -8,6 +8,7 @@ import ManagerAttendance from './ManagerAttendance';
 import StaffWorkHours from './StaffWorkHours';
 import ClockInInput from './ClockInInput';
 import { supabase } from './supabaseClient';
+
 import './App.css';
 
 // ヘルプモーダルコンポーネント
@@ -71,25 +72,31 @@ const HelpModal = ({ isOpen, onClose, content }) => {
   );
 };
 
+
 // 使い方ガイドの内容
 const getHelpContent = (page) => {
   const contents = {
     login: (
-      <div>
-        <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>ログイン画面の使い方</h2>
-        <div style={{ marginBottom: '1.5rem' }}>
-          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='400' height='300' fill='%23f5f5f5'/%3E%3Crect x='50' y='50' width='300' height='200' rx='10' fill='white' stroke='%231976D2' stroke-width='2'/%3E%3Ctext x='200' y='90' text-anchor='middle' font-size='18' font-weight='bold'%3Eログイン%3C/text%3E%3Crect x='80' y='110' width='240' height='35' rx='5' fill='%23e3f2fd' stroke='%231976D2'/%3E%3Ctext x='90' y='133' font-size='14' fill='%23666'%3EログインID%3C/text%3E%3Crect x='80' y='160' width='240' height='35' rx='5' fill='%23e3f2fd' stroke='%231976D2'/%3E%3Ctext x='90' y='183' font-size='14' fill='%23666'%3Eパスワード%3C/text%3E%3Crect x='130' y='210' width='140' height='30' rx='5' fill='%232196F3'/%3E%3Ctext x='200' y='231' text-anchor='middle' font-size='14' fill='white'%3Eログイン%3C/text%3E%3C/svg%3E" alt="ログイン画面" style={{ width: '100%', borderRadius: '8px', marginBottom: '1rem' }} />
-        </div>
-        <ol style={{ lineHeight: '1.8' }}>
-          <li><strong>ログインID</strong>を入力します</li>
-          <li><strong>パスワード</strong>を入力します</li>
-          <li><strong>ログイン</strong>ボタンをクリックします</li>
-        </ol>
-        <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
-          <strong>💡 ポイント：</strong> IDまたはパスワードが間違っている場合、エラーメッセージが表示されます。
-        </div>
-      </div>
-    ),
+  <div>
+    <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>ログイン画面の使い方</h2>
+    <div style={{ marginBottom: '1.5rem' }}>
+      <img src="data:image/svg+xml,%3Csvg..." />
+    </div>
+    <ol style={{ lineHeight: '1.8' }}>
+      <li><strong>ログインID</strong>を入力します</li>
+      <li><strong>パスワード</strong>を入力します</li>
+      <li><strong>管理番号</strong>を入力します（新人登録で登録された番号）</li>  {/* ← この行を追加 */}
+      <li><strong>ログイン</strong>ボタンをクリックします</li>
+    </ol>
+    <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
+      <strong>💡 ポイント：</strong>
+      <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem' }}>
+        <li>管理番号は店長が新人登録時に設定した番号です</li>
+        <li>ID、パスワード、管理番号のいずれかが間違っている場合、エラーメッセージが表示されます</li>
+      </ul>
+    </div>
+  </div>
+),
     roleSelect: (
       <div>
         <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>役職選択画面の使い方</h2>
@@ -186,7 +193,34 @@ const getHelpContent = (page) => {
           <strong>⚠️ 注意：</strong> 打刻ボタンを押すと現在時刻が自動的に記録されます。必ず出勤・退勤時にタップしてください。
         </div>
       </div>
-    )
+    ),
+  
+    shiftPeriod: (
+      <div>
+        <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>シフト期間設定の使い方</h2>
+        <div style={{ marginBottom: '1.5rem' }}>
+          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Crect width='400' height='400' fill='%23f5f5f5'/%3E%3Crect x='50' y='40' width='300' height='320' rx='10' fill='white' stroke='%231976D2' stroke-width='2'/%3E%3Ctext x='200' y='80' text-anchor='middle' font-size='18' font-weight='bold'%3E新規提出%3C/text%3E%3Ctext x='80' y='110' font-size='14' font-weight='bold'%3E管理番号:%3C/text%3E%3Crect x='80' y='120' width='240' height='35' rx='5' fill='%23e3f2fd' stroke='%231976D2'/%3E%3Ctext x='90' y='143' font-size='13' fill='%23666'%3E例: 12345%3C/text%3E%3Ctext x='80' y='175' font-size='14' font-weight='bold'%3E開始日:%3C/text%3E%3Crect x='80' y='185' width='240' height='35' rx='5' fill='%23e3f2fd' stroke='%231976D2'/%3E%3Ctext x='90' y='208' font-size='13' fill='%23666'%3E2025-01-15%3C/text%3E%3Ctext x='80' y='240' font-size='14' font-weight='bold'%3E終了日:%3C/text%3E%3Crect x='80' y='250' width='240' height='35' rx='5' fill='%23e3f2fd' stroke='%231976D2'/%3E%3Ctext x='90' y='273' font-size='13' fill='%23666'%3E2025-01-31%3C/text%3E%3Crect x='130' y='310' width='140' height='35' rx='6' fill='%231976D2'/%3E%3Ctext x='200' y='334' text-anchor='middle' font-size='14' fill='white'%3E次へ%3C/text%3E%3C/svg%3E" alt="期間設定画面" style={{ width: '100%', borderRadius: '8px', marginBottom: '1rem' }} />
+        </div>
+        <h3 style={{ color: '#1976D2', marginTop: '1.5rem' }}>入力手順：</h3>
+        <ol style={{ lineHeight: '1.8' }}>
+          <li><strong>管理番号</strong>を入力します（例：12345）</li>
+          <li><strong>開始日</strong>をカレンダーから選択します</li>
+          <li><strong>終了日</strong>をカレンダーから選択します</li>
+          <li><strong>次へ</strong>ボタンをクリックして、シフト入力画面に進みます</li>
+        </ol>
+        <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
+          <strong>⚠️ 注意：</strong>
+          <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem' }}>
+            <li>管理番号は登録時に割り当てられた番号です</li>
+            <li>終了日は開始日より後の日付を選択してください</li>
+            <li>期間は通常、1週間〜1ヶ月程度で設定します</li>
+          </ul>
+        </div>
+        <div style={{ backgroundColor: '#e3f2fd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
+          <strong>💡 ポイント：</strong> この画面では期間だけを設定します。具体的なシフト時間は次の画面で入力できます。
+        </div>
+      </div>
+    ),
   };
 
   return contents[page] || contents.login;
@@ -196,6 +230,7 @@ function App() {
   const [id, setId] = useState('');
   const [password, setPassword] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [managerNumberInput, setManagerNumberInput] = useState(''); 
   const [loginMessage, setLoginMessage] = useState('');
   const [role, setRole] = useState('');
   const [currentStep, setCurrentStep] = useState('');
@@ -260,16 +295,42 @@ function App() {
     setShowHelp(true);
   };
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    if (id === 'kouki' && password === '0306') {
-      setIsLoggedIn(true);
-      setLoginMessage('');
-      setNavigationHistory([]);
-    } else {
-      setLoginMessage('IDまたはパスワードが違います');
+  const handleLogin = async (e) => {  // ← async を追加
+  e.preventDefault();
+  
+  // IDとパスワードのチェック
+  if (id !== 'kouki' || password !== '0306') {
+    setLoginMessage('IDまたはパスワードが違います');
+    return;
+  }
+
+  // 管理番号のチェック
+  if (!managerNumberInput.trim()) {
+    setLoginMessage('管理番号を入力してください');
+    return;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('manager_number')
+      .eq('manager_number', managerNumberInput)
+      .eq('is_deleted', false)
+      .single();
+
+    if (error || !data) {
+      setLoginMessage('管理番号が登録されていません');
+      return;
     }
-  };
+
+    // すべてのチェックが通った場合
+    setIsLoggedIn(true);
+    setLoginMessage('');
+    setNavigationHistory([]);
+  } catch (err) {
+    setLoginMessage('管理番号が登録されていません');
+  }
+};
 
   const selectRole = (selectedRole) => {
     pushToHistory({
@@ -506,21 +567,22 @@ function App() {
     );
   };
 
-  if (!isLoggedIn) {
-    return (
-      <div className="login-wrapper">
-        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage)} />
-        <form className="login-card" onSubmit={handleLogin} style={{ position: 'relative' }}>
-          <HelpButton page="login" />
-          <h2>ログイン</h2>
-          <input type="text" placeholder="ログインID" value={id} onChange={e => setId(e.target.value)} required />
-          <input type="password" placeholder="パスワード" value={password} onChange={e => setPassword(e.target.value)} required />
-          <button type="submit" style={{ backgroundColor: '#2196F3' }}>ログイン</button>
-          {loginMessage && <p className="error-msg">{loginMessage}</p>}
-        </form>
-      </div>
-    );
-  }
+ if (!isLoggedIn) {
+  return (
+    <div className="login-wrapper">
+      <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage)} />
+      <form className="login-card" onSubmit={handleLogin} style={{ position: 'relative' }}>
+        <HelpButton page="login" />
+        <h2>ログイン</h2>
+        <input type="text" placeholder="ログインID" value={id} onChange={e => setId(e.target.value)} required />
+        <input type="password" placeholder="パスワード" value={password} onChange={e => setPassword(e.target.value)} required />
+        <input type="text" placeholder="管理番号" value={managerNumberInput} onChange={e => setManagerNumberInput(e.target.value)} required />  {/* ← この1行を追加 */}
+        <button type="submit" style={{ backgroundColor: '#2196F3' }}>ログイン</button>
+        {loginMessage && <p className="error-msg">{loginMessage}</p>}
+      </form>
+    </div>
+  );
+}
 
   if (!role) {
     return (
@@ -647,6 +709,7 @@ function App() {
             setRole('');
             setId('');
             setPassword('');
+            setManagerNumberInput(''); 
             setIsLoggedIn(false);
             setManagerAuth(false);
             resetAllInputs();
@@ -737,7 +800,7 @@ function App() {
         <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage)} />
         <div className="login-card" style={{ position: 'relative' }}>
           <BackButton />
-          <HelpButton page="shiftInput" />
+          <HelpButton page="shiftPeriod" />
           <h2>新規提出</h2>
           <label>管理番号:</label>
           <input type="text" value={managerNumber} onChange={e => setManagerNumber(e.target.value)} />
@@ -1146,6 +1209,7 @@ function App() {
             setRole('');
             setId('');
             setPassword('');
+            setManagerNumberInput('');
             setIsLoggedIn(false);
             setCurrentStep('');
             resetAllInputs();
