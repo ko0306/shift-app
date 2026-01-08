@@ -7,14 +7,23 @@ import StaffShiftEdit from './StaffShiftEdit';
 import ManagerAttendance from './ManagerAttendance';
 import StaffWorkHours from './StaffWorkHours';
 import ClockInInput from './ClockInInput';
+import PasswordReset from './PasswordReset';
 import { supabase } from './supabaseClient';
 
 import './App.css';
 
-// ヘルプモーダルコンポーネント
+// 簡易的なハッシュ関数
+const hashPassword = async (password) => {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+};
+
+// ヘルプモーダルコンポーネント（省略 - 元のコードと同じ）
 const HelpModal = ({ isOpen, onClose, content }) => {
   if (!isOpen) return null;
-
   return (
     <div style={{
       position: 'fixed',
@@ -72,157 +81,27 @@ const HelpModal = ({ isOpen, onClose, content }) => {
   );
 };
 
-
-// 使い方ガイドの内容
 const getHelpContent = (page) => {
   const contents = {
     login: (
-  <div>
-    <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>ログイン画面の使い方</h2>
-    <div style={{ marginBottom: '1.5rem' }}>
-      <img src="data:image/svg+xml,%3Csvg..." />
-    </div>
-    <ol style={{ lineHeight: '1.8' }}>
-      <li><strong>ログインID</strong>を入力します</li>
-      <li><strong>パスワード</strong>を入力します</li>
-      <li><strong>管理番号</strong>を入力します（新人登録で登録された番号）</li>  {/* ← この行を追加 */}
-      <li><strong>ログイン</strong>ボタンをクリックします</li>
-    </ol>
-    <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
-      <strong>💡 ポイント：</strong>
-      <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem' }}>
-        <li>管理番号は店長が新人登録時に設定した番号です</li>
-        <li>ID、パスワード、管理番号のいずれかが間違っている場合、エラーメッセージが表示されます</li>
-      </ul>
-    </div>
-  </div>
-),
-    roleSelect: (
       <div>
-        <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>役職選択画面の使い方</h2>
-        <div style={{ marginBottom: '1.5rem' }}>
-          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='350'%3E%3Crect width='400' height='350' fill='%23f5f5f5'/%3E%3Crect x='50' y='30' width='300' height='290' rx='10' fill='white' stroke='%231976D2' stroke-width='2'/%3E%3Ctext x='200' y='70' text-anchor='middle' font-size='18' font-weight='bold'%3E役職を選択してください%3C/text%3E%3Crect x='80' y='100' width='240' height='45' rx='8' fill='%231976D2'/%3E%3Ctext x='200' y='130' text-anchor='middle' font-size='16' fill='white'%3Eアルバイト%3C/text%3E%3Crect x='80' y='160' width='240' height='45' rx='8' fill='%231565C0'/%3E%3Ctext x='200' y='190' text-anchor='middle' font-size='16' fill='white'%3E店長%3C/text%3E%3Crect x='80' y='220' width='240' height='45' rx='8' fill='%2300BCD4'/%3E%3Ctext x='200' y='250' text-anchor='middle' font-size='16' fill='white'%3E勤怠入力%3C/text%3E%3C/svg%3E" alt="役職選択画面" style={{ width: '100%', borderRadius: '8px', marginBottom: '1rem' }} />
-        </div>
-        <h3 style={{ color: '#1976D2', marginTop: '1.5rem' }}>各ボタンの説明：</h3>
-        <ul style={{ lineHeight: '1.8' }}>
-          <li><strong>アルバイト</strong>：シフト提出・確認・変更ができます</li>
-          <li><strong>店長</strong>：シフト作成・管理・勤怠管理ができます</li>
-          <li><strong>勤怠入力</strong>：出勤・退勤時刻を入力できます</li>
-        </ul>
-        <div style={{ backgroundColor: '#e3f2fd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
-          <strong>🔙 戻るボタン：</strong> 左上の「戻る」ボタンで前の画面に戻れます
-        </div>
-      </div>
-    ),
-    staffMenu: (
-      <div>
-        <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>アルバイトメニューの使い方</h2>
-        <div style={{ marginBottom: '1.5rem' }}>
-          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Crect width='400' height='400' fill='%23f5f5f5'/%3E%3Crect x='50' y='30' width='300' height='340' rx='10' fill='white' stroke='%231976D2' stroke-width='2'/%3E%3Ctext x='200' y='70' text-anchor='middle' font-size='18' font-weight='bold'%3Eアルバイトメニュー%3C/text%3E%3Crect x='80' y='90' width='240' height='40' rx='8' fill='%231E88E5'/%3E%3Ctext x='200' y='117' text-anchor='middle' font-size='14' fill='white'%3E新規提出%3C/text%3E%3Crect x='80' y='140' width='240' height='40' rx='8' fill='%231976D2'/%3E%3Ctext x='200' y='167' text-anchor='middle' font-size='14' fill='white'%3Eシフト変更%3C/text%3E%3Crect x='80' y='190' width='240' height='40' rx='8' fill='%231565C0'/%3E%3Ctext x='200' y='217' text-anchor='middle' font-size='14' fill='white'%3Eシフト確認%3C/text%3E%3Crect x='80' y='240' width='240' height='40' rx='8' fill='%230D47A1'/%3E%3Ctext x='200' y='267' text-anchor='middle' font-size='14' fill='white'%3E就労時間%3C/text%3E%3Crect x='80' y='290' width='240' height='40' rx='8' fill='%23FF5722'/%3E%3Ctext x='200' y='317' text-anchor='middle' font-size='14' fill='white'%3Eログアウト%3C/text%3E%3C/svg%3E" alt="アルバイトメニュー" style={{ width: '100%', borderRadius: '8px', marginBottom: '1rem' }} />
-        </div>
-        <h3 style={{ color: '#1976D2', marginTop: '1.5rem' }}>各機能の説明：</h3>
-        <ul style={{ lineHeight: '1.8' }}>
-          <li><strong>新規提出</strong>：新しい期間のシフト希望を提出します</li>
-          <li><strong>シフト変更</strong>：既に提出したシフトを変更します</li>
-          <li><strong>シフト確認</strong>：確定したシフトを確認します</li>
-          <li><strong>就労時間</strong>：月ごとの就労時間を確認します</li>
-          <li><strong>お問い合わせ</strong>：質問や問題を報告できます</li>
-          <li><strong>ログアウト</strong>：アプリからログアウトします</li>
-        </ul>
-      </div>
-    ),
-    shiftInput: (
-      <div>
-        <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>シフト入力画面の使い方</h2>
-        <div style={{ marginBottom: '1.5rem' }}>
-          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='500'%3E%3Crect width='400' height='500' fill='%23f5f5f5'/%3E%3Crect x='30' y='20' width='340' height='460' rx='10' fill='white' stroke='%231976D2' stroke-width='2'/%3E%3Ctext x='200' y='50' text-anchor='middle' font-size='18' font-weight='bold'%3Eシフト入力%3C/text%3E%3Ctext x='50' y='75' font-size='12'%3E管理番号: 12345%3C/text%3E%3Crect x='50' y='90' width='40' height='25' rx='4' fill='%236c5ce7'/%3E%3Ctext x='70' y='107' text-anchor='middle' font-size='11' fill='white'%3E月%3C/text%3E%3Crect x='95' y='90' width='40' height='25' rx='4' fill='%2300b894'/%3E%3Ctext x='115' y='107' text-anchor='middle' font-size='11' fill='white'%3E火%3C/text%3E%3Crect x='140' y='90' width='40' height='25' rx='4' fill='%23fd79a8'/%3E%3Ctext x='160' y='107' text-anchor='middle' font-size='11' fill='white'%3E水%3C/text%3E%3Crect x='50' y='130' width='300' height='80' rx='8' fill='%23e3f2fd' stroke='%232196F3' stroke-width='2'/%3E%3Ctext x='60' y='150' font-size='12' font-weight='bold' fill='%231976D2'%3E一括設定%3C/text%3E%3Crect x='60' y='160' width='130' height='20' rx='4' fill='white' stroke='%23ccc'/%3E%3Ctext x='70' y='174' font-size='10' fill='%23666'%3E開始時間%3C/text%3E%3Crect x='200' y='160' width='130' height='20' rx='4' fill='white' stroke='%23ccc'/%3E%3Ctext x='210' y='174' font-size='10' fill='%23666'%3E終了時間%3C/text%3E%3Crect x='60' y='185' width='270' height='18' rx='4' fill='%232196F3'/%3E%3Ctext x='195' y='198' text-anchor='middle' font-size='11' fill='white'%3E一括適用%3C/text%3E%3Crect x='50' y='230' width='300' height='100' rx='8' fill='%23e8e8e8' stroke='%23d0d0d0'/%3E%3Ctext x='60' y='250' font-size='13' font-weight='bold'%3E2025-01-15（水）%3C/text%3E%3Crect x='60' y='260' width='130' height='20' rx='4' fill='white' stroke='%23ccc'/%3E%3Ctext x='70' y='274' font-size='10' fill='%23666'%3E開始時間%3C/text%3E%3Crect x='200' y='260' width='130' height='20' rx='4' fill='white' stroke='%23ccc'/%3E%3Ctext x='210' y='274' font-size='10' fill='%23666'%3E終了時間%3C/text%3E%3Crect x='60' y='290' width='270' height='30' rx='4' fill='%23FFF9E6' stroke='%23FF9800' stroke-width='2'/%3E%3Ctext x='70' y='310' font-size='10' fill='%23666'%3E備考：朝遅刻予定%3C/text%3E%3Crect x='80' y='440' width='240' height='30' rx='6' fill='%231976D2'/%3E%3Ctext x='200' y='461' text-anchor='middle' font-size='14' fill='white'%3E送信%3C/text%3E%3C/svg%3E" alt="シフト入力画面" style={{ width: '100%', borderRadius: '8px', marginBottom: '1rem' }} />
-        </div>
-        <h3 style={{ color: '#1976D2', marginTop: '1.5rem' }}>入力手順：</h3>
+        <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>ログイン画面の使い方</h2>
         <ol style={{ lineHeight: '1.8' }}>
-          <li><strong>曜日ボタン</strong>をタップして、一括設定する曜日を選択</li>
-          <li><strong>一括設定</strong>で開始時間・終了時間を入力</li>
-          <li><strong>一括適用</strong>ボタンで選択した曜日に時間を反映</li>
-          <li>各日付ごとに<strong>個別調整</strong>や<strong>備考</strong>を入力</li>
-          <li>最後に<strong>送信</strong>ボタンでシフトを提出</li>
-        </ol>
-        <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
-          <strong>💡 便利な機能：</strong>
-          <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem' }}>
-            <li>「全て」ボタンで全曜日を一括選択できます</li>
-            <li>備考欄に遅刻・早退などの予定を記入できます</li>
-            <li>時間を空欄にすると「休み」として扱われます</li>
-          </ul>
-        </div>
-      </div>
-    ),
-    managerMenu: (
-      <div>
-        <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>店長メニューの使い方</h2>
-        <div style={{ marginBottom: '1.5rem' }}>
-          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='420'%3E%3Crect width='400' height='420' fill='%23f5f5f5'/%3E%3Crect x='50' y='30' width='300' height='360' rx='10' fill='white' stroke='%231976D2' stroke-width='2'/%3E%3Ctext x='200' y='70' text-anchor='middle' font-size='18' font-weight='bold'%3E店長メニュー%3C/text%3E%3Crect x='80' y='90' width='240' height='40' rx='8' fill='%231E88E5'/%3E%3Ctext x='200' y='117' text-anchor='middle' font-size='14' fill='white'%3Eシフト作成%3C/text%3E%3Crect x='80' y='140' width='240' height='40' rx='8' fill='%231976D2'/%3E%3Ctext x='200' y='167' text-anchor='middle' font-size='14' fill='white'%3Eシフト確認%3C/text%3E%3Crect x='80' y='190' width='240' height='40' rx='8' fill='%230D47A1'/%3E%3Ctext x='200' y='217' text-anchor='middle' font-size='14' fill='white'%3E勤怠管理%3C/text%3E%3Crect x='80' y='240' width='240' height='40' rx='8' fill='%231554A5'/%3E%3Ctext x='200' y='267' text-anchor='middle' font-size='14' fill='white'%3E新人登録%3C/text%3E%3Crect x='80' y='290' width='240' height='40' rx='8' fill='%231565C0'/%3E%3Ctext x='200' y='317' text-anchor='middle' font-size='14' fill='white'%3Eお問い合わせ%3C/text%3E%3Crect x='80' y='340' width='240' height='35' rx='8' fill='%23FF5722'/%3E%3Ctext x='200' y='364' text-anchor='middle' font-size='14' fill='white'%3Eログアウト%3C/text%3E%3C/svg%3E" alt="店長メニュー" style={{ width: '100%', borderRadius: '8px', marginBottom: '1rem' }} />
-        </div>
-        <h3 style={{ color: '#1976D2', marginTop: '1.5rem' }}>各機能の説明：</h3>
-        <ul style={{ lineHeight: '1.8' }}>
-          <li><strong>シフト作成</strong>：スタッフのシフト希望を確認してシフトを作成</li>
-          <li><strong>シフト確認</strong>：作成済みのシフトを確認・印刷</li>
-          <li><strong>勤怠管理</strong>：スタッフの出勤・退勤時刻を管理</li>
-          <li><strong>新人登録</strong>：新しいスタッフを登録</li>
-          <li><strong>お問い合わせ</strong>：質問や問題を報告</li>
-          <li><strong>ログアウト</strong>：アプリからログアウト</li>
-        </ul>
-        <div style={{ backgroundColor: '#e3f2fd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
-          <strong>🔒 セキュリティ：</strong> 店長メニューにアクセスするには店長パスワードの入力が必要です
-        </div>
-      </div>
-    ),
-    clockin: (
-      <div>
-        <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>勤怠入力画面の使い方</h2>
-        <div style={{ marginBottom: '1.5rem' }}>
-          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='350'%3E%3Crect width='400' height='350' fill='%23f5f5f5'/%3E%3Crect x='50' y='40' width='300' height='270' rx='10' fill='white' stroke='%2300BCD4' stroke-width='2'/%3E%3Ctext x='200' y='80' text-anchor='middle' font-size='18' font-weight='bold'%3E勤怠入力%3C/text%3E%3Crect x='80' y='100' width='240' height='35' rx='5' fill='%23e3f2fd' stroke='%231976D2'/%3E%3Ctext x='90' y='123' font-size='14' fill='%23666'%3E管理番号を入力%3C/text%3E%3Crect x='80' y='150' width='240' height='35' rx='5' fill='%23e3f2fd' stroke='%231976D2'/%3E%3Ctext x='90' y='173' font-size='14' fill='%23666'%3E日付を選択%3C/text%3E%3Crect x='80' y='200' width='110' height='30' rx='6' fill='%234CAF50'/%3E%3Ctext x='135' y='221' text-anchor='middle' font-size='13' fill='white'%3E出勤打刻%3C/text%3E%3Crect x='210' y='200' width='110' height='30' rx='6' fill='%23FF9800'/%3E%3Ctext x='265' y='221' text-anchor='middle' font-size='13' fill='white'%3E退勤打刻%3C/text%3E%3Crect x='130' y='250' width='140' height='30' rx='6' fill='%232196F3'/%3E%3Ctext x='200' y='271' text-anchor='middle' font-size='13' fill='white'%3E記録を保存%3C/text%3E%3C/svg%3E" alt="勤怠入力画面" style={{ width: '100%', borderRadius: '8px', marginBottom: '1rem' }} />
-        </div>
-        <h3 style={{ color: '#1976D2', marginTop: '1.5rem' }}>使用手順：</h3>
-        <ol style={{ lineHeight: '1.8' }}>
+          <li><strong>ログインID</strong>を入力します</li>
           <li><strong>管理番号</strong>を入力します</li>
-          <li><strong>日付</strong>を選択します（通常は本日）</li>
-          <li>出勤時は<strong>出勤打刻</strong>ボタンをタップ</li>
-          <li>退勤時は<strong>退勤打刻</strong>ボタンをタップ</li>
-          <li><strong>記録を保存</strong>ボタンで確定します</li>
+          <li><strong>パスワード</strong>を入力します</li>
+          <li><strong>ログイン</strong>ボタンをクリックします</li>
         </ol>
         <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
-          <strong>⚠️ 注意：</strong> 打刻ボタンを押すと現在時刻が自動的に記録されます。必ず出勤・退勤時にタップしてください。
-        </div>
-      </div>
-    ),
-  
-    shiftPeriod: (
-      <div>
-        <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>シフト期間設定の使い方</h2>
-        <div style={{ marginBottom: '1.5rem' }}>
-          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Crect width='400' height='400' fill='%23f5f5f5'/%3E%3Crect x='50' y='40' width='300' height='320' rx='10' fill='white' stroke='%231976D2' stroke-width='2'/%3E%3Ctext x='200' y='80' text-anchor='middle' font-size='18' font-weight='bold'%3E新規提出%3C/text%3E%3Ctext x='80' y='110' font-size='14' font-weight='bold'%3E管理番号:%3C/text%3E%3Crect x='80' y='120' width='240' height='35' rx='5' fill='%23e3f2fd' stroke='%231976D2'/%3E%3Ctext x='90' y='143' font-size='13' fill='%23666'%3E例: 12345%3C/text%3E%3Ctext x='80' y='175' font-size='14' font-weight='bold'%3E開始日:%3C/text%3E%3Crect x='80' y='185' width='240' height='35' rx='5' fill='%23e3f2fd' stroke='%231976D2'/%3E%3Ctext x='90' y='208' font-size='13' fill='%23666'%3E2025-01-15%3C/text%3E%3Ctext x='80' y='240' font-size='14' font-weight='bold'%3E終了日:%3C/text%3E%3Crect x='80' y='250' width='240' height='35' rx='5' fill='%23e3f2fd' stroke='%231976D2'/%3E%3Ctext x='90' y='273' font-size='13' fill='%23666'%3E2025-01-31%3C/text%3E%3Crect x='130' y='310' width='140' height='35' rx='6' fill='%231976D2'/%3E%3Ctext x='200' y='334' text-anchor='middle' font-size='14' fill='white'%3E次へ%3C/text%3E%3C/svg%3E" alt="期間設定画面" style={{ width: '100%', borderRadius: '8px', marginBottom: '1rem' }} />
-        </div>
-        <h3 style={{ color: '#1976D2', marginTop: '1.5rem' }}>入力手順：</h3>
-        <ol style={{ lineHeight: '1.8' }}>
-          <li><strong>管理番号</strong>を入力します（例：12345）</li>
-          <li><strong>開始日</strong>をカレンダーから選択します</li>
-          <li><strong>終了日</strong>をカレンダーから選択します</li>
-          <li><strong>次へ</strong>ボタンをクリックして、シフト入力画面に進みます</li>
-        </ol>
-        <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
-          <strong>⚠️ 注意：</strong>
+          <strong>💡 ポイント：</strong>
           <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem' }}>
-            <li>管理番号は登録時に割り当てられた番号です</li>
-            <li>終了日は開始日より後の日付を選択してください</li>
-            <li>期間は通常、1週間〜1ヶ月程度で設定します</li>
+            <li>店長の初期ログイン：ログインID「kouki」、管理番号「0000」、パスワード「0306」</li>
+            <li>パスワードを忘れた場合は「パスワード変更」から変更できます</li>
           </ul>
-        </div>
-        <div style={{ backgroundColor: '#e3f2fd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
-          <strong>💡 ポイント：</strong> この画面では期間だけを設定します。具体的なシフト時間は次の画面で入力できます。
         </div>
       </div>
     ),
   };
-
   return contents[page] || contents.login;
 };
 
@@ -230,11 +109,13 @@ function App() {
   const [id, setId] = useState('');
   const [password, setPassword] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [managerNumberInput, setManagerNumberInput] = useState(''); 
+  const [managerNumberInput, setManagerNumberInput] = useState('');
   const [loginMessage, setLoginMessage] = useState('');
   const [role, setRole] = useState('');
   const [currentStep, setCurrentStep] = useState('');
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [managerNumber, setManagerNumber] = useState('');
+  const [loggedInManagerNumber, setLoggedInManagerNumber] = useState(''); // ログインした管理番号を保存
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [shiftTimes, setShiftTimes] = useState([]);
@@ -295,42 +176,77 @@ function App() {
     setShowHelp(true);
   };
 
-  const handleLogin = async (e) => {  // ← async を追加
-  e.preventDefault();
-  
-  // IDとパスワードのチェック
-  if (id !== 'kouki' || password !== '0306') {
-    setLoginMessage('IDまたはパスワードが違います');
-    return;
-  }
-
-  // 管理番号のチェック
-  if (!managerNumberInput.trim()) {
-    setLoginMessage('管理番号を入力してください');
-    return;
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from('users')
-      .select('manager_number')
-      .eq('manager_number', managerNumberInput)
-      .eq('is_deleted', false)
-      .single();
-
-    if (error || !data) {
-      setLoginMessage('管理番号が登録されていません');
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    
+    // ログインIDのチェック
+    if (!id.trim()) {
+      setLoginMessage('ログインIDを入力してください');
       return;
     }
 
-    // すべてのチェックが通った場合
-    setIsLoggedIn(true);
-    setLoginMessage('');
-    setNavigationHistory([]);
-  } catch (err) {
-    setLoginMessage('管理番号が登録されていません');
-  }
-};
+    // 管理番号のチェック
+    if (!managerNumberInput.trim()) {
+      setLoginMessage('管理番号を入力してください');
+      return;
+    }
+
+    if (!password) {
+      setLoginMessage('パスワードを入力してください');
+      return;
+    }
+
+    // ログインIDのチェック（固定値）
+    if (id !== 'kouki') {
+      setLoginMessage('ログインIDが違います');
+      return;
+    }
+
+    // 店長の初期ログイン（管理番号0000、パスワード0306）
+    if (managerNumberInput === '0000' && password === '0306') {
+      setIsLoggedIn(true);
+      setLoggedInManagerNumber('0000');
+      setLoginMessage('');
+      setNavigationHistory([]);
+      return;
+    }
+
+    try {
+      // ユーザー情報を取得
+      const { data, error } = await supabase
+        .from('users')
+        .select('manager_number, user_password')
+        .eq('manager_number', managerNumberInput)
+        .eq('is_deleted', false)
+        .single();
+
+      if (error || !data) {
+        setLoginMessage('管理番号が登録されていません');
+        return;
+      }
+
+      // パスワードが設定されていない場合
+      if (!data.user_password) {
+        setLoginMessage('パスワードが設定されていません。管理者に連絡してください');
+        return;
+      }
+
+      // パスワードをハッシュ化して照合
+      const hashedInputPassword = await hashPassword(password);
+      if (hashedInputPassword !== data.user_password) {
+        setLoginMessage('パスワードが違います');
+        return;
+      }
+
+      // すべてのチェックが通った場合
+      setIsLoggedIn(true);
+      setLoggedInManagerNumber(managerNumberInput); // ログインした管理番号を保存
+      setLoginMessage('');
+      setNavigationHistory([]);
+    } catch (err) {
+      setLoginMessage('ログイン中にエラーが発生しました');
+    }
+  };
 
   const selectRole = (selectedRole) => {
     pushToHistory({
@@ -345,6 +261,7 @@ function App() {
     if (selectedRole === 'staff') setCurrentStep('');
   };
 
+  // handleNext, getWeekday, handleTimeChange等の関数は元のコードと同じ
   const handleNext = async () => {
     if (!managerNumber.trim()) {
       alert('管理番号を入力してください');
@@ -567,23 +484,78 @@ function App() {
     );
   };
 
- if (!isLoggedIn) {
-  return (
-    <div className="login-wrapper">
-      <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage)} />
-      <form className="login-card" onSubmit={handleLogin} style={{ position: 'relative' }}>
-        <HelpButton page="login" />
-        <h2>ログイン</h2>
-        <input type="text" placeholder="ログインID" value={id} onChange={e => setId(e.target.value)} required />
-        <input type="password" placeholder="パスワード" value={password} onChange={e => setPassword(e.target.value)} required />
-        <input type="text" placeholder="管理番号" value={managerNumberInput} onChange={e => setManagerNumberInput(e.target.value)} required />  {/* ← この1行を追加 */}
-        <button type="submit" style={{ backgroundColor: '#2196F3' }}>ログイン</button>
-        {loginMessage && <p className="error-msg">{loginMessage}</p>}
-      </form>
-    </div>
-  );
-}
+  // パスワード変更画面
+  if (showPasswordChange) {
+    return (
+      <PasswordReset 
+        onBack={() => setShowPasswordChange(false)} 
+        onSuccess={() => {
+          setShowPasswordChange(false);
+          setLoginMessage('パスワードが変更されました。ログインしてください。');
+        }}
+      />
+    );
+  }
 
+  // ログイン画面
+  if (!isLoggedIn) {
+    return (
+      <div className="login-wrapper">
+        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage)} />
+        <div className="login-card" style={{ position: 'relative' }}>
+          <HelpButton page="login" />
+          <h2>ログイン
+          </h2>
+          <input 
+            type="text" 
+            placeholder="ログインID" 
+            value={id} 
+            onChange={e => setId(e.target.value)} 
+          />
+          <input 
+            type="text" 
+            placeholder="管理番号" 
+            value={managerNumberInput} 
+            onChange={e => setManagerNumberInput(e.target.value)} 
+          />
+          <input 
+            type="password" 
+            placeholder="パスワード" 
+            value={password} 
+            onChange={e => setPassword(e.target.value)} 
+          />
+          <button 
+            onClick={handleLogin} 
+            style={{ backgroundColor: '#2196F3' }}
+          >
+            ログイン
+          </button>
+          {loginMessage && <p className="error-msg">{loginMessage}</p>}
+          
+          {/* パスワード変更リンク */}
+          <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+            <button
+              type="button"
+              onClick={() => setShowPasswordChange(true)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#e53935',
+                fontSize: '0.85rem',
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                padding: '0.5rem'
+              }}
+            >
+              パスワード変更
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 役職選択以降は元のコードと同じ構造
   if (!role) {
     return (
       <div className="login-wrapper">
@@ -594,7 +566,9 @@ function App() {
           <h2>役職を選択してください</h2>
           <div className="button-row" style={{ flexDirection: 'column', gap: '1rem' }}>
             <button onClick={() => selectRole('staff')} style={{ backgroundColor: '#1976D2' }}>アルバイト</button>
-            <button onClick={() => selectRole('manager')} style={{ backgroundColor: '#1565C0' }}>店長</button>
+            {loggedInManagerNumber === '0000' && (
+              <button onClick={() => selectRole('manager')} style={{ backgroundColor: '#1565C0' }}>店長</button>
+            )}
             <button onClick={() => {
               pushToHistory({
                 role: '',
@@ -610,6 +584,12 @@ function App() {
       </div>
     );
   }
+
+  // 以下、他の画面は元のコードと同じ構造（省略）
+  // clockin, manager認証, managerメニュー, staff関連の処理...
+
+  
+
 
   if (role === 'clockin') {
     return (

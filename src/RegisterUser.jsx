@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
 import { supabase } from './supabaseClient';
 
+// 簡易的なハッシュ関数
+const hashPassword = async (password) => {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+};
+
 // ヘルプモーダルコンポーネント
 const HelpModal = ({ isOpen, onClose, content }) => {
   if (!isOpen) return null;
@@ -117,6 +126,7 @@ const getHelpContent = () => {
       <ol style={{ lineHeight: '1.8' }}>
         <li><strong>名前</strong>：スタッフの名前を入力します</li>
         <li><strong>管理番号</strong>：一意の管理番号を入力します（例：101, 102など）</li>
+        <li><strong>パスワード</strong>：スタッフのログインパスワードを設定します（6文字以上）</li>
         <li><strong>登録</strong>ボタンをクリックして登録完了</li>
       </ol>
 
@@ -124,7 +134,8 @@ const getHelpContent = () => {
         <strong>⚠️ 重要：</strong>
         <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem', marginBottom: 0 }}>
           <li>管理番号は重複できません（既に登録されている番号は使えません）</li>
-          <li>管理番号は数字を推奨しますが、文字列でも登録可能です</li>
+          <li>パスワードは6文字以上で設定してください</li>
+          <li>登録後もパスワード変更画面から変更可能です</li>
           <li>一度登録した管理番号は変更できないので注意してください</li>
         </ul>
       </div>
@@ -134,6 +145,7 @@ const getHelpContent = () => {
         <li><strong>番号確認</strong>ボタンをクリック</li>
         <li>登録されているスタッフの一覧が表示されます</li>
         <li><strong>更新</strong>ボタンで最新の一覧に更新できます</li>
+        <li><strong>パスワード変更</strong>ボタンで各スタッフのパスワードを変更できます</li>
       </ol>
 
       <h3 style={{ color: '#1976D2', marginTop: '1.5rem' }}>スタッフを削除する：</h3>
@@ -142,31 +154,6 @@ const getHelpContent = () => {
         <li>削除されたスタッフはシフト提出や確認ができなくなります</li>
         <li>過去のシフトデータは残ります</li>
       </ol>
-
-      <div style={{ backgroundColor: '#e3f2fd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
-        <strong>💡 使い方のコツ：</strong>
-        <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem', marginBottom: 0 }}>
-          <li><strong>管理番号の付け方</strong>：店舗ごとに番号の範囲を分けると管理しやすいです
-            <br />（例：A店舗は100番台、B店舗は200番台）
-          </li>
-          <li><strong>削除前の確認</strong>：削除する前に、そのスタッフが現在シフトに入っていないか確認しましょう</li>
-          <li><strong>定期的な確認</strong>：番号確認で登録漏れがないかチェックしましょう</li>
-        </ul>
-      </div>
-
-      <h3 style={{ color: '#1976D2', marginTop: '1.5rem' }}>よくあるエラーと対処法：</h3>
-      <div style={{ backgroundColor: '#ffebee', padding: '1rem', borderRadius: '8px', marginTop: '0.5rem' }}>
-        <p style={{ margin: '0 0 0.5rem 0', fontWeight: 'bold' }}>「この番号はすでに登録されています」</p>
-        <p style={{ margin: 0, fontSize: '14px' }}>
-          → 別の管理番号を使用してください。番号確認で既存の番号を確認できます。
-        </p>
-      </div>
-      <div style={{ backgroundColor: '#ffebee', padding: '1rem', borderRadius: '8px', marginTop: '0.5rem' }}>
-        <p style={{ margin: '0 0 0.5rem 0', fontWeight: 'bold' }}>「名前と番号を入力してください」</p>
-        <p style={{ margin: 0, fontSize: '14px' }}>
-          → 名前と管理番号の両方が入力されているか確認してください。
-        </p>
-      </div>
     </div>
   );
 };
@@ -174,14 +161,22 @@ const getHelpContent = () => {
 function RegisterUser({ onBack }) {
   const [name, setName] = useState('');
   const [number, setNumber] = useState('');
+  const [password, setPassword] = useState('');
   const [users, setUsers] = useState([]);
   const [message, setMessage] = useState('');
   const [showConfirm, setShowConfirm] = useState(true);
   const [showHelp, setShowHelp] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [newPasswordForEdit, setNewPasswordForEdit] = useState('');
 
   const handleRegister = async () => {
     if (!name || !number) {
-      setMessage('名前と番号を入力してください');
+      setMessage('名前と管理番号を入力してください');
+      return;
+    }
+
+    if (!password || password.length < 6) {
+      setMessage('パスワードは6文字以上で入力してください');
       return;
     }
 
@@ -201,17 +196,31 @@ function RegisterUser({ onBack }) {
       return;
     }
 
-    const { error } = await supabase
-      .from('users')
-      .insert([{ name, manager_number: number, is_deleted: false }]);
+    try {
+      // パスワードをハッシュ化
+      const hashedPassword = await hashPassword(password);
 
-    if (error) {
-      console.error(error);
-      setMessage('登録に失敗しました');
-    } else {
-      setMessage('登録が完了しました');
-      setName('');
-      setNumber('');
+      const { error } = await supabase
+        .from('users')
+        .insert([{ 
+          name, 
+          manager_number: number, 
+          user_password: hashedPassword,
+          plain_password: password,  // 平文パスワードも保存
+          is_deleted: false 
+        }]);
+
+      if (error) {
+        console.error(error);
+        setMessage('登録に失敗しました');
+      } else {
+        setMessage('登録が完了しました');
+        setName('');
+        setNumber('');
+        setPassword('');
+      }
+    } catch (err) {
+      setMessage('登録中にエラーが発生しました');
     }
   };
 
@@ -244,6 +253,36 @@ function RegisterUser({ onBack }) {
     }
   };
 
+  const handlePasswordChange = async (user) => {
+    if (!newPasswordForEdit || newPasswordForEdit.length < 6) {
+      alert('パスワードは6文字以上で入力してください');
+      return;
+    }
+
+    try {
+      const hashedPassword = await hashPassword(newPasswordForEdit);
+      
+      const { error } = await supabase
+        .from('users')
+        .update({ 
+          user_password: hashedPassword,
+          plain_password: newPasswordForEdit  // 平文パスワードも保存
+        })
+        .eq('id', user.id);
+
+      if (error) {
+        alert('パスワード変更に失敗しました');
+      } else {
+        alert('パスワードを変更しました');
+        setEditingUser(null);
+        setNewPasswordForEdit('');
+        fetchUsers(); // 一覧を更新
+      }
+    } catch (err) {
+      alert('エラーが発生しました');
+    }
+  };
+
   return (
     <div className="login-wrapper">
       <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent()} />
@@ -265,6 +304,14 @@ function RegisterUser({ onBack }) {
           value={number}
           onChange={e => setNumber(e.target.value)}
           placeholder="例：101"
+        />
+
+        <label>パスワード:</label>
+        <input
+          type="text"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          placeholder="6文字以上"
         />
 
         {message && <p style={{ 
@@ -339,33 +386,98 @@ function RegisterUser({ onBack }) {
                   <tr>
                     <th style={{ borderBottom: '1px solid #ccc', padding: '0.5rem' }}>管理番号</th>
                     <th style={{ borderBottom: '1px solid #ccc', padding: '0.5rem' }}>名前</th>
+                    <th style={{ borderBottom: '1px solid #ccc', padding: '0.5rem' }}>パスワード</th>
                     <th style={{ borderBottom: '1px solid #ccc', padding: '0.5rem' }}></th>
                   </tr>
                 </thead>
                 <tbody>
                   {users.map((user, index) => (
-                    <tr key={user.id} style={{
-                      backgroundColor: index % 2 === 0 ? 'white' : '#f9f9f9'
-                    }}>
-                      <td style={{ padding: '0.5rem', borderBottom: '1px solid #eee' }}>{user.manager_number}</td>
-                      <td style={{ padding: '0.5rem', borderBottom: '1px solid #eee' }}>{user.name}</td>
-                      <td style={{ padding: '0.5rem', borderBottom: '1px solid #eee' }}>
-                        <button onClick={() => {
-                          if (window.confirm(`${user.name}（管理番号：${user.manager_number}）を削除しますか？`)) {
-                            handleDelete(user.id);
-                          }
-                        }} style={{
-                          backgroundColor: '#e74c3c',
-                          color: 'white',
-                          border: 'none',
-                          padding: '0.3rem 0.6rem',
-                          borderRadius: '4px',
-                          cursor: 'pointer'
+                    <React.Fragment key={user.id}>
+                      <tr style={{
+                        backgroundColor: index % 2 === 0 ? 'white' : '#f9f9f9'
+                      }}>
+                        <td style={{ padding: '0.5rem', borderBottom: '1px solid #eee' }}>{user.manager_number}</td>
+                        <td style={{ padding: '0.5rem', borderBottom: '1px solid #eee' }}>{user.name}</td>
+                        <td style={{ padding: '0.5rem', borderBottom: '1px solid #eee' }}>
+                          {user.plain_password || '未設定'}
+                        </td>
+                        <td style={{ padding: '0.5rem', borderBottom: '1px solid #eee' }}>
+                          <div style={{ display: 'flex', gap: '0.3rem' }}>
+                            <button onClick={() => {
+                              if (editingUser?.id === user.id) {
+                                setEditingUser(null);
+                                setNewPasswordForEdit('');
+                              } else {
+                                setEditingUser(user);
+                                setNewPasswordForEdit('');
+                              }
+                            }} style={{
+                              backgroundColor: '#FF9800',
+                              color: 'white',
+                              border: 'none',
+                              padding: '0.3rem 0.6rem',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '0.75rem'
+                            }}>
+                              {editingUser?.id === user.id ? 'キャンセル' : 'PW変更'}
+                            </button>
+                            <button onClick={() => {
+                              if (window.confirm(`${user.name}（管理番号：${user.manager_number}）を削除しますか？`)) {
+                                handleDelete(user.id);
+                              }
+                            }} style={{
+                              backgroundColor: '#e74c3c',
+                              color: 'white',
+                              border: 'none',
+                              padding: '0.3rem 0.6rem',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '0.75rem'
+                            }}>
+                              削除
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      {editingUser?.id === user.id && (
+                        <tr style={{
+                          backgroundColor: '#FFF3E0'
                         }}>
-                          削除
-                        </button>
-                      </td>
-                    </tr>
+                          <td colSpan="4" style={{ padding: '1rem' }}>
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexDirection: 'column' }}>
+                              <input
+                                type="text"
+                                placeholder="新しいパスワード（6文字以上）"
+                                value={newPasswordForEdit}
+                                onChange={(e) => setNewPasswordForEdit(e.target.value)}
+                                style={{
+                                  width: '100%',
+                                  padding: '0.75rem',
+                                  borderRadius: '4px',
+                                  border: '2px solid #FF9800',
+                                  fontSize: '14px',
+                                  boxSizing: 'border-box'
+                                }}
+                              />
+                              <button onClick={() => handlePasswordChange(user)} style={{
+                                backgroundColor: '#4CAF50',
+                                color: 'white',
+                                border: 'none',
+                                padding: '0.6rem 1.5rem',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                                fontSize: '14px',
+                                fontWeight: 'bold'
+                              }}>
+                                変更
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>

@@ -98,7 +98,8 @@ const TimePeriodEditor = ({ timePeriods, setTimePeriods, onClose }) => {
     const [currentPeriods, setCurrentPeriods] = useState(timePeriods);
     const [newPeriod, setNewPeriod] = useState({ label: '', start: '00:00', end: '00:00' });
     const [nextId, setNextId] = useState(Math.max(0, ...timePeriods.map(p => p.id)) + 1);
-
+const [pendingModifications, setPendingModifications] = useState([]);
+const [showNotifications, setShowNotifications] = useState(false);
     const handleUpdate = (id, field, value) => {
         setCurrentPeriods(prev => {
             const updated = prev.map(p => 
@@ -132,6 +133,7 @@ const TimePeriodEditor = ({ timePeriods, setTimePeriods, onClose }) => {
         setNextId(nextId + 1);
         setNewPeriod({ label: '', start: '00:00', end: '00:00' });
     };
+
 
     const handleSave = () => {
         currentPeriods.sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
@@ -583,11 +585,19 @@ function ManagerAttendance({ onBack }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [availableDates, setAvailableDates] = useState([]);
   const [currentView, setCurrentView] = useState('calendar');
-
+const [pendingModifications, setPendingModifications] = useState([]);
+const [showNotifications, setShowNotifications] = useState(false);
   useEffect(() => {
     fetchAvailableDates();
     fetchUsers();
   }, []);
+  useEffect(() => {
+  if (currentView === 'calendar') {
+    fetchPendingModifications();
+    const interval = setInterval(fetchPendingModifications, 30000); // 30秒ごとに更新
+    return () => clearInterval(interval);
+  }
+}, [currentView]);
 
   const fetchAvailableDates = async () => {
     try {
@@ -634,6 +644,20 @@ function ManagerAttendance({ onBack }) {
       console.error('予期しないエラー:', error);
     }
   };
+  const fetchPendingModifications = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('attendance_logs')
+      .select('*')
+      .eq('is_modified', true)
+      .eq('approval_status', 'pending');
+
+    if (error) throw error;
+    setPendingModifications(data || []);
+  } catch (error) {
+    console.error('申請取得エラー:', error);
+  }
+};
 
   const fetchAttendanceData = async (date) => {
     if (!date) return;
@@ -863,25 +887,63 @@ function ManagerAttendance({ onBack }) {
     return (
       <div className="login-wrapper">
         <div className="login-card" style={{ width: '600px', maxWidth: '95vw', maxHeight: '90vh', overflowY: 'auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h2>勤怠管理</h2>
-          </div>
+         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+  <h2>勤怠管理</h2>
+ <button
+  onClick={() => setShowNotifications(!showNotifications)}
+  style={{
+    position: 'relative',
+    padding: '0.5rem 0.3rem',
+    backgroundColor: '#FF5722',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '0.9rem',
+    whiteSpace: 'nowrap',
+    width: '80px'
+  }}
+>
+  📬申請
+  {pendingModifications.length > 0 && (
+    <span style={{
+      position: 'absolute',
+      top: '-5px',
+      right: '-5px',
+      backgroundColor: 'red',
+      color: 'white',
+      borderRadius: '50%',
+      width: '18px',
+      height: '18px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '0.7rem',
+      fontWeight: 'bold'
+    }}>
+      {pendingModifications.length}
+    </span>
+  )}
+</button>
+</div>
 
-          <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-            <button
-              onClick={() => setCurrentView('calendar')}
-              style={{
-                padding: '0.75rem 2rem',
-                backgroundColor: '#2196F3',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'not-allowed'
-              }}
-              disabled
-            >
-              退勤管理モード
-            </button>
+<div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+  <button
+    onClick={() => setCurrentView('calendar')}
+    style={{
+      padding: '0.75rem 2rem',
+      backgroundColor: '#2196F3',
+      color: 'white',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: 'not-allowed'
+    }}
+    disabled
+  >
+    退勤管理モード
+  </button>
+            
+    
             <button
               onClick={() => setCurrentView('summary')}
               style={{
@@ -896,7 +958,176 @@ function ManagerAttendance({ onBack }) {
               勤務時間集計モード
             </button>
           </div>
+{showNotifications && (
+  <div style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000
+  }}>
+    <div style={{
+      backgroundColor: 'white',
+      padding: '1.5rem',
+      borderRadius: '12px',
+      maxWidth: '500px',
+      width: '90vw',
+      maxHeight: '80vh',
+      overflowY: 'auto'
+    }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '1.5rem',
+        paddingBottom: '1rem',
+        borderBottom: '2px solid #E0E0E0'
+      }}>
+        <h3 style={{ margin: 0, fontSize: '1.3rem' }}>修正申請一覧</h3>
+        <button
+          onClick={() => setShowNotifications(false)}
+          style={{
+            backgroundColor: 'transparent',
+            border: 'none',
+            fontSize: '1.5rem',
+            cursor: 'pointer',
+            color: '#666'
+          }}
+        >
+          ✕
+        </button>
+      </div>
 
+      {pendingModifications.length > 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {pendingModifications
+            .sort((a, b) => new Date(b.action_date) - new Date(a.action_date))
+            .map((mod, index) => {
+              const groupedLogs = pendingModifications.filter(
+                m => m.manager_number === mod.manager_number && m.action_date === mod.action_date
+              );
+              
+              if (index > 0 && 
+                  mod.manager_number === pendingModifications[index - 1].manager_number &&
+                  mod.action_date === pendingModifications[index - 1].action_date) {
+                return null;
+              }
+
+              return (
+                <div key={`${mod.manager_number}-${mod.action_date}`} style={{
+                  backgroundColor: '#F5F5F5',
+                  padding: '1.2rem',
+                  borderRadius: '8px',
+                  border: '1px solid #E0E0E0'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    marginBottom: '0.8rem'
+                  }}>
+                    <div>
+                      <div style={{ 
+                        fontSize: '1.1rem', 
+                        fontWeight: 'bold',
+                        marginBottom: '0.3rem'
+                      }}>
+                        {userMap[mod.manager_number]}
+                      </div>
+                      <div style={{ 
+                        fontSize: '0.9rem', 
+                        color: '#666'
+                      }}>
+                        {mod.action_date}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    backgroundColor: 'white',
+                    padding: '1rem',
+                    borderRadius: '6px',
+                    marginBottom: '1rem'
+                  }}>
+                    {groupedLogs.map((log, idx) => (
+                      <div key={idx} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '0.5rem 0',
+                        borderBottom: idx < groupedLogs.length - 1 ? '1px solid #F0F0F0' : 'none'
+                      }}>
+                        <span style={{ fontWeight: '500', color: '#333' }}>
+                          {log.action_type === 'clock_in' ? '出勤' :
+                           log.action_type === 'clock_out' ? '退勤' :
+                           log.action_type === 'break_start' ? '休憩開始' : '休憩終了'}
+                        </span>
+                        <span style={{ 
+                          fontSize: '1.1rem', 
+                          fontWeight: 'bold',
+                          color: '#2196F3'
+                        }}>
+                          {log.action_time}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={async () => {
+                      try {
+                        for (const log of groupedLogs) {
+                          const { error } = await supabase
+                            .from('attendance_logs')
+                            .update({ approval_status: 'approved' })
+                            .eq('id', log.id);
+                          
+                          if (error) throw error;
+                        }
+                        
+                        await fetchPendingModifications();
+                        alert('承認しました');
+                      } catch (error) {
+                        console.error('承認エラー:', error);
+                        alert('承認に失敗しました');
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '0.8rem',
+                      backgroundColor: '#4CAF50',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '1rem',
+                      fontWeight: 'bold',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    確定
+                  </button>
+                </div>
+              );
+            }).filter(Boolean)}
+        </div>
+      ) : (
+        <div style={{
+          textAlign: 'center',
+          padding: '3rem 1rem',
+          color: '#999'
+        }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📋</div>
+          <p style={{ margin: 0, fontSize: '1.1rem' }}>申請はありません</p>
+        </div>
+      )}
+    </div>
+  </div>
+)}
           <div style={{
             marginTop: '1rem',
             border: '1px solid #ddd',
