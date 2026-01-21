@@ -142,12 +142,12 @@ const getClockInHelpContent = (page) => {
         </div>
       </div>
     ),
-    buttons: (
-      <div>
-        <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>勤怠記録</h2>
-        <p style={{ lineHeight: '1.8' }}>
-          該当するボタンを<strong>長押し</strong>（約0.8秒）して記録します。
-        </p>
+   buttons: (
+  <div>
+    <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>勤怠記録</h2>
+    <p style={{ lineHeight: '1.8' }}>
+      該当するボタンを<strong>ダブルクリック</strong>（素早く2回クリック）して記録します。
+    </p>
         <div style={{ marginTop: '1rem' }}>
           <h3 style={{ color: '#2E7D32', marginBottom: '0.5rem' }}>🟢 出勤</h3>
           <p style={{ lineHeight: '1.6', marginBottom: '1rem' }}>勤務を開始する時に押します。</p>
@@ -162,12 +162,14 @@ const getClockInHelpContent = (page) => {
           <p style={{ lineHeight: '1.6', marginBottom: '1rem' }}>休憩から戻る時に押します。</p>
         </div>
         <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
-          <strong>💡 ポイント：</strong>
-          <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem' }}>
-            <li>誤操作防止のため、ボタンは必ず<strong>長押し</strong>してください</li>
-            <li>記録後は画面下部の「最近の記録」で確認できます</li>
-            <li>「履歴」ボタンから過去の記録を確認・修正できます</li>
-          </ul>
+         <strong>💡 ポイント:</strong>
+<ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem' }}>
+  <li>誤操作防止のため、ボタンは必ず<strong>ダブルクリック</strong>してください</li>
+  <li>1回目のクリック後、ボタンがオレンジ色に変わります</li>
+  <li>出勤前に退勤、休憩開始前に休憩終了を押すと警告が表示されます</li>
+  <li>記録後は画面下部の「最近の記録」で確認できます</li>
+  <li>「履歴」ボタンから過去の記録を確認・修正できます</li>
+</ul>
         </div>
       </div>
     ),
@@ -257,9 +259,10 @@ function ClockInInput({ onBack }) {
   const [currentDateTime, setCurrentDateTime] = useState('');
   const [actionLogs, setActionLogs] = useState([]);
   
-  // 長押し処理
-  const [isLongPressing, setIsLongPressing] = useState(null);
-  const [pressTimer, setPressTimer] = useState(null);
+  // ダブルクリック処理
+const [lastClickTime, setLastClickTime] = useState({});
+const [clickCount, setClickCount] = useState({});
+ 
   
   // 履歴・カレンダー
   const [historyDates, setHistoryDates] = useState([]);
@@ -371,22 +374,57 @@ const [newLog, setNewLog] = useState({ action_type: 'clock_in', action_time: '09
     return `${year}-${month}-${day}`;
   };
 
-  // 長押し処理
-  const handlePressStart = (actionType) => {
-    const timer = setTimeout(() => {
-      handleAction(actionType);
-    }, 800); // 800ミリ秒長押し
-    setPressTimer(timer);
-    setIsLongPressing(actionType);
-  };
+ // ダブルクリック処理
+const handleButtonClick = (actionType) => {
+  const now = Date.now();
+  const lastClick = lastClickTime[actionType] || 0;
+  const timeDiff = now - lastClick;
 
-  const handlePressEnd = () => {
-    if (pressTimer) {
-      clearTimeout(pressTimer);
-      setPressTimer(null);
+  if (timeDiff < 500) { // 500ms以内の2回目のクリック
+    // ダブルクリック成功
+    checkAndHandleAction(actionType);
+    setClickCount({ ...clickCount, [actionType]: 0 });
+    setLastClickTime({ ...lastClickTime, [actionType]: 0 });
+  } else {
+    // 1回目のクリック
+    setClickCount({ ...clickCount, [actionType]: 1 });
+    setLastClickTime({ ...lastClickTime, [actionType]: now });
+    
+    // 500ms後にリセット
+    setTimeout(() => {
+      setClickCount(prev => ({ ...prev, [actionType]: 0 }));
+    }, 500);
+  }
+};
+// アクションの妥当性チェック
+const checkAndHandleAction = (actionType) => {
+  // 今日のログを取得
+  const todayLogs = actionLogs.filter(log => log.action_date === getTodayDateString());
+  
+  let warningMessage = '';
+  
+  if (actionType === 'clock_out') {
+    // 退勤: 出勤が記録されているか確認
+    const hasClockIn = todayLogs.some(log => log.action_type === 'clock_in');
+    if (!hasClockIn) {
+      warningMessage = '出勤が記録されていませんが、退勤を記録しますか?';
     }
-    setIsLongPressing(null);
-  };
+  } else if (actionType === 'break_end') {
+    // 休憩終了: 休憩開始が記録されているか確認
+    const hasBreakStart = todayLogs.some(log => log.action_type === 'break_start');
+    if (!hasBreakStart) {
+      warningMessage = '休憩開始が記録されていませんが、休憩終了を記録しますか?';
+    }
+  }
+  
+  if (warningMessage) {
+    if (window.confirm(warningMessage)) {
+      handleAction(actionType);
+    }
+  } else {
+    handleAction(actionType);
+  }
+};
 
   // アクション実行
   const handleAction = async (actionType) => {
@@ -874,7 +912,7 @@ const handleEditSubmit = async () => {
               position: 'absolute',
               right: 0,
               padding: '0.3rem 0.4rem',
-              backgroundColor: '#FF9800',
+              backgroundColor: '#F44336',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
@@ -937,6 +975,24 @@ const handleEditSubmit = async () => {
     <option value="C">C</option>
   </select>
 </div>
+{/* 操作説明 */}
+<div style={{
+  textAlign: 'center',
+  padding: '0.75rem',
+  backgroundColor: '#FFF9C4',
+  borderRadius: '8px',
+  marginBottom: '1rem',
+  border: '2px solid #FBC02D'
+}}>
+  <p style={{
+    margin: 0,
+    fontSize: '1rem',
+    fontWeight: 'bold',
+    color: '#F57F17'
+  }}>
+    💡 ボタンを<span style={{ fontSize: '1.1rem', color: '#E65100' }}>ダブルクリック</span>して記録してください
+  </p>
+</div>
 
 <div style={{
   display: 'grid',
@@ -945,39 +1001,39 @@ const handleEditSubmit = async () => {
   marginBottom: '2rem'
 }}>
 
-
-
-          {[
-            { type: 'clock_in', label: '出勤', color: '#4CAF50' },
-            { type: 'clock_out', label: '退勤', color: '#2196F3' },
-            { type: 'break_start', label: '休憩開始', color: '#FF9800' },
-            { type: 'break_end', label: '休憩終了', color: '#9C27B0' }
-          ].map(({ type, label, color }) => (
-            <button
-              key={type}
-              onMouseDown={() => handlePressStart(type)}
-              onMouseUp={handlePressEnd}
-              onMouseLeave={handlePressEnd}
-              onTouchStart={() => handlePressStart(type)}
-              onTouchEnd={handlePressEnd}
-              style={{
-                padding: '2rem 1rem',
-                backgroundColor: isLongPressing === type ? '#FF5722' : color,
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '1.1rem',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                transform: isLongPressing === type ? 'scale(0.95)' : 'scale(1)',
-                userSelect: 'none'
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+{[
+  { type: 'clock_in', label: '出勤', color: '#4CAF50' },
+  { type: 'clock_out', label: '退勤', color: '#2196F3' },
+  { type: 'break_start', label: '休憩開始', color: '#FF9800' },
+  { type: 'break_end', label: '休憩終了', color: '#9C27B0' }
+].map(({ type, label, color }) => (
+  <button
+    key={type}
+    onClick={() => handleButtonClick(type)}
+    style={{
+      padding: '2rem 1rem',
+      backgroundColor: clickCount[type] === 1 ? '#FF5722' : color,
+      color: 'white',
+      border: clickCount[type] === 1 ? '3px solid #FFD54F' : 'none',
+      borderRadius: '8px',
+      fontSize: '1.1rem',
+      fontWeight: 'bold',
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      transform: clickCount[type] === 1 ? 'scale(1.05)' : 'scale(1)',
+      userSelect: 'none',
+      boxShadow: clickCount[type] === 1 ? '0 4px 12px rgba(255,87,34,0.4)' : 'none'
+    }}
+  >
+    {label}
+    {clickCount[type] === 1 && (
+      <div style={{ fontSize: '0.8rem', marginTop: '0.3rem' }}>
+        もう一度クリック!
+      </div>
+    )}
+  </button>
+))}
+</div>
 
         {message && (
           <div style={{
@@ -1337,20 +1393,23 @@ if (step === 'edit') {
   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
     <h3 style={{ margin: 0, fontSize: '1rem', color: '#FF6F00' }}>✏️ 時間の修正</h3>
     <button
-      onClick={() => setShowAddForm(!showAddForm)}
-      style={{
-        padding: '0.4rem 0.8rem',
-        backgroundColor: '#4CAF50',
-        color: 'white',
-        border: 'none',
-        borderRadius: '4px',
-        fontSize: '0.85rem',
-        cursor: 'pointer',
-        fontWeight: 'bold'
-      }}
-    >
-      {showAddForm ? '閉じる' : '➕ 追加'}
-    </button>
+  onClick={() => setShowAddForm(!showAddForm)}
+  style={{
+    padding: '0.3rem 0.5rem',  // ← 左右のpaddingを0.8remから0.5remに変更
+    backgroundColor: '#4CAF50',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    fontSize: '1.0rem',
+    cursor: 'pointer',
+    fontWeight: 'bold',
+    minWidth: 'auto',  // ← この行を追加
+    whiteSpace: 'nowrap' ,
+     maxWidth: '140px', 
+  }}
+>
+  {showAddForm ? '閉じる' : '➕ 追加'}
+</button>
   </div>
   <p style={{ fontSize: '0.8rem', color: '#666', marginBottom: '1rem' }}>
     修正後「申請」ボタンを押してください
@@ -1510,6 +1569,9 @@ if (step === 'edit') {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center'
+        
+              
+            
         }}
       >
         削除🗑️
