@@ -95,8 +95,36 @@ const getHelpContent = (page) => {
         <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
           <strong>💡 ポイント：</strong>
           <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem' }}>
-            <li>店長の初期ログイン：ログインID「kouki」、管理番号「0000」、パスワード「0306」</li>
+            <li>ログインIDは管理者から指定されたものを使用してください</li>
+            <li>管理番号は各自に割り当てられた番号です</li>
             <li>パスワードを忘れた場合は「パスワード変更」から変更できます</li>
+          </ul>
+        </div>
+      </div>
+    ),
+     clockin: (
+      <div>
+        <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>勤怠入力の使い方</h2>
+        <ol style={{ lineHeight: '1.8' }}>
+          <li><strong>パスワード認証</strong>を行います（パスワードは管理者に確認してください）</li>
+          <li><strong>管理番号</strong>を入力して「次へ」ボタンをクリックします</li>
+          <li><strong>該当するボタンを長押し</strong>（約0.8秒）して記録します
+            <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem' }}>
+              <li>🟢 出勤：勤務開始時に押します</li>
+              <li>🔵 退勤：勤務終了時に押します</li>
+              <li>🟠 休憩開始：休憩に入る時に押します</li>
+              <li>🟣 休憩終了：休憩から戻る時に押します</li>
+            </ul>
+          </li>
+          <li><strong>履歴ボタン</strong>から過去の記録を確認・修正できます</li>
+        </ol>
+        <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
+          <strong>💡 ポイント：</strong>
+          <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem' }}>
+            <li>ボタンは必ず長押しして記録してください（誤操作防止のため）</li>
+            <li>記録後は画面下部の「最近の記録」で確認できます</li>
+            <li>修正が必要な場合は履歴から該当日を選んで修正申請できます</li>
+            <li>修正は承認が必要です（申請中/承認済のステータスで確認できます）</li>
           </ul>
         </div>
       </div>
@@ -176,77 +204,70 @@ function App() {
     setShowHelp(true);
   };
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    
-    // ログインIDのチェック
-    if (!id.trim()) {
-      setLoginMessage('ログインIDを入力してください');
+ const handleLogin = async (e) => {
+  e.preventDefault();
+  
+  if (!id.trim()) {
+    setLoginMessage('ログインIDを入力してください');
+    return;
+  }
+
+  if (!managerNumberInput.trim()) {
+    setLoginMessage('管理番号を入力してください');
+    return;
+  }
+
+  if (!password) {
+    setLoginMessage('パスワードを入力してください');
+    return;
+  }
+
+  if (id !== 'kouki') {
+    setLoginMessage('ログインIDが違います');
+    return;
+  }
+
+  if (managerNumberInput === '0000' && password === '0306') {
+    setIsLoggedIn(true);
+    setLoggedInManagerNumber('0000');
+    setLoginMessage('');
+    setNavigationHistory([]);
+    return;
+  }
+
+  try {
+    // ✅ is_deleted = false のユーザーのみ取得
+    const { data, error } = await supabase
+      .from('users')
+      .select('manager_number, user_password, is_deleted')
+      .eq('manager_number', managerNumberInput)
+      .eq('is_deleted', false)  // ← この行を追加
+      .single();
+
+    if (error || !data) {
+      setLoginMessage('管理番号が登録されていません');
       return;
     }
 
-    // 管理番号のチェック
-    if (!managerNumberInput.trim()) {
-      setLoginMessage('管理番号を入力してください');
+    if (!data.user_password) {
+      setLoginMessage('パスワードが設定されていません。管理者に連絡してください');
       return;
     }
 
-    if (!password) {
-      setLoginMessage('パスワードを入力してください');
+    const hashedInputPassword = await hashPassword(password);
+    if (hashedInputPassword !== data.user_password) {
+      setLoginMessage('パスワードが違います');
       return;
     }
 
-    // ログインIDのチェック（固定値）
-    if (id !== 'kouki') {
-      setLoginMessage('ログインIDが違います');
-      return;
-    }
-
-    // 店長の初期ログイン（管理番号0000、パスワード0306）
-    if (managerNumberInput === '0000' && password === '0306') {
-      setIsLoggedIn(true);
-      setLoggedInManagerNumber('0000');
-      setLoginMessage('');
-      setNavigationHistory([]);
-      return;
-    }
-
-    try {
-      // ユーザー情報を取得
-      const { data, error } = await supabase
-        .from('users')
-        .select('manager_number, user_password')
-        .eq('manager_number', managerNumberInput)
-        .eq('is_deleted', false)
-        .single();
-
-      if (error || !data) {
-        setLoginMessage('管理番号が登録されていません');
-        return;
-      }
-
-      // パスワードが設定されていない場合
-      if (!data.user_password) {
-        setLoginMessage('パスワードが設定されていません。管理者に連絡してください');
-        return;
-      }
-
-      // パスワードをハッシュ化して照合
-      const hashedInputPassword = await hashPassword(password);
-      if (hashedInputPassword !== data.user_password) {
-        setLoginMessage('パスワードが違います');
-        return;
-      }
-
-      // すべてのチェックが通った場合
-      setIsLoggedIn(true);
-      setLoggedInManagerNumber(managerNumberInput); // ログインした管理番号を保存
-      setLoginMessage('');
-      setNavigationHistory([]);
-    } catch (err) {
-      setLoginMessage('ログイン中にエラーが発生しました');
-    }
-  };
+    setIsLoggedIn(true);
+    setLoggedInManagerNumber(managerNumberInput);
+    setLoginMessage('');
+    setNavigationHistory([]);
+  } catch (err) {
+    setLoginMessage('ログイン中にエラーが発生しました');
+  }
+};
 
   const selectRole = (selectedRole) => {
     pushToHistory({
@@ -596,7 +617,7 @@ function App() {
       <div style={{ position: 'relative' }}>
         <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage)} />
         <BackButton />
-        <HelpButton page="clockin" />
+        
         <ClockInInput onBack={() => setRole('')} />
       </div>
     );

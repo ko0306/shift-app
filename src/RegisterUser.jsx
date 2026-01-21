@@ -170,59 +170,72 @@ function RegisterUser({ onBack }) {
   const [newPasswordForEdit, setNewPasswordForEdit] = useState('');
 
   const handleRegister = async () => {
-    if (!name || !number) {
-      setMessage('名前と管理番号を入力してください');
-      return;
-    }
+  if (!name || !number) {
+    setMessage('名前と管理番号を入力してください');
+    return;
+  }
 
-    if (!password || password.length < 6) {
-      setMessage('パスワードは6文字以上で入力してください');
-      return;
-    }
+  if (!password || password.length < 6) {
+    setMessage('パスワードは6文字以上で入力してください');
+    return;
+  }
 
-    const { data: existing, error: fetchError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('manager_number', number);
+  // ✅ 削除済みも含めて全ユーザーをチェック
+  const { data: existing, error: fetchError } = await supabase
+    .from('users')
+    .select('*')
+    .eq('manager_number', number);
 
-    if (fetchError) {
-      console.error(fetchError);
-      setMessage('確認中にエラーが発生しました');
-      return;
-    }
+  if (fetchError) {
+    console.error(fetchError);
+    setMessage('確認中にエラーが発生しました');
+    return;
+  }
 
-    if (existing.length > 0) {
+  // ✅ 削除済みユーザーがいる場合は警告
+  if (existing.length > 0) {
+    const deletedUser = existing.find(u => u.is_deleted === true);
+    if (deletedUser) {
+      const confirmReuse = window.confirm(
+        `この管理番号(${number})は過去に削除されたユーザー「${deletedUser.name}」が使用していました。\n同じ番号を再利用しますか？`
+      );
+      if (!confirmReuse) {
+        setMessage('登録をキャンセルしました');
+        return;
+      }
+    } else {
+      // アクティブなユーザーが存在する場合
       setMessage('この番号はすでに登録されています');
       return;
     }
+  }
 
-    try {
-      // パスワードをハッシュ化
-      const hashedPassword = await hashPassword(password);
+  try {
+    const hashedPassword = await hashPassword(password);
 
-      const { error } = await supabase
-        .from('users')
-        .insert([{ 
-          name, 
-          manager_number: number, 
-          user_password: hashedPassword,
-          plain_password: password,  // 平文パスワードも保存
-          is_deleted: false 
-        }]);
+    const { error } = await supabase
+      .from('users')
+      .insert([{ 
+        name, 
+        manager_number: number, 
+        user_password: hashedPassword,
+        plain_password: password,
+        is_deleted: false 
+      }]);
 
-      if (error) {
-        console.error(error);
-        setMessage('登録に失敗しました');
-      } else {
-        setMessage('登録が完了しました');
-        setName('');
-        setNumber('');
-        setPassword('');
-      }
-    } catch (err) {
-      setMessage('登録中にエラーが発生しました');
+    if (error) {
+      console.error(error);
+      setMessage('登録に失敗しました');
+    } else {
+      setMessage('登録が完了しました');
+      setName('');
+      setNumber('');
+      setPassword('');
     }
-  };
+  } catch (err) {
+    setMessage('登録中にエラーが発生しました');
+  }
+};
 
   const fetchUsers = async () => {
     const { data, error } = await supabase
