@@ -164,11 +164,13 @@ const getClockInHelpContent = (page) => {
         <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
          <strong>💡 ポイント:</strong>
 <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem' }}>
+  <li>記録前に<strong>店舗</strong>を正しく選択してください（前回の店舗が自動で選ばれます）</li>
   <li>誤操作防止のため、ボタンは必ず<strong>ダブルクリック</strong>してください</li>
   <li>1回目のクリック後、ボタンがオレンジ色に変わります</li>
   <li>出勤前に退勤、休憩開始前に休憩終了を押すと警告が表示されます</li>
   <li>記録後は画面下部の「最近の記録」で確認できます</li>
   <li>「履歴」ボタンから過去の記録を確認・修正できます</li>
+  <li>「承認」ボタンから勤怠修正・費用申請の承認／拒否通知を確認できます</li>
 </ul>
         </div>
       </div>
@@ -180,30 +182,30 @@ const getClockInHelpContent = (page) => {
           過去の勤怠記録を確認・修正できます。
         </p>
         <ol style={{ lineHeight: '1.8', marginTop: '1rem' }}>
-          <li>カレンダーで<strong>青色で表示されている日付</strong>は記録がある日です</li>
-          <li>記録がある日付をクリックすると、その日の詳細が表示されます</li>
+          <li>日付をクリックすると、その日の詳細が表示されます</li>
           <li>◀ ▶ ボタンで月を切り替えられます</li>
         </ol>
         <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
-          <strong>💡 ポイント：</strong>
+          <strong>💡 カレンダーの色の見方：</strong>
           <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem' }}>
-            <li>青色の日付のみクリックできます（記録がある日）</li>
-            <li>灰色の日付は記録がない日です</li>
+            <li><span style={{ color: '#2E7D32', fontWeight: 'bold' }}>🟩 緑：</span>勤務時間が確定済みの日</li>
+            <li><span style={{ color: '#1565C0', fontWeight: 'bold' }}>🟦 青：</span>打刻記録がある日（未確定）</li>
+            <li><span style={{ color: '#C62828', fontWeight: 'bold' }}>🟥 赤：</span>記録がない日</li>
             <li>薄い表示は前月・翌月の日付です</li>
           </ul>
         </div>
       </div>
     ),
-    edit: (
+   edit: (
   <div>
     <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>記録の確認と修正</h2>
     <p style={{ lineHeight: '1.8' }}>
-      選択した日の勤怠記録を確認し、必要に応じて修正申請ができます。
+      選択した日の勤怠記録を確認し、必要に応じて修正申請や費用申請ができます。
     </p>
     
     <h3 style={{ color: '#FF6F00', marginTop: '1.5rem', marginBottom: '0.5rem' }}>📋 記録の確認</h3>
     <p style={{ lineHeight: '1.6' }}>
-      その日の出勤、休憩開始、休憩終了、退勤の記録が色分けされて表示されます。
+      その日の出勤、休憩開始、休憩終了、退勤の記録が色分けされて表示されます。確定済みの日は確定時間と打刻記録が並べて表示されます。
     </p>
     
     <h3 style={{ color: '#FF6F00', marginTop: '1.5rem', marginBottom: '0.5rem' }}>✏️ 修正モード</h3>
@@ -222,6 +224,15 @@ const getClockInHelpContent = (page) => {
       <li>時刻を入力</li>
       <li>「✓ 確認」ボタンで追加</li>
     </ol>
+
+    <h3 style={{ color: '#1565C0', marginTop: '1.5rem', marginBottom: '0.5rem' }}>💴 費用・備考の申請</h3>
+    <p style={{ lineHeight: '1.6' }}>
+      修正モード内で交通費手当・応援交通費手当・備考を入力し、「📤 申請」ボタンで一緒に申請できます。
+    </p>
+    <ul style={{ lineHeight: '1.8', marginTop: '0.5rem', paddingLeft: '1.2rem' }}>
+      <li>承認されると「✅ 承認済」と表示されます</li>
+      <li>承認・拒否の結果は「承認」ボタンの通知で確認できます</li>
+    </ul>
     
     <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
       <strong>💡 ポイント：</strong>
@@ -239,7 +250,8 @@ const getClockInHelpContent = (page) => {
   };
   return contents[page] || contents.password;
 };
-function ClockInInput({ onBack }) {
+
+function ClockInInput({ onBack, loggedInManagerNumber }) {
   // 認証とパスワード
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
@@ -268,7 +280,8 @@ const [clickCount, setClickCount] = useState({});
   const [historyDates, setHistoryDates] = useState([]);
   const [selectedHistoryDate, setSelectedHistoryDate] = useState('');
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  
+  const [confirmedDates, setConfirmedDates] = useState([]);
+  const [finalShiftData, setFinalShiftData] = useState({}); 
   // 編集モード
   const [editMode, setEditMode] = useState(false);
  
@@ -276,9 +289,40 @@ const [clickCount, setClickCount] = useState({});
    const [showHelp, setShowHelp] = useState(false);
   const [currentHelpPage, setCurrentHelpPage] = useState('password');
 const [selectedStore, setSelectedStore] = useState('A');
+const [storeList, setStoreList] = useState(['A', 'B']); // ← 追加
+
+// ← 追加：useEffectの中（fetchUsersを呼んでいるuseEffectの下）に追加
+useEffect(() => {
+  const fetchStoreSettings = async () => {
+    const { data, error } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'shift_settings')
+      .single();
+    if (!error && data) {
+      try {
+        const parsed = JSON.parse(data.value);
+        if (parsed.stores && parsed.stores.length > 0) {
+          setStoreList(parsed.stores);
+        }
+      } catch (e) {}
+    }
+  };
+  fetchStoreSettings();
+}, []);
 const [showAddForm, setShowAddForm] = useState(false);
+const [expenseData, setExpenseData] = useState({
+  transport_fee: '',
+  support_transport_fee: '',
+  remarks: ''
+});
+const [expenseStatus, setExpenseStatus] = useState(null); // null / 'pending' / 'approved'
+const [expenseNotification, setExpenseNotification] = useState(null); // {status, comment, id}
 const [newLog, setNewLog] = useState({ action_type: 'clock_in', action_time: '09:00' });
-  // 初期表示時に日時を設定
+const [notifications, setNotifications] = useState([]);
+const [showNotificationPanel, setShowNotificationPanel] = useState(false);  
+
+// 初期表示時に日時を設定
   useEffect(() => {
     updateDateTime();
     fetchUsers();
@@ -290,6 +334,18 @@ const [newLog, setNewLog] = useState({ action_type: 'clock_in', action_time: '09
       return () => clearInterval(interval);
     }
   }, [isAuthenticated]);
+
+  
+useEffect(() => {
+  if (loggedInManagerNumber && !isAuthenticated && Object.keys(userMap).length > 0) {
+    setIsAuthenticated(true);
+    setSelectedManagerNumber(loggedInManagerNumber);
+    fetchActionLogs(loggedInManagerNumber);
+    fetchLastStore(loggedInManagerNumber);
+    fetchNotifications(loggedInManagerNumber); // ★追加
+    setStep('buttons');
+  }
+}, [loggedInManagerNumber, isAuthenticated, userMap]);
 
   const updateDateTime = () => {
     const now = new Date();
@@ -490,24 +546,77 @@ const checkAndHandleAction = (actionType) => {
     console.error('履歴取得エラー:', error);
   }
 };
+const fetchNotifications = async (managerNumber) => {
+  try {
+    // 費用申請の通知
+    const { data: expData, error: expError } = await supabase
+      .from('attendance_expenses')
+      .select('*')
+      .eq('manager_number', managerNumber)
+      .in('approval_status', ['approved', 'rejected'])
+      .eq('is_employee_notified', false)
+      .order('action_date', { ascending: false });
 
+    // 勤怠修正申請の通知（承認済み or 拒否済み）
+    const { data: logData, error: logError } = await supabase
+      .from('attendance_logs')
+      .select('*')
+      .eq('manager_number', managerNumber)
+      .eq('is_modified', true)
+      .in('approval_status', ['approved', 'rejected'])
+      .eq('is_employee_notified', false)
+      .order('action_date', { ascending: false });
+
+    const expNotifications = (!expError && expData) ? expData.map(d => ({ ...d, notification_type: 'expense' })) : [];
+    const logNotifications = (!logError && logData) ? logData.map(d => ({ ...d, notification_type: 'attendance_log' })) : [];
+
+    setNotifications([...expNotifications, ...logNotifications]);
+  } catch (error) {
+    console.error('通知取得エラー:', error);
+  }
+};
   // 履歴の日付一覧を取得
   const fetchHistoryDates = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('attendance_logs')
-        .select('action_date')
-        .eq('manager_number', selectedManagerNumber)
-        .order('action_date', { ascending: false });
+  try {
+    const { data, error } = await supabase
+      .from('attendance_logs')
+      .select('action_date')
+      .eq('manager_number', selectedManagerNumber)
+      .order('action_date', { ascending: false });
 
-      if (error) throw error;
-      
-      const uniqueDates = [...new Set(data.map(item => item.action_date))];
-      setHistoryDates(uniqueDates);
-    } catch (error) {
-      console.error('日付取得エラー:', error);
+    if (error) throw error;
+    
+    const uniqueDates = [...new Set(data.map(item => item.action_date))];
+    setHistoryDates(uniqueDates);
+
+    // 確定済み日付を取得
+    const { data: confirmed, error: confirmedError } = await supabase
+      .from('attendance')
+      .select('date')
+      .eq('manager_number', selectedManagerNumber)
+      .eq('is_confirmed', true);
+
+    if (!confirmedError && confirmed) {
+      setConfirmedDates(confirmed.map(c => c.date));
     }
-  };
+
+    // ↓ 追加：確定済み勤怠管理データを取得
+    const { data: finalData, error: finalError } = await supabase
+      .from('attendance')
+      .select('date, actual_start, actual_end, break_minutes')
+      .eq('manager_number', selectedManagerNumber)
+      .eq('is_confirmed', true);
+
+    if (!finalError && finalData) {
+      const map = {};
+      finalData.forEach(d => { map[d.date] = d; });
+      setFinalShiftData(map);
+    }
+
+  } catch (error) {
+    console.error('日付取得エラー:', error);
+  }
+};
 
   // 特定日の履歴を取得
   const fetchDayLogs = async (date) => {
@@ -520,11 +629,46 @@ const checkAndHandleAction = (actionType) => {
       .order('action_time', { ascending: true });
 
     if (error) throw error;
-setDayLogs(data || []);
-} catch (error) {
-  console.error('日別履歴取得エラー:', error);
-  setDayLogs([]);
-}
+    setDayLogs(data || []);
+
+    // 費用データを取得
+    const { data: expData, error: expError } = await supabase
+      .from('attendance_expenses')
+      .select('*')
+      .eq('manager_number', selectedManagerNumber)
+      .eq('action_date', date)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (!expError && expData && expData.length > 0) {
+      const exp = expData[0];
+      setExpenseData({
+        transport_fee: exp.transport_fee || '',
+        support_transport_fee: exp.support_transport_fee || '',
+        remarks: exp.remarks || ''
+      });
+      setExpenseStatus(exp.approval_status || null);
+      
+      // 承認/拒否済みで未確認の通知があれば表示
+      if ((exp.approval_status === 'approved' || exp.approval_status === 'rejected') 
+          && exp.is_employee_notified === false) {
+        setExpenseNotification({
+          id: exp.id,
+          status: exp.approval_status,
+          comment: exp.manager_comment || ''
+        });
+      } else {
+        setExpenseNotification(null);
+      }
+    } else {
+      setExpenseData({ transport_fee: '', support_transport_fee: '', remarks: '' });
+      setExpenseStatus(null);
+      setExpenseNotification(null);
+    }
+  } catch (error) {
+    console.error('日別履歴取得エラー:', error);
+    setDayLogs([]);
+  }
 };
 
   // 時間修正の申請
@@ -608,9 +752,43 @@ const handleEditSubmit = async () => {
       }
     }
 
-    setMessage('修正を申請しました');
-    setMessageType('success');
-    setEditMode(false);
+   // 費用データを保存
+const hasExpenseData = expenseData.transport_fee !== '' || 
+                       expenseData.support_transport_fee !== '' || 
+                       expenseData.remarks !== '';
+if (hasExpenseData) {
+  const { data: existing } = await supabase
+    .from('attendance_expenses')
+    .select('id')
+    .eq('manager_number', selectedManagerNumber)
+    .eq('action_date', date)
+    .limit(1);
+
+  const expRecord = {
+    manager_number: selectedManagerNumber,
+    action_date: date,
+    transport_fee: expenseData.transport_fee || null,
+    support_transport_fee: expenseData.support_transport_fee || null,
+    remarks: expenseData.remarks || null,
+    approval_status: 'pending'
+  };
+
+  if (existing && existing.length > 0) {
+    await supabase
+      .from('attendance_expenses')
+      .update(expRecord)
+      .eq('id', existing[0].id);
+  } else {
+    await supabase
+      .from('attendance_expenses')
+      .insert([expRecord]);
+  }
+  setExpenseStatus('pending');
+}
+
+setMessage('修正を申請しました');
+setMessageType('success');
+setEditMode(false);
     
     setTimeout(() => {
       setMessage('');
@@ -699,7 +877,28 @@ const handleEditSubmit = async () => {
   // ============================================================
 
   // パスワード認証画面
-  if (!isAuthenticated) {
+
+
+
+if (!isAuthenticated && loggedInManagerNumber) {
+  return (
+    <div className="login-wrapper">
+      <div className="login-card" style={{ textAlign: 'center', padding: '3rem' }}>
+        <h2>データを読み込んでいます...</h2>
+        <p style={{ color: '#666', marginTop: '1rem' }}>
+          管理番号: {loggedInManagerNumber}
+        </p>
+        <p style={{ color: '#999', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+          少々お待ちください
+        </p>
+      </div>
+    </div>
+  );
+}
+
+
+ 
+if (!isAuthenticated && !loggedInManagerNumber) {
   return (
     <div className="login-wrapper">
       <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getClockInHelpContent(currentHelpPage)} />
@@ -845,6 +1044,7 @@ const handleEditSubmit = async () => {
   setSelectedManagerNumber(managerNumber);
   fetchActionLogs(managerNumber);
   fetchLastStore(managerNumber); // ← この行を追加
+  fetchNotifications(managerNumber); // ★追加
   setStep('buttons');
   setMessage('');
 }}
@@ -877,17 +1077,17 @@ const handleEditSubmit = async () => {
           )}
 
           <button onClick={onBack} style={{
-            width: '100%',
-            marginTop: '1rem',
-            padding: '0.75rem',
-            backgroundColor: '#607D8B',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}>
-            メニューに戻る
-          </button>
+  width: '100%',
+  marginTop: '1rem',
+  padding: '0.75rem',
+  backgroundColor: '#607D8B',
+  color: 'white',
+  border: 'none',
+  borderRadius: '4px',
+  cursor: 'pointer'
+}}>
+  戻る
+</button>
         </div>
       </div>
     );
@@ -901,31 +1101,252 @@ const handleEditSubmit = async () => {
       <div className="login-card" style={{ width: '500px', maxWidth: '95vw', position: 'relative' }}>
         <HelpButton onClick={() => { setCurrentHelpPage('buttons'); setShowHelp(true); }} />
         
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '1rem', position: 'relative' }}>
-          <h2 style={{ margin: 0 }}>勤怠入力</h2>
-          <button
-            onClick={() => {
-              fetchHistoryDates();
-              setStep('calendar');
-            }}
-            style={{
-              position: 'absolute',
-              right: 0,
-              padding: '0.3rem 0.4rem',
-              backgroundColor: '#F44336',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              fontSize: '1rem',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              minWidth: 'auto',
-              maxWidth: '70px'
-            }}
-          >
-            履歴
-          </button>
+       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '1rem', position: 'relative' }}>
+  <h2 style={{ margin: 0 }}>勤怠入力</h2>
+
+  {/* 履歴・承認ボタンを右側に並べる */}
+  <div style={{
+    position: 'absolute',
+    right:  '10px',
+    display: 'flex',
+    gap: '0.4rem',
+    alignItems: 'center'
+  }}>
+    {/* 承認通知ボタン */}
+    <div style={{ position: 'relative' }}>
+      <button
+        onClick={() => {
+          fetchNotifications(selectedManagerNumber);
+          setShowNotificationPanel(true);
+        }}
+        style={{
+          padding: '0.3rem 0.4rem',
+          backgroundColor: '#1976D2',
+          color: 'white',
+          border: 'none',
+          borderRadius: '4px',
+          fontSize: '1rem',
+          cursor: 'pointer',
+          whiteSpace: 'nowrap',
+          maxWidth: '70px'
+        }}
+      >
+        承認
+      </button>
+      {notifications.length > 0 && (
+        <span style={{
+          position: 'absolute',
+          top: '-8px',
+          right: '-8px',
+          backgroundColor: 'red',
+          color: 'white',
+          borderRadius: '50%',
+          width: '18px',
+          height: '18px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '0.7rem',
+          fontWeight: 'bold',
+          pointerEvents: 'none'
+        }}>
+          {notifications.length}
+        </span>
+      )}
+    </div>
+
+    {/* 履歴ボタン */}
+    <button
+      onClick={() => {
+        fetchHistoryDates();
+        setStep('calendar');
+      }}
+      style={{
+        padding: '0.3rem 0.4rem',
+        backgroundColor: '#F44336',
+        color: 'white',
+        border: 'none',
+        borderRadius: '4px',
+        fontSize: '1rem',
+        cursor: 'pointer',
+        whiteSpace: 'nowrap',
+        maxWidth: '70px'
+      }}
+    >
+      履歴
+    </button>
+  </div>
+</div>
+
+{/* ★新規追加: 通知パネルモーダル */}
+{showNotificationPanel && (
+  <div style={{
+    position: 'fixed',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    zIndex: 3000,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '1rem'
+  }} onClick={() => setShowNotificationPanel(false)}>
+    <div style={{
+      backgroundColor: 'white',
+      borderRadius: '12px',
+      maxWidth: '500px',
+      width: '100%',
+      maxHeight: '80vh',
+      overflow: 'auto',
+      padding: '1.5rem',
+      boxShadow: '0 10px 40px rgba(0,0,0,0.3)'
+    }} onClick={(e) => e.stopPropagation()}>
+      
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '1.5rem',
+        borderBottom: '2px solid #1976D2',
+        paddingBottom: '1rem'
+      }}>
+        <h3 style={{ margin: 0, color: '#1976D2' }}>📬 承認・拒否通知</h3>
+        <button
+          onClick={() => setShowNotificationPanel(false)}
+          style={{
+            backgroundColor: '#FF5722', color: 'white', border: 'none',
+            borderRadius: '50%', width: '36px', height: '36px',
+            cursor: 'pointer', fontSize: '1.2rem', fontWeight: 'bold'
+          }}
+        >
+          ×
+        </button>
+      </div>
+
+      {notifications.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📋</div>
+          <p>未確認の通知はありません</p>
         </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {notifications.map((notif) => (
+            <div key={notif.id} style={{
+              border: `2px solid ${notif.approval_status === 'approved' ? '#4CAF50' : '#F44336'}`,
+              borderRadius: '8px',
+              padding: '1rem',
+              backgroundColor: notif.approval_status === 'approved' ? '#E8F5E9' : '#FFEBEE'
+            }}>
+              <div style={{
+                fontWeight: 'bold',
+                fontSize: '1.1rem',
+                color: notif.approval_status === 'approved' ? '#2E7D32' : '#C62828',
+                marginBottom: '0.5rem'
+              }}>
+                {notif.notification_type === 'attendance_log'
+                  ? (notif.approval_status === 'approved' ? '✅ 勤怠修正が承認されました' : '❌ 勤怠修正が拒否されました')
+                  : (notif.approval_status === 'approved' ? '✅ 費用申請が承認されました' : '❌ 費用申請が拒否されました')
+                }
+              </div>
+              
+              <div style={{ fontSize: '0.9rem', color: '#555', marginBottom: '0.5rem' }}>
+                📅 {notif.action_date}
+              </div>
+
+              <div style={{
+                backgroundColor: 'white', borderRadius: '6px',
+                padding: '0.75rem', marginBottom: '0.75rem',
+                border: '1px solid #ddd', fontSize: '0.9rem'
+              }}>
+                {notif.notification_type === 'attendance_log' ? (
+                  <div>
+                    <div style={{ marginBottom: '0.3rem' }}>
+                      <span style={{ fontWeight: 'bold' }}>種別：</span>
+                      {notif.action_type === 'clock_in' ? '🟢 出勤' :
+                       notif.action_type === 'clock_out' ? '🔵 退勤' :
+                       notif.action_type === 'break_start' ? '🟠 休憩開始' : '🟣 休憩終了'}
+                    </div>
+                    {notif.original_time && (
+                      <div style={{ marginBottom: '0.3rem' }}>
+                        <span style={{ fontWeight: 'bold' }}>変更前：</span>
+                        <span style={{ textDecoration: 'line-through', color: '#E53935' }}>
+                          {notif.original_time.substring(0, 5)}
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <span style={{ fontWeight: 'bold' }}>変更後：</span>
+                      <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>
+                        {notif.action_time?.substring(0, 5)}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {notif.transport_fee && (
+                      <div style={{ marginBottom: '0.3rem' }}>
+                        <span style={{ fontWeight: 'bold' }}>交通費手当：</span>
+                        ¥{Number(notif.transport_fee).toLocaleString()}
+                      </div>
+                    )}
+                    {notif.support_transport_fee && (
+                      <div style={{ marginBottom: '0.3rem' }}>
+                        <span style={{ fontWeight: 'bold' }}>応援交通費手当：</span>
+                        ¥{Number(notif.support_transport_fee).toLocaleString()}
+                      </div>
+                    )}
+                    {notif.remarks && (
+                      <div>
+                        <span style={{ fontWeight: 'bold' }}>備考：</span>
+                        {notif.remarks}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {notif.manager_comment && (
+                <div style={{
+                  backgroundColor: '#FFF9C4', borderRadius: '6px',
+                  padding: '0.75rem', marginBottom: '0.75rem',
+                  border: '1px solid #FFC107', fontSize: '0.9rem'
+                }}>
+                  <span style={{ fontWeight: 'bold' }}>💬 店長コメント：</span>
+                  {notif.manager_comment}
+                </div>
+              )}
+
+              <button
+               onClick={async () => {
+                  try {
+                    const table = notif.notification_type === 'attendance_log'
+                      ? 'attendance_logs'
+                      : 'attendance_expenses';
+                    await supabase
+                      .from(table)
+                      .update({ is_employee_notified: true })
+                      .eq('id', notif.id);
+                    setNotifications(prev => prev.filter(n => n.id !== notif.id));
+                  } catch (e) {
+                    console.error(e);
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  padding: '0.6rem',
+                  backgroundColor: notif.approval_status === 'approved' ? '#4CAF50' : '#F44336',
+                  color: 'white', border: 'none', borderRadius: '4px',
+                  cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem'
+                }}
+              >
+                確認しました
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+)}
  
         <p style={{ textAlign: 'center', marginBottom: '1.5rem', color: '#666', fontSize: '1.1rem' }}>
           {userMap[selectedManagerNumber]} さん
@@ -970,9 +1391,9 @@ const handleEditSubmit = async () => {
       textAlign: 'center'
     }}
   >
-    <option value="A">A</option>
-    <option value="B">B</option>
-    <option value="C">C</option>
+    {storeList.map(store => (
+  <option key={store} value={store}>{store}</option>
+))}
   </select>
 </div>
 {/* 操作説明 */}
@@ -1222,8 +1643,9 @@ style={{
   border: 'none',
   borderRadius: '4px',
   cursor: 'pointer',
-  backgroundColor: dayInfo.hasHistory ? '#E3F2FD' :
-                 dayInfo.isCurrentMonth ? '#FFEBEE' : '#f0f0f0',
+  backgroundColor: confirmedDates.includes(dayInfo.dateStr) ? '#C8E6C9' :
+             dayInfo.hasHistory ? '#E3F2FD' :
+             dayInfo.isCurrentMonth ? '#FFEBEE' : '#f0f0f0',
                     color: !dayInfo.hasHistory ? '#999' :
                            dayInfo.isCurrentMonth ? 'black' : '#666',
                     fontWeight: dayInfo.hasHistory ? 'bold' : 'normal',
@@ -1233,6 +1655,30 @@ style={{
                 >
                   {dayInfo.day}
                 </button>
+              ))}
+            </div>
+          </div>
+
+         {/* 色の説明 */}
+          <div style={{
+            marginTop: '1rem',
+            padding: '0.75rem 1rem',
+            backgroundColor: '#f9f9f9',
+            borderRadius: '8px',
+            border: '1px solid #ddd',
+            fontSize: '0.85rem'
+          }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: '#555' }}>📌 カレンダーの見方</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              {[
+                { color: '#C8E6C9', label: '緑：勤務時間が確定済み' },
+                { color: '#E3F2FD', label: '青：打刻記録あり（未確定）' },
+                { color: '#FFEBEE', label: '赤：記録なし' },
+              ].map(({ color, label }) => (
+                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ width: '18px', height: '18px', backgroundColor: color, border: '1px solid #ccc', borderRadius: '3px', flexShrink: 0 }}></div>
+                  <span>{label}</span>
+                </div>
               ))}
             </div>
           </div>
@@ -1279,7 +1725,71 @@ if (step === 'edit') {
               backgroundColor: '#fafafa',
               marginBottom: '1rem'
             }}>
-              <h3 style={{ marginTop: 0, fontSize: '1rem' }}>記録一覧</h3>
+             <h3 style={{ marginTop: 0, fontSize: '1rem' }}>記録一覧</h3>
+
+              {/* 確定済みの場合、確定時間と打刻時間を横並びで表示 */}
+              {finalShiftData[selectedHistoryDate] && (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '0.75rem',
+                  marginBottom: '1rem',
+                  padding: '0.75rem',
+                  backgroundColor: '#E8F5E9',
+                  borderRadius: '8px',
+                  border: '2px solid #4CAF50'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: '#2E7D32', fontWeight: 'bold', marginBottom: '0.4rem' }}>
+                      ✅ 確定済み（退勤管理）
+                    </div>
+                    <div style={{ fontSize: '0.9rem', marginBottom: '0.2rem' }}>
+                      <span style={{ color: '#555' }}>出勤：</span>
+                      <strong>{finalShiftData[selectedHistoryDate].actual_start?.substring(0, 5) || '-'}</strong>
+                    </div>
+                    <div style={{ fontSize: '0.9rem', marginBottom: '0.2rem' }}>
+                      <span style={{ color: '#555' }}>退勤：</span>
+                      <strong>{finalShiftData[selectedHistoryDate].actual_end?.substring(0, 5) || '-'}</strong>
+                    </div>
+                    {finalShiftData[selectedHistoryDate].break_minutes > 0 && (
+                      <div style={{ fontSize: '0.9rem' }}>
+                        <span style={{ color: '#555' }}>休憩：</span>
+                        <strong>{finalShiftData[selectedHistoryDate].break_minutes}分</strong>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: '#1565C0', fontWeight: 'bold', marginBottom: '0.4rem' }}>
+                      🕐 打刻記録
+                    </div>
+                    {dayLogs.filter(l => l.action_type === 'clock_in').map((l, i) => (
+                      <div key={i} style={{ fontSize: '0.9rem', marginBottom: '0.2rem' }}>
+                        <span style={{ color: '#555' }}>出勤：</span>
+                        <strong>{l.action_time?.substring(0, 5)}</strong>
+                      </div>
+                    ))}
+                    {dayLogs.filter(l => l.action_type === 'clock_out').map((l, i) => (
+                      <div key={i} style={{ fontSize: '0.9rem', marginBottom: '0.2rem' }}>
+                        <span style={{ color: '#555' }}>退勤：</span>
+                        <strong>{l.action_time?.substring(0, 5)}</strong>
+                      </div>
+                    ))}
+                    {dayLogs.filter(l => l.action_type === 'break_start').map((l, i) => (
+                      <div key={i} style={{ fontSize: '0.9rem', marginBottom: '0.2rem' }}>
+                        <span style={{ color: '#555' }}>休憩開始：</span>
+                        <strong>{l.action_time?.substring(0, 5)}</strong>
+                      </div>
+                    ))}
+                    {dayLogs.filter(l => l.action_type === 'break_end').map((l, i) => (
+                      <div key={i} style={{ fontSize: '0.9rem', marginBottom: '0.2rem' }}>
+                        <span style={{ color: '#555' }}>休憩終了：</span>
+                        <strong>{l.action_time?.substring(0, 5)}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
             {dayLogs.length > 0 ? (
   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
     {dayLogs.map((log, index) => {
@@ -1362,6 +1872,116 @@ if (step === 'edit') {
   <p style={{ color: '#999', margin: 0 }}>記録がありません</p>
 )}
             </div>
+{/* 承認/拒否通知バナー */}
+            {expenseNotification && (
+              <div style={{
+                border: `2px solid ${expenseNotification.status === 'approved' ? '#4CAF50' : '#F44336'}`,
+                borderRadius: '8px',
+                padding: '1rem',
+                backgroundColor: expenseNotification.status === 'approved' ? '#E8F5E9' : '#FFEBEE',
+                marginBottom: '1rem'
+              }}>
+                <div style={{ 
+                  fontWeight: 'bold', 
+                  fontSize: '1.1rem',
+                  color: expenseNotification.status === 'approved' ? '#2E7D32' : '#C62828',
+                  marginBottom: '0.5rem'
+                }}>
+                  {expenseNotification.status === 'approved' ? '✅ 費用申請が承認されました' : '❌ 費用申請が拒否されました'}
+                </div>
+                {expenseNotification.comment && (
+                  <div style={{ 
+                    fontSize: '0.95rem', 
+                    color: '#555',
+                    backgroundColor: 'white',
+                    padding: '0.5rem 0.75rem',
+                    borderRadius: '4px',
+                    marginBottom: '0.75rem'
+                  }}>
+                    💬 {expenseNotification.comment}
+                  </div>
+                )}
+                <button
+                  onClick={async () => {
+                    try {
+                      await supabase
+                        .from('attendance_expenses')
+                        .update({ is_employee_notified: true })
+                        .eq('id', expenseNotification.id);
+                      setExpenseNotification(null);
+                    } catch (e) {
+                      console.error(e);
+                    }
+                  }}
+                  style={{
+                    padding: '0.5rem 1.5rem',
+                    backgroundColor: expenseNotification.status === 'approved' ? '#4CAF50' : '#F44336',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    fontSize: '0.9rem'
+                  }}
+                >
+                  確認しました
+                </button>
+              </div>
+            )}
+            {/* 費用情報の表示（閲覧モード） */}
+            {(expenseData.transport_fee || expenseData.support_transport_fee || expenseData.remarks) && (
+              <div style={{
+                border: '2px solid #90CAF9',
+                borderRadius: '8px',
+                padding: '1rem',
+                backgroundColor: '#E3F2FD',
+                marginBottom: '1rem'
+              }}>
+                <h4 style={{ margin: '0 0 0.75rem 0', color: '#1565C0', fontSize: '0.95rem' }}>
+                  💴 費用・備考
+                </h4>
+
+                {expenseStatus && (
+                  <div style={{
+                    padding: '0.4rem 0.75rem',
+                    marginBottom: '0.75rem',
+                    borderRadius: '4px',
+                    backgroundColor: expenseStatus === 'pending' ? '#FFF3E0' : '#E8F5E9',
+                    color: expenseStatus === 'pending' ? '#FF6F00' : '#2E7D32',
+                    fontWeight: 'bold',
+                    fontSize: '0.85rem',
+                    textAlign: 'center'
+                  }}>
+                    {expenseStatus === 'pending' ? '⏳ 承認中' : '✅ 承認済'}
+                  </div>
+                )}
+
+                {expenseData.transport_fee && (
+                  <div style={{ marginBottom: '0.5rem', fontSize: '0.95rem' }}>
+                    <span style={{ color: '#555', fontWeight: 'bold' }}>交通費手当：</span>
+                    <span style={{ color: '#1565C0', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                      ¥{Number(expenseData.transport_fee).toLocaleString()}
+                    </span>
+                  </div>
+                )}
+
+                {expenseData.support_transport_fee && (
+                  <div style={{ marginBottom: '0.5rem', fontSize: '0.95rem' }}>
+                    <span style={{ color: '#555', fontWeight: 'bold' }}>応援交通費手当：</span>
+                    <span style={{ color: '#1565C0', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                      ¥{Number(expenseData.support_transport_fee).toLocaleString()}
+                    </span>
+                  </div>
+                )}
+
+                {expenseData.remarks && (
+                  <div style={{ fontSize: '0.95rem' }}>
+                    <span style={{ color: '#555', fontWeight: 'bold' }}>備考：</span>
+                    <span style={{ color: '#333' }}>{expenseData.remarks}</span>
+                  </div>
+                )}
+              </div>
+            )}
 
             <button
               onClick={() => setEditMode(true)}
@@ -1601,7 +2221,97 @@ if (step === 'edit') {
 );  
 })} 
           </div>  
-          
+          {/* 交通費・備考欄 */}
+<div style={{
+  border: '2px solid #2196F3',
+  borderRadius: '8px',
+  padding: '1rem',
+  backgroundColor: '#E3F2FD',
+  marginTop: '1rem',
+  marginBottom: '1rem'
+}}>
+  <h4 style={{ margin: '0 0 0.75rem 0', color: '#1565C0', fontSize: '0.95rem' }}>
+    💴 費用・備考の申請
+  </h4>
+
+  {expenseStatus && (
+    <div style={{
+      padding: '0.5rem 0.75rem',
+      marginBottom: '0.75rem',
+      borderRadius: '4px',
+      backgroundColor: expenseStatus === 'pending' ? '#FFF3E0' : '#E8F5E9',
+      color: expenseStatus === 'pending' ? '#FF6F00' : '#2E7D32',
+      fontWeight: 'bold',
+      fontSize: '0.85rem',
+      textAlign: 'center'
+    }}>
+      {expenseStatus === 'pending' ? '⏳ 承認中' : '✅ 承認済'}
+    </div>
+  )}
+
+  <div style={{ marginBottom: '0.75rem' }}>
+    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', fontWeight: 'bold', color: '#1565C0' }}>
+      交通費手当（円）
+    </label>
+    <input
+      type="number"
+      value={expenseData.transport_fee}
+      onChange={(e) => setExpenseData({ ...expenseData, transport_fee: e.target.value })}
+      placeholder="例: 500"
+      min="0"
+      style={{
+        width: '100%',
+        padding: '0.5rem',
+        fontSize: '1rem',
+        border: '2px solid #2196F3',
+        borderRadius: '4px',
+        boxSizing: 'border-box'
+      }}
+    />
+  </div>
+
+  <div style={{ marginBottom: '0.75rem' }}>
+    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', fontWeight: 'bold', color: '#1565C0' }}>
+      応援交通費手当（円）
+    </label>
+    <input
+      type="number"
+      value={expenseData.support_transport_fee}
+      onChange={(e) => setExpenseData({ ...expenseData, support_transport_fee: e.target.value })}
+      placeholder="例: 1000"
+      min="0"
+      style={{
+        width: '100%',
+        padding: '0.5rem',
+        fontSize: '1rem',
+        border: '2px solid #2196F3',
+        borderRadius: '4px',
+        boxSizing: 'border-box'
+      }}
+    />
+  </div>
+
+  <div>
+    <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', fontWeight: 'bold', color: '#1565C0' }}>
+      備考
+    </label>
+    <textarea
+      value={expenseData.remarks}
+      onChange={(e) => setExpenseData({ ...expenseData, remarks: e.target.value })}
+      placeholder="特記事項があれば入力してください"
+      rows={3}
+      style={{
+        width: '100%',
+        padding: '0.5rem',
+        fontSize: '1rem',
+        border: '2px solid #2196F3',
+        borderRadius: '4px',
+        boxSizing: 'border-box',
+        resize: 'vertical'
+      }}
+    />
+  </div>
+</div>
            <div style={{ display: 'flex', gap: '0.5rem' }}>
   <button
     onClick={handleEditSubmit}

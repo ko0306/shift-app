@@ -167,7 +167,9 @@ function RegisterUser({ onBack }) {
   const [showConfirm, setShowConfirm] = useState(true);
   const [showHelp, setShowHelp] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
-  const [newPasswordForEdit, setNewPasswordForEdit] = useState('');
+const [newPasswordForEdit, setNewPasswordForEdit] = useState('');
+const [deletedUsers, setDeletedUsers] = useState([]);
+const [showDeleted, setShowDeleted] = useState(false);
 
   const handleRegister = async () => {
   if (!name || !number) {
@@ -251,6 +253,21 @@ function RegisterUser({ onBack }) {
       setShowConfirm(false);
     }
   };
+  const fetchDeletedUsers = async () => {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('is_deleted', true)
+    .order('manager_number', { ascending: true });
+
+  if (error) {
+    console.error(error);
+    setMessage('削除済みユーザー取得に失敗しました');
+  } else {
+    setDeletedUsers(data);
+    setShowDeleted(true);
+  }
+};
 
   const handleDelete = async (id) => {
     const { error } = await supabase
@@ -295,6 +312,23 @@ function RegisterUser({ onBack }) {
       alert('エラーが発生しました');
     }
   };
+const handleRestore = async (user) => {
+  if (!window.confirm(`${user.name}（管理番号：${user.manager_number}）を復元しますか？`)) return;
+
+  const { error } = await supabase
+    .from('users')
+    .update({ is_deleted: false })
+    .eq('id', user.id);
+
+  if (error) {
+    alert('復元に失敗しました');
+  } else {
+    alert(`${user.name}を復元しました`);
+    fetchDeletedUsers();
+    if (users.length > 0) fetchUsers(); // アクティブ一覧も更新
+  }
+};
+
 
   return (
     <div className="login-wrapper">
@@ -333,23 +367,27 @@ function RegisterUser({ onBack }) {
           fontWeight: 'bold'
         }}>{message}</p>}
 
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '1rem',
-          marginTop: '1rem',
-          flexWrap: 'nowrap',
-          overflowX: 'auto',
-        }}>
-          <button onClick={handleRegister} style={{
-            backgroundColor: '#4CAF50',
-            color: 'white'
-          }}>登録</button>
-          {showConfirm && <button onClick={fetchUsers} style={{
-            backgroundColor: '#2196F3',
-            color: 'white'
-          }}>番号確認</button>}
-        </div>
+       <div style={{
+  display: 'flex',
+  justifyContent: 'center',
+  gap: '1rem',
+  marginTop: '1rem',
+  flexWrap: 'nowrap',
+  overflowX: 'auto',
+}}>
+  <button onClick={handleRegister} style={{
+    backgroundColor: '#4CAF50',
+    color: 'white'
+  }}>登録</button>
+  {showConfirm && <button onClick={fetchUsers} style={{
+    backgroundColor: '#2196F3',
+    color: 'white'
+  }}>番号確認</button>}
+  <button onClick={fetchDeletedUsers} style={{
+    backgroundColor: '#9E9E9E',
+    color: 'white'
+  }}>削除済み</button>
+</div>
 
         {users.length > 0 && (
           <>
@@ -497,6 +535,109 @@ function RegisterUser({ onBack }) {
             </div>
           </>
         )}
+
+        {showDeleted && (
+  <>
+    <div style={{
+      marginTop: '1.5rem',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '1rem',
+    }}>
+      <h4 style={{ margin: 'auto', color: '#9E9E9E' }}>削除済みスタッフ一覧</h4>
+      <button
+        onClick={fetchDeletedUsers}
+        style={{
+          fontSize: '0.75rem',
+          padding: '0.2rem 0.4rem',
+          cursor: 'pointer',
+          height: '24px',
+          minWidth: 'auto',
+          width: 'auto',
+          whiteSpace: 'nowrap',
+          backgroundColor: '#00BCD4',
+          color: 'white'
+        }}
+      >
+        更新
+      </button>
+      <button
+        onClick={() => setShowDeleted(false)}
+        style={{
+          fontSize: '0.75rem',
+          padding: '0.2rem 0.4rem',
+          cursor: 'pointer',
+          height: '24px',
+          minWidth: 'auto',
+          width: 'auto',
+          whiteSpace: 'nowrap',
+          backgroundColor: '#FF5722',
+          color: 'white'
+        }}
+      >
+        閉じる
+      </button>
+    </div>
+
+    {deletedUsers.length === 0 ? (
+      <p style={{ textAlign: 'center', color: '#999', marginTop: '1rem' }}>削除済みスタッフはいません</p>
+    ) : (
+      <div style={{
+        maxHeight: '300px',
+        overflowY: 'auto',
+        marginTop: '1rem',
+        border: '1px solid #ddd',
+        borderRadius: '8px'
+      }}>
+        <table style={{
+          width: '100%',
+          borderCollapse: 'collapse',
+          textAlign: 'left',
+        }}>
+          <thead style={{
+            position: 'sticky',
+            top: 0,
+            backgroundColor: '#f0f0f0'
+          }}>
+            <tr>
+              <th style={{ borderBottom: '1px solid #ccc', padding: '0.5rem', color: '#666' }}>管理番号</th>
+              <th style={{ borderBottom: '1px solid #ccc', padding: '0.5rem', color: '#666' }}>名前</th>
+              <th style={{ borderBottom: '1px solid #ccc', padding: '0.5rem', color: '#666' }}>パスワード</th>
+              <th style={{ borderBottom: '1px solid #ccc', padding: '0.5rem' }}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {deletedUsers.map((user, index) => (
+              <tr key={user.id} style={{
+                backgroundColor: index % 2 === 0 ? '#fafafa' : '#f0f0f0',
+                opacity: 0.8
+              }}>
+                <td style={{ padding: '0.5rem', borderBottom: '1px solid #eee', color: '#666' }}>{user.manager_number}</td>
+                <td style={{ padding: '0.5rem', borderBottom: '1px solid #eee', color: '#666' }}>{user.name}</td>
+                <td style={{ padding: '0.5rem', borderBottom: '1px solid #eee', color: '#666' }}>
+                  {user.plain_password || '未設定'}
+                </td>
+                <td style={{ padding: '0.5rem', borderBottom: '1px solid #eee' }}>
+                  <button onClick={() => handleRestore(user)} style={{
+                    backgroundColor: '#4CAF50',
+                    color: 'white',
+                    border: 'none',
+                    padding: '0.3rem 0.6rem',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '0.75rem'
+                  }}>
+                    復元
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </>
+)}
       </div>
     </div>
   );

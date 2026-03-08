@@ -219,9 +219,9 @@ const getHelpContent = (isAuthenticated) => {
   );
 };
 
-function StaffWorkHours({ onBack }) {
-  const [managerNumber, setManagerNumber] = useState('');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+function StaffWorkHours({ onBack, loggedInManagerNumber }) {
+  const [managerNumber, setManagerNumber] = useState(loggedInManagerNumber || '');
+  const [isAuthenticated, setIsAuthenticated] = useState(!!loggedInManagerNumber);
   const [workData, setWorkData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -256,7 +256,12 @@ function StaffWorkHours({ onBack }) {
       fetchWorkData(managerNumber, selectedYear, selectedMonth);
     }
   }, [selectedYear, selectedMonth, isAuthenticated, managerNumber]);
-
+// ✅ ログイン済みの場合は自動で認証とデータ取得
+useEffect(() => {
+  if (loggedInManagerNumber && !isAuthenticated) {
+    handleAuthentication();
+  }
+}, [loggedInManagerNumber]);
   const handleAuthentication = async () => {
     if (!managerNumber) {
       setMessage('管理番号を入力してください');
@@ -487,7 +492,9 @@ function StaffWorkHours({ onBack }) {
       return Object.keys(grouped).map(key => ({ key, data: grouped[key] }));
     }
 
-    return [{ key: 'すべて', data: workData }];
+    return [{
+      
+      key: 'すべて', data: workData }];
   };
 
   const calculateGroupStats = (data) => {
@@ -509,76 +516,88 @@ function StaffWorkHours({ onBack }) {
   const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i);
   const months = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
 
-  if (!isAuthenticated) {
-    return (
-      <>
-        <HelpModal 
-          isOpen={showHelp} 
-          onClose={() => setShowHelp(false)} 
-          content={getHelpContent(false)} 
-        />
-        <div className="login-wrapper">
-          <div className="login-card" style={{ position: 'relative', paddingTop: '4rem' }}>
-            <HelpButton onClick={() => setShowHelp(true)} />
-            <h2>就労時間確認</h2>
-            <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
-              自分の勤務記録を確認できます
+// ✅ ログイン済みでない場合のみ認証画面を表示
+if (!isAuthenticated && !loggedInManagerNumber) {
+  return (
+    <>
+      <HelpModal 
+        isOpen={showHelp} 
+        onClose={() => setShowHelp(false)} 
+        content={getHelpContent(false)} 
+      />
+      <div className="login-wrapper">
+        <div className="login-card" style={{ position: 'relative', paddingTop: '4rem' }}>
+          <HelpButton onClick={() => setShowHelp(true)} />
+          <h2>就労時間確認</h2>
+          <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
+            自分の勤務記録を確認できます
+          </p>
+          
+          <label>管理番号:</label>
+          <input
+            type="text"
+            value={managerNumber}
+            onChange={(e) => setManagerNumber(e.target.value)}
+            placeholder="管理番号を入力"
+            style={{
+              padding: '0.5rem',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              width: '100%'
+            }}
+          />
+
+          <button 
+            onClick={handleAuthentication} 
+            disabled={loading}
+            style={{
+              opacity: loading ? 0.6 : 1,
+              cursor: loading ? 'not-allowed' : 'pointer',
+              marginTop: '1rem'
+            }}
+          >
+            {loading ? '確認中...' : '確認'}
+          </button>
+
+          {message && (
+            <p style={{ 
+              color: message.includes('成功') || message.includes('確認') ? 'green' : 'red', 
+              marginTop: '0.5rem',
+              fontSize: '0.9rem'
+            }}>
+              {message}
             </p>
-            
-            <label>管理番号:</label>
-            <input
-              type="text"
-              value={managerNumber}
-              onChange={(e) => setManagerNumber(e.target.value)}
-              placeholder="管理番号を入力"
-              style={{
-                padding: '0.5rem',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                width: '100%'
-              }}
-            />
+          )}
 
-            <button 
-              onClick={handleAuthentication} 
-              disabled={loading}
-              style={{
-                opacity: loading ? 0.6 : 1,
-                cursor: loading ? 'not-allowed' : 'pointer',
-                marginTop: '1rem'
-              }}
-            >
-              {loading ? '確認中...' : '確認'}
+          <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+            <button onClick={onBack} style={{
+              backgroundColor: '#607D8B',
+              color: 'white',
+              padding: '0.75rem 2rem',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}>
+              メニューに戻る
             </button>
-
-            {message && (
-              <p style={{ 
-                color: message.includes('成功') || message.includes('確認') ? 'green' : 'red', 
-                marginTop: '0.5rem',
-                fontSize: '0.9rem'
-              }}>
-                {message}
-              </p>
-            )}
-
-            <div style={{ marginTop: '2rem', textAlign: 'center' }}>
-              <button onClick={onBack} style={{
-                backgroundColor: '#607D8B',
-                color: 'white',
-                padding: '0.75rem 2rem',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}>
-                メニューに戻る
-              </button>
-            </div>
           </div>
         </div>
-      </>
-    );
-  }
+      </div>
+    </>
+  );
+}
 
+// ✅ ログイン済みだが認証処理中の場合のローディング画面
+if (!isAuthenticated && loggedInManagerNumber) {
+  return (
+    <div className="login-wrapper">
+      <div className="login-card" style={{ textAlign: 'center', padding: '3rem' }}>
+        <h2>データを読み込んでいます...</h2>
+        <p style={{ color: '#666', marginTop: '1rem' }}>少々お待ちください</p>
+      </div>
+    </div>
+  );
+}
   const stats = calculateTotalStats();
   const groupedData = getGroupedData();
 

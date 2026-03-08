@@ -709,96 +709,132 @@ function StaffShiftView({ onBack }) {
               <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '500px' }}>
                   <thead>
-                    <tr style={{ backgroundColor: '#f5f5f5' }}>
-                      <th style={{ 
-                        padding: '0.75rem 0.5rem', 
-                        textAlign: 'left', 
-                        borderBottom: '1px solid #ddd',
-                        fontSize: 'clamp(12px, 2.5vw, 14px)'
-                      }}>
-                        名前
-                      </th>
-                      <th style={{ 
-                        padding: '0.75rem 0.5rem', 
-                        textAlign: 'center', 
-                        borderBottom: '1px solid #ddd',
-                        fontSize: 'clamp(12px, 2.5vw, 14px)'
-                      }}>
-                        店舗
-                      </th>
-                      <th style={{ 
-                        padding: '0.75rem 0.5rem', 
-                        textAlign: 'center', 
-                        borderBottom: '1px solid #ddd',
-                        fontSize: 'clamp(12px, 2.5vw, 14px)'
-                      }}>
-                        勤務時間
-                      </th>
-                      <th style={{ 
-                        padding: '0.75rem 0.5rem', 
-                        textAlign: 'center', 
-                        borderBottom: '1px solid #ddd',
-                        fontSize: 'clamp(12px, 2.5vw, 14px)'
-                      }}>
-                        状態
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedShiftData.map((shift, index) => (
-                      <tr key={shift.manager_number || index} style={{
-                        backgroundColor: index % 2 === 0 ? 'white' : '#f9f9f9'
-                      }}>
-                        <td style={{ 
-                          padding: '0.75rem 0.5rem', 
-                          borderBottom: '1px solid #eee',
-                          fontSize: 'clamp(12px, 2.5vw, 14px)'
-                        }}>
-                          <strong>{getUserName(shift.manager_number)}</strong>
-                        </td>
-                        <td style={{
-                          padding: '0.75rem 0.5rem',
-                          textAlign: 'center',
-                          borderBottom: '1px solid #eee',
-                          fontWeight: 'bold',
-                          color: '#1976D2',
-                          fontSize: 'clamp(12px, 2.5vw, 14px)'
-                        }}>
-                          {shift.store ? `${shift.store}店舗` : '-'}
-                        </td>
-                        <td style={{
-                          padding: '0.75rem 0.5rem',
-                          textAlign: 'center',
-                          borderBottom: '1px solid #eee',
-                          fontSize: 'clamp(11px, 2.5vw, 13px)'
-                        }}>
-                          {isOffDay(shift) ? (
-                            <span style={{ color: '#999', fontStyle: 'italic' }}>休み</span>
-                          ) : (
-                            <span style={{ fontWeight: 'bold' }}>
-                              {formatTime(shift.start_time)} - {formatTime(shift.end_time)}
-                            </span>
-                          )}
-                        </td>
-                        <td style={{
-                          padding: '0.75rem 0.5rem',
-                          textAlign: 'center',
-                          borderBottom: '1px solid #eee'
-                        }}>
-                          <span style={{
-                            padding: '0.25rem 0.5rem',
-                            borderRadius: '12px',
-                            fontSize: 'clamp(10px, 2vw, 12px)',
-                            backgroundColor: isOffDay(shift) ? '#f44336' : '#4CAF50',
-                            color: 'white',
-                            whiteSpace: 'nowrap'
-                          }}>
-                            {isOffDay(shift) ? '休み' : '出勤'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
+  <tr style={{ backgroundColor: '#f5f5f5' }}>
+    <th style={{ 
+      padding: '0.75rem 0.5rem', 
+      textAlign: 'left', 
+      borderBottom: '1px solid #ddd',
+      fontSize: 'clamp(12px, 2.5vw, 14px)'
+    }}>
+      名前
+    </th>
+    <th style={{ 
+      padding: '0.75rem 0.5rem', 
+      textAlign: 'center', 
+      borderBottom: '1px solid #ddd',
+      fontSize: 'clamp(12px, 2.5vw, 14px)'
+    }}>
+      店舗
+    </th>
+    <th style={{ 
+      padding: '0.75rem 0.5rem', 
+      textAlign: 'center', 
+      borderBottom: '1px solid #ddd',
+      fontSize: 'clamp(12px, 2.5vw, 14px)'
+    }}>
+      役割
+    </th>
+    <th style={{ 
+      padding: '0.75rem 0.5rem', 
+      textAlign: 'center', 
+      borderBottom: '1px solid #ddd',
+      fontSize: 'clamp(12px, 2.5vw, 14px)'
+    }}>
+      勤務時間
+    </th>
+    <th style={{ 
+      padding: '0.75rem 0.5rem', 
+      textAlign: 'left', 
+      borderBottom: '1px solid #ddd',
+      fontSize: 'clamp(12px, 2.5vw, 14px)'
+    }}>
+      備考
+    </th>
+    <th style={{ 
+      padding: '0.75rem 0.5rem', 
+      textAlign: 'center', 
+      borderBottom: '1px solid #ddd',
+      fontSize: 'clamp(12px, 2.5vw, 14px)'
+    }}>
+      状態
+    </th>
+  </tr>
+</thead>
+                <tbody>
+  {sortedShiftData.map((shift, index) => (
+    <tr key={shift.manager_number || index} style={{
+      backgroundColor: index % 2 === 0 ? 'white' : '#f9f9f9'
+    }}>
+      <td style={{ 
+        padding: '0.75rem 0.5rem', 
+        borderBottom: '1px solid #eee',
+        fontSize: 'clamp(12px, 2.5vw, 14px)'
+      }}>
+        <strong>{getUserName(shift.manager_number)}</strong>
+      </td>
+      <td style={{
+        padding: '0.75rem 0.5rem',
+        textAlign: 'center',
+        borderBottom: '1px solid #eee',
+        fontWeight: 'bold',
+        color: '#1976D2',
+        fontSize: 'clamp(12px, 2.5vw, 14px)'
+      }}>
+        {shift.store || '-'}
+      </td>
+      <td style={{
+        padding: '0.75rem 0.5rem',
+        textAlign: 'center',
+        borderBottom: '1px solid #eee',
+        fontWeight: 'bold',
+        color: '#9C27B0',
+        fontSize: 'clamp(12px, 2.5vw, 14px)'
+      }}>
+        {shift.role || '-'}
+      </td>
+      <td style={{
+        padding: '0.75rem 0.5rem',
+        textAlign: 'center',
+        borderBottom: '1px solid #eee',
+        fontSize: 'clamp(11px, 2.5vw, 13px)'
+      }}>
+        {isOffDay(shift) ? (
+          <span style={{ color: '#999', fontStyle: 'italic' }}>休み</span>
+        ) : (
+          <span style={{ fontWeight: 'bold' }}>
+            {formatTime(shift.start_time)} - {formatTime(shift.end_time)}
+          </span>
+        )}
+      </td>
+      <td style={{
+        padding: '0.75rem 0.5rem',
+        textAlign: 'left',
+        borderBottom: '1px solid #eee',
+        fontSize: 'clamp(11px, 2.5vw, 13px)',
+        color: '#666',
+        fontStyle: 'italic'
+      }}>
+        {shift.remarks || '-'}
+      </td>
+      <td style={{
+        padding: '0.75rem 0.5rem',
+        textAlign: 'center',
+        borderBottom: '1px solid #eee'
+      }}>
+        <span style={{
+          padding: '0.25rem 0.5rem',
+          borderRadius: '12px',
+          fontSize: 'clamp(10px, 2vw, 12px)',
+          backgroundColor: isOffDay(shift) ? '#f44336' : '#4CAF50',
+          color: 'white',
+          whiteSpace: 'nowrap'
+        }}>
+          {isOffDay(shift) ? '休み' : '出勤'}
+        </span>
+      </td>
+    </tr>
+  ))}
+</tbody>
                 </table>
               </div>
             </div>
@@ -812,101 +848,162 @@ function StaffShiftView({ onBack }) {
             }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1500px' }}>
                 <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f5f5f5', zIndex: 2 }}>
-                  <tr>
-                    <th style={{
-                      padding: '0.4rem',
-                      textAlign: 'left',
-                      borderBottom: '2px solid #999',
-                      borderRight: '2px solid #999',
-                      minWidth: '100px',
-                      backgroundColor: '#f5f5f5',
-                      position: 'sticky',
-                      left: 0,
-                      zIndex: 3,
-                      fontSize: 'clamp(11px, 2vw, 13px)'
-                    }}>
-                      名前
-                    </th>
-                    <th style={{
-                      padding: '0.4rem',
-                      textAlign: 'center',
-                      borderBottom: '2px solid #999',
-                      borderRight: '2px solid #999',
-                      minWidth: '60px',
-                      backgroundColor: '#f5f5f5',
-                      position: 'sticky',
-                      left: '100px',
-                      zIndex: 3,
-                      fontSize: 'clamp(10px, 2vw, 12px)'
-                    }}>
-                      店舗
-                    </th>
-                    {timeSlots.map((timeSlot) => (
-                      <th key={timeSlot} style={{
-                        padding: '0.25rem',
-                        textAlign: 'center',
-                        borderBottom: '2px solid #999',
-                        borderRight: '1px solid #ccc',
-                        minWidth: '35px',
-                        fontSize: 'clamp(9px, 1.8vw, 11px)',
-                        fontWeight: 'bold',
-                        backgroundColor: '#f5f5f5'
-                      }}>
-                        {timeSlot}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
+  <tr>
+    <th style={{
+      padding: '0.4rem',
+      textAlign: 'left',
+      borderBottom: '2px solid #999',
+      borderRight: '2px solid #999',
+      minWidth: '100px',
+      backgroundColor: '#f5f5f5',
+      position: 'sticky',
+      left: 0,
+      zIndex: 3,
+      fontSize: 'clamp(11px, 2vw, 13px)'
+    }}>
+      名前
+    </th>
+    <th style={{
+      padding: '0.4rem',
+      textAlign: 'center',
+      borderBottom: '2px solid #999',
+      borderRight: '2px solid #999',
+      minWidth: '60px',
+      backgroundColor: '#f5f5f5',
+      position: 'sticky',
+      left: '100px',
+      zIndex: 3,
+      fontSize: 'clamp(10px, 2vw, 12px)'
+    }}>
+      店舗
+    </th>
+    <th style={{
+      padding: '0.4rem',
+      textAlign: 'center',
+      borderBottom: '2px solid #999',
+      borderRight: '2px solid #999',
+      minWidth: '60px',
+      backgroundColor: '#f5f5f5',
+      position: 'sticky',
+      left: '160px',
+      zIndex: 3,
+      fontSize: 'clamp(10px, 2vw, 12px)'
+    }}>
+      役割
+    </th>
+    <th style={{
+      padding: '0.4rem',
+      textAlign: 'left',
+      borderBottom: '2px solid #999',
+      borderRight: '2px solid #999',
+      minWidth: '100px',
+      backgroundColor: '#f5f5f5',
+      position: 'sticky',
+      left: '220px',
+      zIndex: 3,
+      fontSize: 'clamp(10px, 2vw, 12px)'
+    }}>
+      備考
+    </th>
+    {timeSlots.map((timeSlot) => (
+      <th key={timeSlot} style={{
+        padding: '0.25rem',
+        textAlign: 'center',
+        borderBottom: '2px solid #999',
+        borderRight: '1px solid #ccc',
+        minWidth: '35px',
+        fontSize: 'clamp(9px, 1.8vw, 11px)',
+        fontWeight: 'bold',
+        backgroundColor: '#f5f5f5'
+      }}>
+        {timeSlot}
+      </th>
+    ))}
+  </tr>
+</thead>
                 <tbody>
-                  {sortedShiftData.map((shift, index) => (
-                    <tr key={shift.manager_number || index} style={{ backgroundColor: index % 2 === 0 ? 'white' : '#f9f9f9' }}>
-                      <td style={{ 
-                        padding: '0.4rem', 
-                        fontWeight: 'bold', 
-                        borderBottom: '1px solid #ddd',
-                        borderRight: '2px solid #999',
-                        position: 'sticky',
-                        left: 0,
-                        backgroundColor: index % 2 === 0 ? 'white' : '#f9f9f9',
-                        zIndex: 1,
-                        fontSize: 'clamp(11px, 2vw, 13px)'
-                      }}>
-                        {getUserName(shift.manager_number)}
-                      </td>
-                      <td style={{
-                        padding: '0.4rem',
-                        textAlign: 'center',
-                        borderBottom: '1px solid #ddd',
-                        borderRight: '2px solid #999',
-                        fontWeight: 'bold',
-                        color: '#1976D2',
-                        position: 'sticky',
-                        left: '100px',
-                        backgroundColor: index % 2 === 0 ? 'white' : '#f9f9f9',
-                        zIndex: 1,
-                        fontSize: 'clamp(10px, 2vw, 12px)'
-                      }}>
-                        {shift.store || '-'}
-                      </td>
-                      {timeSlots.map((timeSlot) => {
-                        const isWorking = isWorkingAtTime(shift, timeSlot);
-                        return (
-                          <td key={timeSlot} style={{
-                            borderBottom: '1px solid #ddd',
-                            borderRight: '1px solid #ccc',
-                            textAlign: 'center',
-                            backgroundColor: isWorking ? '#4CAF50' : (index % 2 === 0 ? 'white' : '#f9f9f9'),
-                            transition: 'all 0.3s ease',
-                            padding: '0.2rem',
-                            fontSize: 'clamp(8px, 1.5vw, 10px)'
-                          }}>
-                            {isWorking ? '●' : ''}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
+  {sortedShiftData.map((shift, index) => (
+    <tr key={shift.manager_number || index} style={{ backgroundColor: index % 2 === 0 ? 'white' : '#f9f9f9' }}>
+      <td style={{ 
+        padding: '0.4rem', 
+        fontWeight: 'bold', 
+        borderBottom: '1px solid #ddd',
+        borderRight: '2px solid #999',
+        position: 'sticky',
+        left: 0,
+        backgroundColor: index % 2 === 0 ? 'white' : '#f9f9f9',
+        zIndex: 1,
+        fontSize: 'clamp(11px, 2vw, 13px)'
+      }}>
+        {getUserName(shift.manager_number)}
+      </td>
+      <td style={{
+        padding: '0.4rem',
+        textAlign: 'center',
+        borderBottom: '1px solid #ddd',
+        borderRight: '2px solid #999',
+        fontWeight: 'bold',
+        color: '#1976D2',
+        position: 'sticky',
+        left: '100px',
+        backgroundColor: index % 2 === 0 ? 'white' : '#f9f9f9',
+        zIndex: 1,
+        fontSize: 'clamp(10px, 2vw, 12px)'
+      }}>
+        {shift.store || '-'}
+      </td>
+      <td style={{
+        padding: '0.4rem',
+        textAlign: 'center',
+        borderBottom: '1px solid #ddd',
+        borderRight: '2px solid #999',
+        fontWeight: 'bold',
+        color: '#9C27B0',
+        position: 'sticky',
+        left: '160px',
+        backgroundColor: index % 2 === 0 ? 'white' : '#f9f9f9',
+        zIndex: 1,
+        fontSize: 'clamp(10px, 2vw, 12px)'
+      }}>
+        {shift.role || '-'}
+      </td>
+      <td style={{
+        padding: '0.4rem',
+        textAlign: 'left',
+        borderBottom: '1px solid #ddd',
+        borderRight: '2px solid #999',
+        color: '#666',
+        fontStyle: 'italic',
+        position: 'sticky',
+        left: '220px',
+        backgroundColor: index % 2 === 0 ? 'white' : '#f9f9f9',
+        zIndex: 1,
+        fontSize: 'clamp(10px, 2vw, 12px)',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis'
+      }}>
+        {shift.remarks || '-'}
+      </td>
+      {timeSlots.map((timeSlot) => {
+        const isWorking = isWorkingAtTime(shift, timeSlot);
+        return (
+          <td key={timeSlot} style={{
+            borderBottom: '1px solid #ddd',
+            borderRight: '1px solid #ccc',
+            textAlign: 'center',
+            backgroundColor: isWorking ? '#4CAF50' : (index % 2 === 0 ? 'white' : '#f9f9f9'),
+            transition: 'all 0.3s ease',
+            padding: '0.2rem',
+            fontSize: 'clamp(8px, 1.5vw, 10px)'
+          }}>
+            {isWorking ? '●' : ''}
+          </td>
+        );
+      })}
+    </tr>
+  ))}
+</tbody>
               </table>
             </div>
           )}

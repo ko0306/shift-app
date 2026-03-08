@@ -81,27 +81,29 @@ const HelpModal = ({ isOpen, onClose, content }) => {
   );
 };
 
-const getHelpContent = (page) => {
+const getHelpContent = (page, managerNumber = '') => {
+  const isManager = managerNumber === '0000';
   const contents = {
-    login: (
-      <div>
-        <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>ログイン画面の使い方</h2>
-        <ol style={{ lineHeight: '1.8' }}>
-          <li><strong>ログインID</strong>を入力します</li>
-          <li><strong>管理番号</strong>を入力します</li>
-          <li><strong>パスワード</strong>を入力します</li>
-          <li><strong>ログイン</strong>ボタンをクリックします</li>
-        </ol>
-        <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
-          <strong>💡 ポイント：</strong>
-          <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem' }}>
-            <li>ログインIDは管理者から指定されたものを使用してください</li>
-            <li>管理番号は各自に割り当てられた番号です</li>
-            <li>パスワードを忘れた場合は「パスワード変更」から変更できます</li>
-          </ul>
-        </div>
-      </div>
-    ),
+  login: (
+  <div>
+    <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>ログイン画面の使い方</h2>
+    <ol style={{ lineHeight: '1.8' }}>
+      <li><strong>ログインID</strong>を入力します</li>
+      <li><strong>管理番号</strong>を入力します</li>
+      <li><strong>パスワード</strong>を入力します</li>
+      <li><strong>ログイン</strong>ボタンをクリックします</li>
+    </ol>
+    <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
+      <strong>💡 ポイント：</strong>
+      <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem' }}>
+        <li>ログインIDは管理者から指定されたものを使用してください</li>
+        <li>管理番号は各自に割り当てられた番号です</li>
+        <li>パスワードを忘れた場合は「パスワード変更」から変更できます</li>
+        <li>パスワード入力欄の右側の目のマークを押すと、入力した文字の表示・非表示を切り替えられます</li>
+      </ul>
+    </div>
+  </div>
+),
      clockin: (
       <div>
         <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>勤怠入力の使い方</h2>
@@ -129,6 +131,147 @@ const getHelpContent = (page) => {
         </div>
       </div>
     ),
+
+   roleSelect: (
+      <div>
+        <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>役職選択画面の使い方</h2>
+        <div style={{ marginBottom: '1.5rem', backgroundColor: '#f5f5f5', padding: '1rem', borderRadius: '8px' }}>
+          <p style={{ fontSize: '14px', margin: 0 }}>👤 あなたの役職に合ったボタンを選択してください。</p>
+        </div>
+
+        <h3 style={{ color: '#1976D2', marginTop: '1rem' }}>各ボタンの説明：</h3>
+        <ul style={{ lineHeight: '2' }}>
+          <li><strong>アルバイト</strong>：シフトの提出・確認・変更や就労時間の確認ができます</li>
+          {isManager && (
+            <li><strong>店長</strong>：シフト作成・確認・勤怠管理・新人登録ができます</li>
+          )}
+          <li><strong>勤怠入力</strong>：出勤・退勤・休憩の打刻ができます</li>
+        </ul>
+
+        <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
+          <strong>💡 ポイント：</strong>
+          <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem', marginBottom: 0 }}>
+            <li>自分の役職に合ったボタンを選んでください</li>
+            {isManager
+              ? <li>店長メニューではシフト作成・勤怠管理などが行えます</li>
+              : <li>アルバイトメニューからシフト提出・確認ができます</li>
+            }
+            <li>勤怠入力は出退勤の打刻専用画面です</li>
+          </ul>
+        </div>
+      </div>
+    ),
+
+    staffMenu: (
+      <div>
+        <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>アルバイトメニューの使い方</h2>
+        <div style={{ marginBottom: '1.5rem', backgroundColor: '#f5f5f5', padding: '1rem', borderRadius: '8px' }}>
+          <p style={{ fontSize: '14px', margin: 0 }}>📋 シフトの提出・確認・変更や、就労時間の確認ができます。</p>
+        </div>
+
+        <h3 style={{ color: '#1976D2', marginTop: '1rem' }}>各ボタンの説明：</h3>
+        <ul style={{ lineHeight: '2' }}>
+          <li><strong>新規提出</strong>：希望シフトを新しく提出します。開始日・終了日を選んで、日ごとに時間を入力します</li>
+          <li><strong>シフト変更</strong>：提出済みのシフトを修正します</li>
+          <li><strong>シフト確認</strong>：店長が作成した確定シフトを確認します</li>
+          <li><strong>就労時間</strong>：自分の勤務時間の実績を確認します</li>
+          <li><strong>お問い合わせ</strong>：問題や質問をフォームで送ることができます</li>
+        </ul>
+
+        <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
+          <strong>💡 ポイント：</strong>
+          <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem', marginBottom: 0 }}>
+            <li>シフト提出は期限までに行ってください</li>
+            <li>確定シフトは店長が作成後に「シフト確認」で見られます</li>
+            <li>就労時間は確定済みのデータのみ反映されます</li>
+          </ul>
+        </div>
+      </div>
+    ),
+
+    shiftPeriod: (
+      <div>
+        <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>新規提出 - 期間選択の使い方</h2>
+        <div style={{ marginBottom: '1.5rem', backgroundColor: '#f5f5f5', padding: '1rem', borderRadius: '8px' }}>
+          <p style={{ fontSize: '14px', margin: 0 }}>📅 シフトを提出したい期間の開始日と終了日を選びます。</p>
+        </div>
+
+        <h3 style={{ color: '#1976D2', marginTop: '1rem' }}>手順：</h3>
+        <ol style={{ lineHeight: '2' }}>
+          <li><strong>開始日</strong>：シフト提出を始めたい日付を選択します</li>
+          <li><strong>終了日</strong>：シフト提出を終わらせたい日付を選択します</li>
+          <li><strong>次へ</strong>ボタンをクリックすると、日ごとの時間入力画面に進みます</li>
+        </ol>
+
+        <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
+          <strong>⚠️ 注意点：</strong>
+          <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem', marginBottom: 0 }}>
+            <li>終了日は開始日より後の日付にしてください</li>
+            <li>店長がすでにシフトを組んだ日付が含まれている場合は提出できません</li>
+            <li>提出済みの期間を変更したい場合は「シフト変更」から行ってください</li>
+          </ul>
+        </div>
+      </div>
+    ),
+
+managerAuth: (
+      <div>
+        <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>店長パスワード画面の使い方</h2>
+        <div style={{ marginBottom: '1.5rem', backgroundColor: '#f5f5f5', padding: '1rem', borderRadius: '8px' }}>
+          <p style={{ fontSize: '14px', margin: 0 }}>🔐 店長メニューに入るためのパスワード認証画面です。</p>
+        </div>
+
+        <h3 style={{ color: '#1976D2', marginTop: '1rem' }}>手順：</h3>
+        <ol style={{ lineHeight: '2' }}>
+          <li>パスワード入力欄に<strong>店長パスワード</strong>を入力します</li>
+          <li><strong>認証</strong>ボタンをクリックします</li>
+          <li>認証が成功すると店長メニューに進みます</li>
+        </ol>
+
+        <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
+          <strong>⚠️ 注意点：</strong>
+          <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem', marginBottom: 0 }}>
+            <li>パスワードは店長のみが知っている番号です</li>
+            <li>パスワードを忘れた場合はシステム管理者に連絡してください</li>
+            <li>誤ったパスワードを入力するとエラーが表示されます</li>
+          </ul>
+        </div>
+      </div>
+    ),
+
+    shiftInput: (
+      <div>
+        <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>シフト入力画面の使い方</h2>
+        <div style={{ marginBottom: '1.5rem', backgroundColor: '#f5f5f5', padding: '1rem', borderRadius: '8px' }}>
+          <p style={{ fontSize: '14px', margin: 0 }}>📝 各日付ごとに勤務希望時間を入力します。</p>
+        </div>
+
+        <h3 style={{ color: '#1976D2', marginTop: '1rem' }}>入力モードの説明：</h3>
+        <ul style={{ lineHeight: '2' }}>
+          <li><strong>終日フリー</strong>：その日はいつでも出勤可能な場合に選択します</li>
+          <li><strong>終日不可</strong>：その日は出勤できない場合に選択します</li>
+          <li><strong>時間指定</strong>：出勤できる開始・終了時間を入力します</li>
+        </ul>
+
+        <h3 style={{ color: '#1976D2', marginTop: '1rem' }}>一括設定の使い方：</h3>
+        <ol style={{ lineHeight: '2' }}>
+          <li>画面上部の曜日ボタン（月〜日・全て）をタップして対象曜日を選びます</li>
+          <li>モード（終日フリー／終日不可／時間指定）を選択します</li>
+          <li>時間指定の場合は開始・終了時間を入力します</li>
+          <li><strong>一括適用</strong>ボタンを押すと選択した曜日にまとめて反映されます</li>
+        </ol>
+
+        <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
+          <strong>💡 ポイント：</strong>
+          <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem', marginBottom: 0 }}>
+            <li>備考欄に「遅刻予定」「早退希望」などのメモを残せます</li>
+            <li>全ての日付を入力したら「送信」ボタンで提出してください</li>
+            <li>店長がすでにシフトを組んだ日付が含まれる場合は送信できません</li>
+          </ul>
+        </div>
+      </div>
+    ),
+
   };
   return contents[page] || contents.login;
 };
@@ -157,10 +300,15 @@ function App() {
   const [managerPassError, setManagerPassError] = useState('');
   const [managerStep, setManagerStep] = useState('');
   const [showHelp, setShowHelp] = useState(false);
+const [showPassword, setShowPassword] = useState(false);
   const [currentHelpPage, setCurrentHelpPage] = useState('login');
   
   const [navigationHistory, setNavigationHistory] = useState([]);
-
+  // 既存の state の下に追加
+const [showAddUserModal, setShowAddUserModal] = useState(false);
+const [availableUsers, setAvailableUsers] = useState([]); // シフト未提出の人
+const [selectedUsersToAdd, setSelectedUsersToAdd] = useState([]); // 追加対象として選択した人
+const [bulkMode, setBulkMode] = useState('time'); // 一括設定のモード
   const resetAllInputs = () => {
     setManagerNumber('');
     setStartDate('');
@@ -199,10 +347,13 @@ function App() {
     return navigationHistory.length > 0;
   };
 
-  const openHelp = (page) => {
-    setCurrentHelpPage(page);
-    setShowHelp(true);
-  };
+  const [currentHelpManagerNumber, setCurrentHelpManagerNumber] = useState('');
+
+const openHelp = (page, managerNumber = '') => {
+  setCurrentHelpPage(page);
+  setCurrentHelpManagerNumber(managerNumber);
+  setShowHelp(true);
+};
 
  const handleLogin = async (e) => {
   e.preventDefault();
@@ -269,75 +420,89 @@ function App() {
   }
 };
 
-  const selectRole = (selectedRole) => {
-    pushToHistory({
-      role: '',
-      currentStep: '',
-      managerAuth: false,
-      managerStep: '',
-      isLoggedIn: true
-    });
-    
-    setRole(selectedRole);
-    if (selectedRole === 'staff') setCurrentStep('');
-  };
+ const selectRole = (selectedRole) => {
+  pushToHistory({
+    role: '',
+    currentStep: '',
+    managerAuth: false,
+    managerStep: '',
+    isLoggedIn: true
+  });
+  
+   if (selectedRole === 'manager') {
+    setManagerAuth(true);
+    setManagerStep('');
+  }
+  if (selectedRole === 'staff') setCurrentStep('');
+  setRole(selectedRole); // roleは最後にセット
+};
 
   // handleNext, getWeekday, handleTimeChange等の関数は元のコードと同じ
-  const handleNext = async () => {
-    if (!managerNumber.trim()) {
-      alert('管理番号を入力してください');
-      return;
-    }
-    if (!startDate || !endDate || startDate > endDate) {
-      alert('正しい開始日・終了日を入力してください');
-      return;
-    }
+ 
+const handleNext = async () => {
+  // ログイン時の管理番号を使用
+  const targetManagerNumber = loggedInManagerNumber || managerNumber;
+  
+  if (!targetManagerNumber.trim()) {
+    alert('管理番号が取得できませんでした');
+    return;
+  }
+  
+  if (!startDate || !endDate || startDate > endDate) {
+    alert('正しい開始日・終了日を入力してください');
+    return;
+  }
 
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('manager_number')
-        .eq('manager_number', managerNumber)
-        .single();
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('manager_number')
+      .eq('manager_number', targetManagerNumber)
+      .single();
 
-      if (error || !data) {
-        alert('管理番号が存在しません。');
-        return;
-      }
-    } catch (err) {
+    if (error || !data) {
       alert('管理番号が存在しません。');
       return;
     }
+  } catch (err) {
+    alert('管理番号が存在しません。');
+    return;
+  }
 
-    pushToHistory({
-      role: role,
-      currentStep: 'shiftPeriod',
-      managerAuth: managerAuth,
-      managerStep: managerStep,
-      isLoggedIn: true
-    });
+  // managerNumberを設定（shiftInput画面で使用するため）
+  if (!managerNumber) {
+    setManagerNumber(targetManagerNumber);
+  }
 
-    const dates = [];
-    const d = new Date(startDate);
-    while (d <= new Date(endDate)) {
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      dates.push({ 
-        date: `${yyyy}-${mm}-${dd}`, 
-        startHour: '', 
-        startMin: '', 
-        endHour: '', 
-        endMin: '', 
-        remarks: '' 
-      });
-      d.setDate(d.getDate() + 1);
-    }
+  pushToHistory({
+    role: role,
+    currentStep: 'shiftPeriod',
+    managerAuth: managerAuth,
+    managerStep: managerStep,
+    isLoggedIn: true
+  });
 
-    setShiftTimes(dates);
-    setCurrentStep('shiftInput');
-  };
+ const dates = [];
+const d = new Date(startDate);
+while (d <= new Date(endDate)) {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  dates.push({ 
+    date: `${yyyy}-${mm}-${dd}`, 
+    mode: 'time', // 'free', 'unavailable', 'time'
+    startHour: '', 
+    startMin: '', 
+    endHour: '', 
+    endMin: '', 
+    remarks: '' 
+  });
+  d.setDate(d.getDate() + 1);
+}
 
+  setShiftTimes(dates);
+  setCurrentStep('shiftInput');
+};
   const getWeekday = (dateStr) => {
     const days = ['日', '月', '火', '水', '木', '金', '土'];
     const d = new Date(dateStr);
@@ -345,27 +510,64 @@ function App() {
   };
 
   const handleTimeChange = (index, field, value) => {
-    const updated = [...shiftTimes];
-    updated[index][field] = value;
-    setShiftTimes(updated);
-  };
+  const updated = [...shiftTimes];
+  updated[index][field] = value;
+  
+  // モードが変更された場合の処理
+  if (field === 'mode') {
+    if (value === 'free') {
+      updated[index].startHour = '';
+      updated[index].startMin = '';
+      updated[index].endHour = '';
+      updated[index].endMin = '';
+    } else if (value === 'unavailable') {
+      updated[index].startHour = '';
+      updated[index].startMin = '';
+      updated[index].endHour = '';
+      updated[index].endMin = '';
+    }
+  }
+  
+  setShiftTimes(updated);
+};
 
-  const handleBulkApply = () => {
-    const updated = shiftTimes.map(item => {
-      const day = getWeekday(item.date);
-      if (selectedDays.includes('全て') || selectedDays.includes(day)) {
+const handleBulkApply = () => {
+  const updated = shiftTimes.map(item => {
+    const day = getWeekday(item.date);
+    if (selectedDays.includes('全て') || selectedDays.includes(day)) {
+      if (bulkMode === 'free') {
         return { 
           ...item, 
+          mode: 'free',
+          startHour: '', 
+          startMin: '', 
+          endHour: '', 
+          endMin: '' 
+        };
+      } else if (bulkMode === 'unavailable') {
+        return { 
+          ...item, 
+          mode: 'unavailable',
+          startHour: '', 
+          startMin: '', 
+          endHour: '', 
+          endMin: '' 
+        };
+      } else {
+        return { 
+          ...item, 
+          mode: 'time',
           startHour: bulkStartHour, 
           startMin: bulkStartMin, 
           endHour: bulkEndHour, 
           endMin: bulkEndMin 
         };
       }
-      return item;
-    });
-    setShiftTimes(updated);
-  };
+    }
+    return item;
+  });
+  setShiftTimes(updated);
+};
 
   const getColorForDay = (day) => {
     switch (day) {
@@ -389,36 +591,82 @@ function App() {
     );
   };
 
-  const handleSubmit = async () => {
-    try {
-      for (const shift of shiftTimes) {
-        const startTime = shift.startHour !== '' && shift.startMin !== '' 
+const handleSubmit = async () => {
+  const targetManagerNumber = loggedInManagerNumber || managerNumber;
+  
+  try {
+    const { data: existingFinalShifts, error: checkError } = await supabase
+      .from('final_shifts')
+      .select('date')
+      .eq('manager_number', targetManagerNumber)
+      .gte('date', startDate)
+      .lte('date', endDate);
+
+    if (checkError) {
+      console.error('シフト確認エラー:', checkError);
+      alert('シフトの確認中にエラーが発生しました');
+      return;
+    }
+
+    if (existingFinalShifts && existingFinalShifts.length > 0) {
+      const existingDates = existingFinalShifts
+        .map(shift => {
+          const date = new Date(shift.date);
+          const month = date.getMonth() + 1;
+          const day = date.getDate();
+          return `${month}月${day}日`;
+        })
+        .sort()
+        .join(', ');
+      
+      alert(
+        `❌ 提出できません\n\n以下の日付は既に店長がシフトを組んでいます:\n\n${existingDates}\n\n店長に確認するか、別の期間を選択してください。`
+      );
+      return;
+    }
+
+    for (const shift of shiftTimes) {
+      let startTime = '';
+      let endTime = '';
+      let remarks = shift.remarks || '';
+      
+     if (shift.mode === 'free') {
+  startTime = '';
+  endTime = '';
+  remarks = remarks ? `終日フリー\n${remarks}` : '終日フリー';
+} else if (shift.mode === 'unavailable') {
+  startTime = '';
+  endTime = '';
+  remarks = remarks ? `終日不可\n${remarks}` : '終日不可';
+}else {
+        startTime = shift.startHour !== '' && shift.startMin !== '' 
           ? `${String(shift.startHour).padStart(2, '0')}:${String(shift.startMin).padStart(2, '0')}` 
           : '';
-        const endTime = shift.endHour !== '' && shift.endMin !== '' 
+        endTime = shift.endHour !== '' && shift.endMin !== '' 
           ? `${String(shift.endHour).padStart(2, '0')}:${String(shift.endMin).padStart(2, '0')}` 
           : '';
-        
-        const { error } = await supabase
-          .from('shifts')
-          .insert([{
-            manager_number: managerNumber,
-            date: shift.date,
-            start_time: startTime,
-            end_time: endTime,
-            remarks: shift.remarks,
-          }]);
-        if (error) throw error;
       }
-
-      alert('シフトを保存しました！');
-      setCurrentStep('');
-      setRole('staff');
-      resetAllInputs();
-    } catch (error) {
-      alert(`保存中にエラーが発生しました: ${error.message}`);
+      
+      const { error } = await supabase
+        .from('shifts')
+        .insert([{
+          manager_number: targetManagerNumber,
+          date: shift.date,
+          start_time: startTime,
+          end_time: endTime,
+          remarks: remarks,
+        }]);
+      if (error) throw error;
     }
-  };
+
+    alert('シフトを保存しました！');
+    setCurrentStep('');
+    setRole('staff');
+    resetAllInputs();
+  } catch (error) {
+    alert(`保存中にエラーが発生しました: ${error.message}`);
+  }
+};
 
   const BackButton = () => {
     if (!shouldShowBackButton()) return null;
@@ -464,10 +712,10 @@ function App() {
     );
   };
 
-  const HelpButton = ({ page }) => {
-    return (
-      <button
-        onClick={() => openHelp(page)}
+  const HelpButton = ({ page, managerNumber = '' }) => {
+  return (
+    <button
+      onClick={() => openHelp(page, managerNumber)}
         style={{
           position: 'absolute',
           top: '1rem',
@@ -522,7 +770,7 @@ function App() {
   if (!isLoggedIn) {
     return (
       <div className="login-wrapper">
-        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage)} />
+        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
         <div className="login-card" style={{ position: 'relative' }}>
           <HelpButton page="login" />
           <h2>ログイン
@@ -539,12 +787,47 @@ function App() {
             value={managerNumberInput} 
             onChange={e => setManagerNumberInput(e.target.value)} 
           />
-          <input 
-            type="password" 
-            placeholder="パスワード" 
-            value={password} 
-            onChange={e => setPassword(e.target.value)} 
-          />
+    <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+  <input 
+    type={showPassword ? 'text' : 'password'} 
+    placeholder="パスワード" 
+    value={password} 
+    onChange={e => setPassword(e.target.value)}
+    style={{ flex: 1, marginRight: '-2rem' }}
+  />
+  <button
+    type="button"
+    onClick={() => setShowPassword(prev => !prev)}
+    style={{
+      width: '2rem',
+      flexShrink: 0,
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      padding: 0,
+      margin: 0,
+      zIndex: 10,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}
+  >
+    {showPassword ? (
+  // 目に斜線（非表示）
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-5 0-9.27-3.11-11-7 1.03-2.47 2.93-4.51 5.28-5.79"/>
+    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c5 0 9.27 3.11 11 7-.57 1.37-1.4 2.6-2.43 3.63"/>
+    <line x1="1" y1="1" x2="23" y2="23"/>
+  </svg>
+) : (
+  // 目（表示中）
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
+    <circle cx="12" cy="12" r="3"/>
+  </svg>
+)}
+  </button>
+</div>
           <button 
             onClick={handleLogin} 
             style={{ backgroundColor: '#2196F3' }}
@@ -580,10 +863,10 @@ function App() {
   if (!role) {
     return (
       <div className="login-wrapper">
-        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage)} />
+        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
         <div className="login-card" style={{ position: 'relative' }}>
           <BackButton />
-          <HelpButton page="roleSelect" />
+          <HelpButton page="roleSelect" managerNumber={loggedInManagerNumber} />
           <h2>役職を選択してください</h2>
           <div className="button-row" style={{ flexDirection: 'column', gap: '1rem' }}>
             <button onClick={() => selectRole('staff')} style={{ backgroundColor: '#1976D2' }}>アルバイト</button>
@@ -612,51 +895,28 @@ function App() {
   
 
 
-  if (role === 'clockin') {
-    return (
-      <div style={{ position: 'relative' }}>
-        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage)} />
-        <BackButton />
-        
-        <ClockInInput onBack={() => setRole('')} />
-      </div>
-    );
+ 変更:
+if (role === 'clockin') {
+  return (
+    <div style={{ position: 'relative' }}>
+      <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
+      <BackButton />
+      
+      <ClockInInput 
+        onBack={() => setRole('')} 
+        loggedInManagerNumber={loggedInManagerNumber}  // ← この行を追加
+      />
+    </div>
+  );
   }
 
-  if (role === 'manager' && !managerAuth) {
-    return (
-      <div className="login-wrapper">
-        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage)} />
-        <div className="login-card" style={{ position: 'relative' }}>
-          <BackButton />
-          <HelpButton page="managerMenu" />
-          <h2>店長パスワード</h2>
-          <input type="password" placeholder="パスワードを入力" value={managerPass} onChange={(e) => setManagerPass(e.target.value)} />
-          <button onClick={() => {
-            if (managerPass === '0306') {
-              pushToHistory({
-                role: role,
-                currentStep: currentStep,
-                managerAuth: false,
-                managerStep: managerStep,
-                isLoggedIn: true
-              });
-              setManagerAuth(true);
-              setManagerPassError('');
-            } else {
-              setManagerPassError('パスワードが違います');
-            }
-          }} style={{ backgroundColor: '#1554A5' }}>認証</button>
-          {managerPassError && <p className="error-msg">{managerPassError}</p>}
-        </div>
-      </div>
-    );
-  }
+ // ✅ 修正後
 
-  if (role === 'manager' && managerAuth && managerStep === '') {
+
+  if (role === 'manager' && managerStep === '') {
     return (
       <div className="login-wrapper">
-        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage)} />
+        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
         <div className="login-card" style={{ position: 'relative' }}>
           <BackButton />
           <HelpButton page="managerMenu" />
@@ -724,7 +984,7 @@ function App() {
   if (role === 'manager' && managerAuth && managerStep === 'register') {
     return (
       <div style={{ position: 'relative' }}>
-        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage)} />
+        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)}/>
         <BackButton />
         <RegisterUser onBack={() => setManagerStep('')} />
       </div>
@@ -734,7 +994,7 @@ function App() {
   if (role === 'manager' && managerAuth && managerStep === 'create') {
     return (
       <div style={{ position: 'relative' }}>
-        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage)} />
+        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)}/>
         <BackButton />
         <ManagerCreate onNavigate={(page) => {
           if (page === 'staff') {
@@ -748,7 +1008,7 @@ function App() {
   if (role === 'manager' && managerAuth && managerStep === 'view') {
     return (
       <div style={{ position: 'relative' }}>
-        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage)} />
+        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
         <BackButton />
         <ManagerShiftView onBack={() => setManagerStep('')} />
       </div>
@@ -758,7 +1018,7 @@ function App() {
   if (role === 'manager' && managerAuth && managerStep === 'attendance') {
     return (
       <div style={{ position: 'relative' }}>
-        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage)} />
+        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
         <BackButton />
         <ManagerAttendance onBack={() => setManagerStep('')} />
       </div>
@@ -768,57 +1028,85 @@ function App() {
   if (role === 'staff' && currentStep === 'shiftView') {
     return (
       <div style={{ position: 'relative' }}>
-        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage)} />
+        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)}content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
         <BackButton />
         <StaffShiftView onBack={() => setCurrentStep('')} />
       </div>
     );
   }
 
-  if (role === 'staff' && currentStep === 'shiftEdit') {
-    return (
-      <div style={{ position: 'relative' }}>
-        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage)} />
-        <BackButton />
-        <StaffShiftEdit onBack={() => setCurrentStep('')} />
-      </div>
-    );
+  
+if (role === 'staff' && currentStep === 'shiftEdit') {
+  return (
+    <div style={{ position: 'relative' }}>
+      <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
+      <BackButton />
+      <StaffShiftEdit 
+        onBack={() => setCurrentStep('')} 
+        loggedInManagerNumber={loggedInManagerNumber}  // ← この行を追加
+      />
+    </div>
+  );
   }
 
-  if (role === 'staff' && currentStep === 'workHours') {
-    return (
-      <div style={{ position: 'relative' }}>
-        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage)} />
-        <BackButton />
-        <StaffWorkHours onBack={() => setCurrentStep('')} />
-      </div>
-    );
+ 
+if (role === 'staff' && currentStep === 'workHours') {
+  return (
+    <div style={{ position: 'relative' }}>
+      <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
+      <BackButton />
+      <StaffWorkHours 
+        onBack={() => setCurrentStep('')} 
+        loggedInManagerNumber={loggedInManagerNumber}  // ← この行を追加
+      />
+    </div>
+  );
   }
 
-  if (role === 'staff' && currentStep === 'shiftPeriod') {
-    return (
-      <div className="login-wrapper">
-        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage)} />
-        <div className="login-card" style={{ position: 'relative' }}>
-          <BackButton />
-          <HelpButton page="shiftPeriod" />
-          <h2>新規提出</h2>
-          <label>管理番号:</label>
-          <input type="text" value={managerNumber} onChange={e => setManagerNumber(e.target.value)} />
-          <label>開始日:</label>
-          <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
-          <label>終了日:</label>
-          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
-          <button onClick={handleNext} style={{ backgroundColor: '#1976D2' }}>次へ</button>
-        </div>
-      </div>
-    );
+ 
+if (role === 'staff' && currentStep === 'shiftPeriod') {
+  // ログイン時の管理番号を自動設定
+  if (loggedInManagerNumber && !managerNumber) {
+    setManagerNumber(loggedInManagerNumber);
   }
+
+  return (
+    <div className="login-wrapper">
+      <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
+      <div className="login-card" style={{ position: 'relative' }}>
+        <BackButton />
+        <HelpButton page="shiftPeriod" />
+        <h2>新規提出</h2>
+        <p style={{ 
+          fontSize: '0.95rem', 
+          color: '#1976D2', 
+          marginBottom: '1rem', 
+          fontWeight: 'bold' 
+        }}>
+          管理番号: {loggedInManagerNumber}
+        </p>
+        <label>開始日:</label>
+        <input 
+          type="date" 
+          value={startDate} 
+          onChange={e => setStartDate(e.target.value)} 
+        />
+        <label>終了日:</label>
+        <input 
+          type="date" 
+          value={endDate} 
+          onChange={e => setEndDate(e.target.value)} 
+        />
+        <button onClick={handleNext} style={{ backgroundColor: '#1976D2' }}>次へ</button>
+      </div>
+    </div>
+  );
+}
 
   if (role === 'staff' && currentStep === 'shiftInput') {
     return (
       <div className="login-wrapper" style={{ padding: '0.5rem' }}>
-        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage)} />
+        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
         <div className="login-card shift-input-card" style={{ 
           position: 'relative',
           maxWidth: '100%',
@@ -863,130 +1151,187 @@ function App() {
           </div>
 
           {selectedDays.length > 0 && (
-            <div style={{ 
-              marginBottom: '0.75rem', 
-              padding: '0.75rem', 
-              backgroundColor: '#e3f2fd', 
-              borderRadius: '8px',
-              border: '2px solid #2196F3'
-            }}>
-              <div style={{ 
-                fontWeight: 'bold', 
-                marginBottom: '0.5rem', 
-                color: '#1976D2', 
-                fontSize: 'clamp(13px, 3vw, 14px)' 
-              }}>
-                一括設定
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ width: '100%' }}>
-                  <label style={{ 
-                    fontSize: 'clamp(12px, 2.5vw, 13px)', 
-                    display: 'block', 
-                    marginBottom: '0.25rem' 
-                  }}>
-                    開始時間
-                  </label>
-                  <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                    <select 
-                      value={bulkStartHour} 
-                      onChange={e => setBulkStartHour(e.target.value)}
-                      style={{ 
-                        flex: 1, 
-                        padding: '0.5rem', 
-                        fontSize: 'clamp(12px, 3vw, 14px)',
-                        minWidth: 0,
-                        boxSizing: 'border-box'
-                      }}
-                    >
-                      <option value="">時</option>
-                      {[...Array(37)].map((_, h) => (
-                        <option key={h} value={h}>{h}</option>
-                      ))}
-                    </select>
-                    <span style={{ fontSize: 'clamp(12px, 3vw, 14px)' }}>:</span>
-                    <select 
-                      value={bulkStartMin} 
-                      onChange={e => setBulkStartMin(e.target.value)}
-                      style={{ 
-                        flex: 1, 
-                        padding: '0.5rem', 
-                        fontSize: 'clamp(12px, 3vw, 14px)',
-                        minWidth: 0,
-                        boxSizing: 'border-box'
-                      }}
-                    >
-                      <option value="">分</option>
-                      {[...Array(60)].map((_, m) => (
-                        <option key={m} value={m}>{String(m).padStart(2, '0')}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div style={{ width: '100%' }}>
-                  <label style={{ 
-                    fontSize: 'clamp(12px, 2.5vw, 13px)', 
-                    display: 'block', 
-                    marginBottom: '0.25rem' 
-                  }}>
-                    終了時間
-                  </label>
-                  <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                    <select 
-                      value={bulkEndHour} 
-                      onChange={e => setBulkEndHour(e.target.value)}
-                      style={{ 
-                        flex: 1, 
-                        padding: '0.5rem', 
-                        fontSize: 'clamp(12px, 3vw, 14px)',
-                        minWidth: 0,
-                        boxSizing: 'border-box'
-                      }}
-                    >
-                      <option value="">時</option>
-                      {[...Array(37)].map((_, h) => (
-                        <option key={h} value={h}>{h}</option>
-                      ))}
-                    </select>
-                    <span style={{ fontSize: 'clamp(12px, 3vw, 14px)' }}>:</span>
-                    <select 
-                      value={bulkEndMin} 
-                      onChange={e => setBulkEndMin(e.target.value)}
-                      style={{ 
-                        flex: 1, 
-                        padding: '0.5rem', 
-                        fontSize: 'clamp(12px, 3vw, 14px)',
-                        minWidth: 0,
-                        boxSizing: 'border-box'
-                      }}
-                    >
-                      <option value="">分</option>
-                      {[...Array(60)].map((_, m) => (
-                        <option key={m} value={m}>{String(m).padStart(2, '0')}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <button 
-                  onClick={handleBulkApply} 
-                  style={{ 
-                    backgroundColor: '#2196F3', 
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '0.6rem 1rem',
-                    cursor: 'pointer',
-                    fontSize: 'clamp(13px, 3vw, 14px)',
-                    fontWeight: 'bold',
-                    width: '100%'
-                  }}
-                >
-                  一括適用
-                </button>
-              </div>
-            </div>
-          )}
+  <div style={{ 
+    marginBottom: '0.75rem', 
+    padding: '0.75rem', 
+    backgroundColor: '#e3f2fd', 
+    borderRadius: '8px',
+    border: '2px solid #2196F3'
+  }}>
+    <div style={{ 
+      fontWeight: 'bold', 
+      marginBottom: '0.5rem', 
+      color: '#1976D2', 
+      fontSize: 'clamp(13px, 3vw, 14px)' 
+    }}>
+      一括設定
+    </div>
+    
+    {/* モード選択ボタン */}
+    <div style={{ display: 'flex', gap: '0.3rem', marginBottom: '0.75rem' }}>
+      <button
+        onClick={() => setBulkMode('free')}
+        style={{
+          flex: 1,
+          padding: '0.5rem',
+          backgroundColor: bulkMode === 'free' ? '#4CAF50' : '#e0e0e0',
+          color: bulkMode === 'free' ? 'white' : '#666',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontSize: 'clamp(11px, 2.5vw, 13px)',
+          fontWeight: 'bold'
+        }}
+      >
+        終日フリー
+      </button>
+      <button
+        onClick={() => setBulkMode('unavailable')}
+        style={{
+          flex: 1,
+          padding: '0.5rem',
+          backgroundColor: bulkMode === 'unavailable' ? '#f44336' : '#e0e0e0',
+          color: bulkMode === 'unavailable' ? 'white' : '#666',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontSize: 'clamp(11px, 2.5vw, 13px)',
+          fontWeight: 'bold'
+        }}
+      >
+        終日不可
+      </button>
+      <button
+        onClick={() => setBulkMode('time')}
+        style={{
+          flex: 1,
+          padding: '0.5rem',
+          backgroundColor: bulkMode === 'time' ? '#2196F3' : '#e0e0e0',
+          color: bulkMode === 'time' ? 'white' : '#666',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontSize: 'clamp(11px, 2.5vw, 13px)',
+          fontWeight: 'bold'
+        }}
+      >
+        時間指定
+      </button>
+    </div>
 
+    {/* 時間指定の場合のみ時間入力を表示 */}
+    {bulkMode === 'time' && (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <div style={{ width: '100%' }}>
+          <label style={{ 
+            fontSize: 'clamp(12px, 2.5vw, 13px)', 
+            display: 'block', 
+            marginBottom: '0.25rem' 
+          }}>
+            開始時間
+          </label>
+          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+            <select 
+              value={bulkStartHour} 
+              onChange={e => setBulkStartHour(e.target.value)}
+              style={{ 
+                flex: 1, 
+                padding: '0.5rem', 
+                fontSize: 'clamp(12px, 3vw, 14px)',
+                minWidth: 0,
+                boxSizing: 'border-box'
+              }}
+            >
+              <option value="">時</option>
+              {[...Array(37)].map((_, h) => (
+                <option key={h} value={h}>{h}</option>
+              ))}
+            </select>
+            <span style={{ fontSize: 'clamp(12px, 3vw, 14px)' }}>:</span>
+            <select 
+              value={bulkStartMin} 
+              onChange={e => setBulkStartMin(e.target.value)}
+              style={{ 
+                flex: 1, 
+                padding: '0.5rem', 
+                fontSize: 'clamp(12px, 3vw, 14px)',
+                minWidth: 0,
+                boxSizing: 'border-box'
+              }}
+            >
+              <option value="">分</option>
+              {[...Array(60)].map((_, m) => (
+                <option key={m} value={m}>{String(m).padStart(2, '0')}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div style={{ width: '100%' }}>
+          <label style={{ 
+            fontSize: 'clamp(12px, 2.5vw, 13px)', 
+            display: 'block', 
+            marginBottom: '0.25rem' 
+          }}>
+            終了時間
+          </label>
+          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+            <select 
+              value={bulkEndHour} 
+              onChange={e => setBulkEndHour(e.target.value)}
+              style={{ 
+                flex: 1, 
+                padding: '0.5rem', 
+                fontSize: 'clamp(12px, 3vw, 14px)',
+                minWidth: 0,
+                boxSizing: 'border-box'
+              }}
+            >
+              <option value="">時</option>
+              {[...Array(37)].map((_, h) => (
+                <option key={h} value={h}>{h}</option>
+              ))}
+            </select>
+            <span style={{ fontSize: 'clamp(12px, 3vw, 14px)' }}>:</span>
+            <select 
+              value={bulkEndMin} 
+              onChange={e => setBulkEndMin(e.target.value)}
+              style={{ 
+                flex: 1, 
+                padding: '0.5rem', 
+                fontSize: 'clamp(12px, 3vw, 14px)',
+                minWidth: 0,
+                boxSizing: 'border-box'
+              }}
+            >
+              <option value="">分</option>
+              {[...Array(60)].map((_, m) => (
+                <option key={m} value={m}>{String(m).padStart(2, '0')}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+    )}
+    
+    <button 
+      onClick={handleBulkApply} 
+      style={{ 
+        backgroundColor: '#2196F3', 
+        color: 'white',
+        border: 'none',
+        borderRadius: '6px',
+        padding: '0.6rem 1rem',
+        cursor: 'pointer',
+        fontSize: 'clamp(13px, 3vw, 14px)',
+        fontWeight: 'bold',
+        width: '100%',
+        marginTop: '0.5rem'
+      }}
+    >
+      一括適用
+    </button>
+  </div>
+)}
           <div style={{ 
             maxHeight: '50vh', 
             overflowY: 'auto', 
@@ -994,143 +1339,200 @@ function App() {
             width: '100%',
             WebkitOverflowScrolling: 'touch'
           }}>
-            {shiftTimes.map((item, i) => (
-              <div key={item.date} style={{ 
-                display: 'flex', 
-                flexDirection: 'column',
-                gap: '0.5rem', 
-                marginBottom: '0.75rem', 
-                padding: '0.75rem',
-                backgroundColor: '#e8e8e8',
-                borderRadius: '8px',
-                border: '1px solid #d0d0d0'
-              }}>
-                <div style={{ 
-                  fontWeight: 'bold', 
-                  fontSize: 'clamp(14px, 3.5vw, 16px)', 
-                  marginBottom: '0.25rem' 
-                }}>
-                  {item.date}（{getWeekday(item.date)}）
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <div style={{ width: '100%' }}>
-                    <label style={{ 
-                      fontSize: 'clamp(12px, 2.5vw, 13px)', 
-                      display: 'block', 
-                      marginBottom: '0.25rem' 
-                    }}>
-                      開始時間
-                    </label>
-                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                      <select 
-                        value={item.startHour} 
-                        onChange={e => handleTimeChange(i, 'startHour', e.target.value)}
-                        style={{ 
-                          flex: 1, 
-                          padding: '0.5rem', 
-                          fontSize: 'clamp(12px, 3vw, 14px)',
-                          minWidth: 0,
-                          boxSizing: 'border-box'
-                        }}
-                      >
-                        <option value="">時</option>
-                        {[...Array(37)].map((_, h) => (
-                          <option key={h} value={h}>{h}</option>
-                        ))}
-                      </select>
-                      <span style={{ fontSize: 'clamp(12px, 3vw, 14px)' }}>:</span>
-                      <select 
-                        value={item.startMin} 
-                        onChange={e => handleTimeChange(i, 'startMin', e.target.value)}
-                        style={{ 
-                          flex: 1, 
-                          padding: '0.5rem', 
-                          fontSize: 'clamp(12px, 3vw, 14px)',
-                          minWidth: 0,
-                          boxSizing: 'border-box'
-                        }}
-                      >
-                        <option value="">分</option>
-                        {[...Array(60)].map((_, m) => (
-                          <option key={m} value={m}>{String(m).padStart(2, '0')}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <div style={{ width: '100%' }}>
-                    <label style={{ 
-                      fontSize: 'clamp(12px, 2.5vw, 13px)', 
-                      display: 'block', 
-                      marginBottom: '0.25rem' 
-                    }}>
-                      終了時間
-                    </label>
-                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                      <select 
-                        value={item.endHour} 
-                        onChange={e => handleTimeChange(i, 'endHour', e.target.value)}
-                        style={{ 
-                          flex: 1, 
-                          padding: '0.5rem', 
-                          fontSize: 'clamp(12px, 3vw, 14px)',
-                          minWidth: 0,
-                          boxSizing: 'border-box'
-                        }}
-                      >
-                        <option value="">時</option>
-                        {[...Array(37)].map((_, h) => (
-                          <option key={h} value={h}>{h}</option>
-                        ))}
-                      </select>
-                      <span style={{ fontSize: 'clamp(12px, 3vw, 14px)' }}>:</span>
-                      <select 
-                        value={item.endMin} 
-                        onChange={e => handleTimeChange(i, 'endMin', e.target.value)}
-                        style={{ 
-                          flex: 1, 
-                          padding: '0.5rem', 
-                          fontSize: 'clamp(12px, 3vw, 14px)',
-                          minWidth: 0,
-                          boxSizing: 'border-box'
-                        }}
-                      >
-                        <option value="">分</option>
-                        {[...Array(60)].map((_, m) => (
-                          <option key={m} value={m}>{String(m).padStart(2, '0')}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label style={{ 
-                    fontSize: 'clamp(12px, 2.5vw, 13px)', 
-                    display: 'block', 
-                    marginBottom: '0.25rem', 
-                    fontWeight: 'bold' 
-                  }}>
-                    備考
-                  </label>
-                  <textarea 
-                    value={item.remarks} 
-                    onChange={e => handleTimeChange(i, 'remarks', e.target.value)}
-                    placeholder="例：朝遅刻予定、早退など"
-                    style={{ 
-                      width: '100%', 
-                      padding: '0.5rem', 
-                      borderRadius: '4px', 
-                      border: '2px solid #FF9800',
-                      fontSize: 'clamp(12px, 3vw, 14px)',
-                      minHeight: '60px',
-                      fontFamily: 'inherit',
-                      backgroundColor: '#FFF9E6',
-                      boxSizing: 'border-box',
-                      resize: 'vertical'
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
+           {shiftTimes.map((item, i) => (
+  <div key={item.date} style={{ 
+    display: 'flex', 
+    flexDirection: 'column',
+    gap: '0.5rem', 
+    marginBottom: '0.75rem', 
+    padding: '0.75rem',
+    backgroundColor: '#e8e8e8',
+    borderRadius: '8px',
+    border: '1px solid #d0d0d0'
+  }}>
+    <div style={{ 
+      fontWeight: 'bold', 
+      fontSize: 'clamp(14px, 3.5vw, 16px)', 
+      marginBottom: '0.25rem' 
+    }}>
+      {item.date}（{getWeekday(item.date)}）
+    </div>
+    
+    {/* モード選択ボタン */}
+    <div style={{ display: 'flex', gap: '0.3rem', marginBottom: '0.5rem' }}>
+      <button
+        onClick={() => handleTimeChange(i, 'mode', 'free')}
+        style={{
+          flex: 1,
+          padding: '0.4rem',
+          backgroundColor: item.mode === 'free' ? '#4CAF50' : '#e0e0e0',
+          color: item.mode === 'free' ? 'white' : '#666',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontSize: 'clamp(11px, 2.5vw, 12px)',
+          fontWeight: 'bold'
+        }}
+      >
+        終日フリー
+      </button>
+      <button
+        onClick={() => handleTimeChange(i, 'mode', 'unavailable')}
+        style={{
+          flex: 1,
+          padding: '0.4rem',
+          backgroundColor: item.mode === 'unavailable' ? '#f44336' : '#e0e0e0',
+          color: item.mode === 'unavailable' ? 'white' : '#666',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontSize: 'clamp(11px, 2.5vw, 12px)',
+          fontWeight: 'bold'
+        }}
+      >
+        終日不可
+      </button>
+      <button
+        onClick={() => handleTimeChange(i, 'mode', 'time')}
+        style={{
+          flex: 1,
+          padding: '0.4rem',
+          backgroundColor: item.mode === 'time' ? '#2196F3' : '#e0e0e0',
+          color: item.mode === 'time' ? 'white' : '#666',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontSize: 'clamp(11px, 2.5vw, 12px)',
+          fontWeight: 'bold'
+        }}
+      >
+        時間指定
+      </button>
+    </div>
+
+    {/* 時間指定の場合のみ時間入力を表示 */}
+    {item.mode === 'time' && (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <div style={{ width: '100%' }}>
+          <label style={{ 
+            fontSize: 'clamp(12px, 2.5vw, 13px)', 
+            display: 'block', 
+            marginBottom: '0.25rem' 
+          }}>
+            開始時間
+          </label>
+          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+            <select 
+              value={item.startHour} 
+              onChange={e => handleTimeChange(i, 'startHour', e.target.value)}
+              style={{ 
+                flex: 1, 
+                padding: '0.5rem', 
+                fontSize: 'clamp(12px, 3vw, 14px)',
+                minWidth: 0,
+                boxSizing: 'border-box'
+              }}
+            >
+              <option value="">時</option>
+              {[...Array(37)].map((_, h) => (
+                <option key={h} value={h}>{h}</option>
+              ))}
+            </select>
+            <span style={{ fontSize: 'clamp(12px, 3vw, 14px)' }}>:</span>
+            <select 
+              value={item.startMin} 
+              onChange={e => handleTimeChange(i, 'startMin', e.target.value)}
+              style={{ 
+                flex: 1, 
+                padding: '0.5rem', 
+                fontSize: 'clamp(12px, 3vw, 14px)',
+                minWidth: 0,
+                boxSizing: 'border-box'
+              }}
+            >
+              <option value="">分</option>
+              {[...Array(60)].map((_, m) => (
+                <option key={m} value={m}>{String(m).padStart(2, '0')}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div style={{ width: '100%' }}>
+          <label style={{ 
+            fontSize: 'clamp(12px, 2.5vw, 13px)', 
+            display: 'block', 
+            marginBottom: '0.25rem' 
+          }}>
+            終了時間
+          </label>
+          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+            <select 
+              value={item.endHour} 
+              onChange={e => handleTimeChange(i, 'endHour', e.target.value)}
+              style={{ 
+                flex: 1, 
+                padding: '0.5rem', 
+                fontSize: 'clamp(12px, 3vw, 14px)',
+                minWidth: 0,
+                boxSizing: 'border-box'
+              }}
+            >
+              <option value="">時</option>
+              {[...Array(37)].map((_, h) => (
+                <option key={h} value={h}>{h}</option>
+              ))}
+            </select>
+            <span style={{ fontSize: 'clamp(12px, 3vw, 14px)' }}>:</span>
+            <select 
+              value={item.endMin} 
+              onChange={e => handleTimeChange(i, 'endMin', e.target.value)}
+              style={{ 
+                flex: 1, 
+                padding: '0.5rem', 
+                fontSize: 'clamp(12px, 3vw, 14px)',
+                minWidth: 0,
+                boxSizing: 'border-box'
+              }}
+            >
+              <option value="">分</option>
+              {[...Array(60)].map((_, m) => (
+                <option key={m} value={m}>{String(m).padStart(2, '0')}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+    )}
+    
+    <div>
+      <label style={{ 
+        fontSize: 'clamp(12px, 2.5vw, 13px)', 
+        display: 'block', 
+        marginBottom: '0.25rem', 
+        fontWeight: 'bold' 
+      }}>
+        備考
+      </label>
+      <textarea 
+        value={item.remarks} 
+        onChange={e => handleTimeChange(i, 'remarks', e.target.value)}
+        placeholder="例：朝遅刻予定、早退など"
+        style={{ 
+          width: '100%', 
+          padding: '0.5rem', 
+          borderRadius: '4px', 
+          border: '2px solid #FF9800',
+          fontSize: 'clamp(12px, 3vw, 14px)',
+          minHeight: '60px',
+          fontFamily: 'inherit',
+          backgroundColor: '#FFF9E6',
+          boxSizing: 'border-box',
+          resize: 'vertical'
+        }}
+      />
+    </div>
+  </div>
+))}
           </div>
           <button 
             onClick={handleSubmit} 
@@ -1156,7 +1558,7 @@ function App() {
   if (role === 'staff') {
     return (
       <div className="login-wrapper">
-        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage)} />
+        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
         <div className="login-card" style={{ position: 'relative' }}>
           <BackButton />
           <HelpButton page="staffMenu" />
