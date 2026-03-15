@@ -309,6 +309,8 @@ const [showAddUserModal, setShowAddUserModal] = useState(false);
 const [availableUsers, setAvailableUsers] = useState([]); // シフト未提出の人
 const [selectedUsersToAdd, setSelectedUsersToAdd] = useState([]); // 追加対象として選択した人
 const [bulkMode, setBulkMode] = useState('time'); // 一括設定のモード
+const [recruitmentInfo, setRecruitmentInfo] = useState({}); // 募集人数設定
+const [submissionCounts, setSubmissionCounts] = useState({}); // 日付ごと提出人数
   const resetAllInputs = () => {
     setManagerNumber('');
     setStartDate('');
@@ -501,6 +503,42 @@ while (d <= new Date(endDate)) {
 }
 
   setShiftTimes(dates);
+
+  // 募集設定と提出人数を取得
+  const dateStrings = dates.map(d => d.date);
+  try {
+    const [settingsResult, shiftsResult] = await Promise.all([
+      supabase.from('settings').select('value').eq('key', 'recruitment_settings').single(),
+      supabase.from('shifts').select('date, manager_number').in('date', dateStrings)
+    ]);
+
+    // 提出人数（日付ごとのdistinct manager_number数）
+    const countMap = {};
+    shiftsResult.data?.forEach(s => {
+      if (!countMap[s.date]) countMap[s.date] = new Set();
+      countMap[s.date].add(s.manager_number);
+    });
+    const countByDate = {};
+    Object.entries(countMap).forEach(([date, set]) => { countByDate[date] = set.size; });
+    setSubmissionCounts(countByDate);
+
+    // 募集設定を解析
+    if (!settingsResult.error && settingsResult.data) {
+      const settings = JSON.parse(settingsResult.data.value);
+      const infoByDate = {};
+      dateStrings.forEach(dateStr => {
+        const specific = settings.byDate?.find(d => d.date === dateStr);
+        if (specific) { infoByDate[dateStr] = { count: specific.count, notes: specific.notes }; return; }
+        const dow = new Date(dateStr + 'T00:00:00').getDay();
+        const dowSetting = settings.byDayOfWeek?.[dow];
+        if (dowSetting?.enabled) infoByDate[dateStr] = { count: dowSetting.count, notes: dowSetting.notes };
+      });
+      setRecruitmentInfo(infoByDate);
+    }
+  } catch (e) {
+    console.error('募集情報の取得に失敗:', e);
+  }
+
   setCurrentStep('shiftInput');
 };
   const getWeekday = (dateStr) => {
@@ -1025,15 +1063,15 @@ if (role === 'clockin') {
     );
   }
 
-  if (role === 'staff' && currentStep === 'shiftView') {
-    return (
-      <div style={{ position: 'relative' }}>
-        <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)}content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
-        <BackButton />
-        <StaffShiftView onBack={() => setCurrentStep('')} />
-      </div>
-    );
-  }
+ if (role === 'staff' && currentStep === 'shiftView') {
+  return (
+    <div style={{ position: 'relative' }}>
+      <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)}content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
+      <BackButton />
+      <StaffShiftView onBack={() => setCurrentStep('')} managerNumber={loggedInManagerNumber} />
+    </div>
+  );
+}
 
   
 if (role === 'staff' && currentStep === 'shiftEdit') {
@@ -1350,14 +1388,40 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
     borderRadius: '8px',
     border: '1px solid #d0d0d0'
   }}>
-    <div style={{ 
-      fontWeight: 'bold', 
-      fontSize: 'clamp(14px, 3.5vw, 16px)', 
-      marginBottom: '0.25rem' 
-    }}>
-      {item.date}（{getWeekday(item.date)}）
+    <div style={{ marginBottom: '0.4rem' }}>
+      {/* 日付 + 募集バッジ 横並び */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <span style={{ fontWeight: 'bold', fontSize: 'clamp(14px, 3.5vw, 16px)' }}>
+          {item.date}（{getWeekday(item.date)}）
+        </span>
+        {recruitmentInfo[item.date] && (() => {
+          const submitted = submissionCounts[item.date] || 0;
+          const required = recruitmentInfo[item.date].count;
+          const isFull = submitted >= required;
+          return (
+            <span style={{
+              backgroundColor: isFull ? '#e8f5e9' : '#fff8e1',
+              border: `1px solid ${isFull ? '#81c784' : '#ffcc02'}`,
+              borderRadius: '12px',
+              padding: '0.1rem 0.6rem',
+              fontSize: 'clamp(10px, 2.2vw, 12px)',
+              fontWeight: 'bold',
+              color: isFull ? '#2e7d32' : '#e65100',
+              whiteSpace: 'nowrap'
+            }}>
+              👥 {submitted}/{required}人
+            </span>
+          );
+        })()}
+      </div>
+      {/* 備考（あれば） */}
+      {recruitmentInfo[item.date]?.notes && (
+        <div style={{ fontSize: 'clamp(10px, 2vw, 11px)', color: '#795548', marginTop: '0.15rem' }}>
+          📝 {recruitmentInfo[item.date].notes}
+        </div>
+      )}
     </div>
-    
+
     {/* モード選択ボタン */}
     <div style={{ display: 'flex', gap: '0.3rem', marginBottom: '0.5rem' }}>
       <button

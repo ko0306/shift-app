@@ -217,6 +217,8 @@ function StaffShiftEdit({ onBack, loggedInManagerNumber }) {  // ← loggedInMan
   const [showHelp, setShowHelp] = useState(false);
   const [bulkIsFree, setBulkIsFree] = useState('create'); // 'create' | 'change' | 'time'
 const [hasAttemptedAuth, setHasAttemptedAuth] = useState(false);
+const [recruitmentInfo, setRecruitmentInfo] = useState({});
+const [submissionCounts, setSubmissionCounts] = useState({});
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -325,7 +327,6 @@ const [hasAttemptedAuth, setHasAttemptedAuth] = useState(false);
     setEditingShifts(editableShifts.map(shift => {
       const startTime = parseTime(shift.start_time);
       const endTime = parseTime(shift.end_time);
-      
       return {
         ...shift,
         startHour: startTime.hour,
@@ -337,6 +338,7 @@ const [hasAttemptedAuth, setHasAttemptedAuth] = useState(false);
         is_change: shift.is_change || false
       };
     }));
+    fetchRecruitmentAndSubmissions(editableShifts.map(s => s.date));
     setIsAuthenticated(true);
     setMessage('認証成功');
     setLoading(false);
@@ -431,7 +433,6 @@ const [hasAttemptedAuth, setHasAttemptedAuth] = useState(false);
     setEditingShifts(editableShifts.map(shift => {
       const startTime = parseTime(shift.start_time);
       const endTime = parseTime(shift.end_time);
-      
       return {
         ...shift,
         startHour: startTime.hour,
@@ -443,6 +444,7 @@ const [hasAttemptedAuth, setHasAttemptedAuth] = useState(false);
         is_change: shift.is_change || false
       };
     }));
+    fetchRecruitmentAndSubmissions(editableShifts.map(s => s.date));
     setIsAuthenticated(true);
     setMessage('');
     setLoading(false);
@@ -453,6 +455,66 @@ const [hasAttemptedAuth, setHasAttemptedAuth] = useState(false);
     setLoading(false);
   }
 };
+
+  const fetchRecruitmentAndSubmissions = async (dates) => {
+    try {
+      // App.jsと同じロジック：recruitment_settings + 提出数 + final_shifts boshu行数
+      const [settingsResult, shiftsResult, boshuResult] = await Promise.all([
+        supabase.from('settings').select('value').eq('key', 'recruitment_settings').single(),
+        supabase.from('shifts').select('date, manager_number').in('date', dates),
+        supabase.from('final_shifts').select('date').eq('is_boshu', true).in('date', dates)
+      ]);
+
+      // 提出人数をカウント（日付ごとに distinct manager_number）
+      const countMap = {};
+      shiftsResult.data?.forEach(s => {
+        if (!countMap[s.date]) countMap[s.date] = new Set();
+        countMap[s.date].add(s.manager_number);
+      });
+      const countByDate = {};
+      Object.entries(countMap).forEach(([date, set]) => { countByDate[date] = set.size; });
+      setSubmissionCounts(countByDate);
+
+      // final_shifts boshu行の実数（日付ごと）
+      const boshuCountByDate = {};
+      boshuResult.data?.forEach(row => {
+        boshuCountByDate[row.date] = (boshuCountByDate[row.date] || 0) + 1;
+      });
+
+      // recruitment_settings を解析（App.js と同じロジック）
+      const infoByDate = {};
+      if (!settingsResult.error && settingsResult.data) {
+        const settings = JSON.parse(settingsResult.data.value);
+        dates.forEach(dateStr => {
+          const specific = settings.byDate?.find(d => d.date === dateStr);
+          if (specific) {
+            infoByDate[dateStr] = { count: specific.count, notes: specific.notes };
+            return;
+          }
+          const dow = new Date(dateStr + 'T00:00:00').getDay();
+          const dowSetting = settings.byDayOfWeek?.[dow];
+          if (dowSetting?.enabled) {
+            infoByDate[dateStr] = { count: dowSetting.count, notes: dowSetting.notes };
+          }
+        });
+      }
+
+      // final_shifts に実際の boshu 行がある場合はその件数で上書き（より正確な値）
+      dates.forEach(dateStr => {
+        const boshuCount = boshuCountByDate[dateStr];
+        if (boshuCount) {
+          infoByDate[dateStr] = {
+            ...(infoByDate[dateStr] || {}),
+            count: boshuCount
+          };
+        }
+      });
+
+      setRecruitmentInfo(infoByDate);
+    } catch (e) {
+      console.error('募集情報の取得に失敗:', e);
+    }
+  };
 
   const getWeekday = (dateStr) => {
     const days = ['日', '月', '火', '水', '木', '金', '土'];
@@ -946,15 +1008,45 @@ if (!isAuthenticated) {
       marginBottom: '1rem'
     }}
   >
-    <div style={{ 
-      fontWeight: 'bold', 
-      fontSize: 'clamp(14px, 3vw, 18px)',
-      marginBottom: '0.8rem',
-      color: '#333'
-    }}>
-      {shift.date}（{getWeekday(shift.date)}）
+    <div style={{ marginBottom: '0.75rem' }}>
+      {/* 日付 + 募集バッジを横並びに */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <span style={{ fontWeight: 'bold', fontSize: 'clamp(14px, 3vw, 18px)', color: '#333' }}>
+          {shift.date}（{getWeekday(shift.date)}）
+        </span>
+        {recruitmentInfo[shift.date] && (() => {
+          const submitted = submissionCounts[shift.date] || 0;
+          const required = recruitmentInfo[shift.date].count;
+          const isFull = submitted >= required;
+          return (
+            <span style={{
+              backgroundColor: isFull ? '#e8f5e9' : '#fff8e1',
+              border: `1px solid ${isFull ? '#81c784' : '#ffcc02'}`,
+              borderRadius: '12px',
+              padding: '0.15rem 0.65rem',
+              fontSize: 'clamp(10px, 2.2vw, 13px)',
+              fontWeight: 'bold',
+              color: isFull ? '#2e7d32' : '#e65100',
+              whiteSpace: 'nowrap'
+            }}>
+              👥 {submitted}/{required}人
+            </span>
+          );
+        })()}
+      </div>
+      {/* 備考（あれば日付の下に小さく表示） */}
+      {recruitmentInfo[shift.date]?.notes && (
+        <div style={{
+          fontSize: 'clamp(10px, 2vw, 12px)',
+          color: '#795548',
+          marginTop: '0.2rem',
+          paddingLeft: '0.1rem'
+        }}>
+          📝 {recruitmentInfo[shift.date].notes}
+        </div>
+      )}
     </div>
-    
+
    {/* 3つのボタンを横一列に表示 */}
     <div style={{ 
       display: 'grid',

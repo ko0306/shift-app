@@ -434,7 +434,6 @@ button:hover {
 
 /* 小さい保存ボタンのスタイル */
 .save-button-small {
-  background-color: #4CAF50 !important;
   color: white !important;
   border: none !important;
   border-radius: 4px !important;
@@ -445,6 +444,7 @@ button:hover {
   min-width: 70px !important;
   width: auto !important;
   max-width: 100px !important;
+  
 }
 
 .save-button-small:hover {

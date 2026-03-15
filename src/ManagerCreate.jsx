@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 
+const MANAGER_NUMBER = '1234'; // ← 管理番号をここに入力
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxRI2c6dCEa4wS8gCJZkNXXY9_4g1IR8mKJs8EYRLquf-yxFz9wZhB3HmfKJBGy-KCU/exec'; // ← デプロイしたURLに置き換え
+
 // ヘルプモーダルコンポーネント
 const HelpModal = ({ isOpen, onClose, content }) => {
   if (!isOpen) return null;
@@ -295,6 +298,174 @@ const StaffAddModal = ({ isOpen, onClose, availableStaff, onAdd }) => {
     </div>
   );
 };
+
+// 募集人数設定モーダル
+const RecruitmentSettingsModal = ({ isOpen, onClose }) => {
+  const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
+  const [weeklySettings, setWeeklySettings] = useState({
+    0: { enabled: false, count: 1, notes: '' },
+    1: { enabled: false, count: 1, notes: '' },
+    2: { enabled: false, count: 1, notes: '' },
+    3: { enabled: false, count: 1, notes: '' },
+    4: { enabled: false, count: 1, notes: '' },
+    5: { enabled: false, count: 1, notes: '' },
+    6: { enabled: false, count: 1, notes: '' },
+  });
+  const [specificDates, setSpecificDates] = useState([]);
+  const [newDate, setNewDate] = useState('');
+  const [newDateCount, setNewDateCount] = useState(1);
+  const [newDateNotes, setNewDateNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) loadSettings();
+  }, [isOpen]);
+
+  const loadSettings = async () => {
+    const { data, error } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'recruitment_settings')
+      .single();
+    if (!error && data) {
+      try {
+        const parsed = JSON.parse(data.value);
+        if (parsed.byDayOfWeek) {
+          setWeeklySettings(prev => {
+            const next = { ...prev };
+            Object.entries(parsed.byDayOfWeek).forEach(([dow, s]) => {
+              next[parseInt(dow)] = s;
+            });
+            return next;
+          });
+        }
+        if (parsed.byDate) setSpecificDates(parsed.byDate);
+      } catch (e) {}
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    const value = JSON.stringify({ byDayOfWeek: weeklySettings, byDate: specificDates });
+    const { error } = await supabase
+      .from('settings')
+      .upsert({ key: 'recruitment_settings', value }, { onConflict: 'key' });
+    setSaving(false);
+    if (error) { alert('保存に失敗しました: ' + error.message); return; }
+    alert('募集人数設定を保存しました');
+    onClose();
+  };
+
+  const addSpecificDate = () => {
+    if (!newDate) { alert('日付を選択してください'); return; }
+    if (specificDates.some(d => d.date === newDate)) { alert('この日付はすでに登録されています'); return; }
+    setSpecificDates(prev => [...prev, { date: newDate, count: newDateCount, notes: newDateNotes }]);
+    setNewDate(''); setNewDateCount(1); setNewDateNotes('');
+  };
+
+  if (!isOpen) return null;
+
+  const overlayStyle = {
+    position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)',
+    zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: '1rem', overflowY: 'auto'
+  };
+  const cardStyle = {
+    backgroundColor: 'white', borderRadius: '12px', maxWidth: '540px', width: '100%',
+    maxHeight: '90vh', overflow: 'auto', padding: '2rem',
+    boxShadow: '0 10px 40px rgba(0,0,0,0.3)'
+  };
+
+  return (
+    <div style={overlayStyle} onClick={onClose}>
+      <div style={cardStyle} onClick={e => e.stopPropagation()}>
+        <h2 style={{ color: '#1976D2', marginBottom: '1.5rem' }}>募集人数設定</h2>
+
+        <h3 style={{ color: '#1976D2', fontSize: '1rem', marginBottom: '0.75rem' }}>📅 曜日ごとの設定</h3>
+        {DAY_NAMES.map((name, dow) => {
+          const s = weeklySettings[dow];
+          return (
+            <div key={dow} style={{
+              marginBottom: '0.6rem', border: '1px solid #ddd', borderRadius: '8px',
+              padding: '0.7rem', backgroundColor: s.enabled ? '#e8f5e9' : '#f9f9f9'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: s.enabled ? '0.5rem' : 0 }}>
+                <input type="checkbox" id={`dow-${dow}`} checked={s.enabled}
+                  onChange={e => setWeeklySettings(prev => ({ ...prev, [dow]: { ...prev[dow], enabled: e.target.checked } }))} />
+                <label htmlFor={`dow-${dow}`} style={{ fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem' }}>
+                  {name}曜日
+                </label>
+              </div>
+              {s.enabled && (
+                <div style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '0.9rem' }}>募集人数:</span>
+                    <input type="number" min="1" max="50" value={s.count}
+                      onChange={e => setWeeklySettings(prev => ({ ...prev, [dow]: { ...prev[dow], count: Math.max(1, parseInt(e.target.value) || 1) } }))}
+                      style={{ width: '60px', padding: '0.3rem', border: '1px solid #ccc', borderRadius: '4px', textAlign: 'center' }} />
+                    <span style={{ fontSize: '0.9rem' }}>人</span>
+                  </div>
+                  <input type="text" placeholder="備考（例：祭りあり・繁忙期など）" value={s.notes}
+                    onChange={e => setWeeklySettings(prev => ({ ...prev, [dow]: { ...prev[dow], notes: e.target.value } }))}
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '0.35rem 0.5rem', border: '1px solid #ccc', borderRadius: '4px', fontSize: '0.9rem' }} />
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        <h3 style={{ color: '#1976D2', fontSize: '1rem', margin: '1.5rem 0 0.75rem' }}>📌 特定日の設定</h3>
+
+        {specificDates.map((sd, i) => (
+          <div key={i} style={{
+            display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem',
+            border: '1px solid #ffcc80', borderRadius: '6px', padding: '0.5rem', backgroundColor: '#fff3e0'
+          }}>
+            <span style={{ fontWeight: 'bold', minWidth: '90px' }}>{sd.date}</span>
+            <span style={{ color: '#e65100', fontWeight: 'bold' }}>{sd.count}人</span>
+            {sd.notes && <span style={{ fontSize: '0.85rem', color: '#666', flex: 1 }}>📝 {sd.notes}</span>}
+            <button onClick={() => setSpecificDates(prev => prev.filter((_, idx) => idx !== i))}
+              style={{ backgroundColor: '#f44336', color: 'white', border: 'none', borderRadius: '4px', padding: '0.25rem 0.6rem', cursor: 'pointer', fontSize: '0.85rem' }}>
+              削除
+            </button>
+          </div>
+        ))}
+
+        <div style={{ border: '1px dashed #90caf9', borderRadius: '8px', padding: '1rem', backgroundColor: '#f3f9ff', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+            <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)}
+              style={{ flex: 1, minWidth: '130px', padding: '0.4rem', border: '1px solid #ccc', borderRadius: '4px' }} />
+            <input type="number" min="1" max="50" value={newDateCount}
+              onChange={e => setNewDateCount(Math.max(1, parseInt(e.target.value) || 1))}
+              style={{ width: '60px', padding: '0.4rem', border: '1px solid #ccc', borderRadius: '4px', textAlign: 'center' }} />
+            <span style={{ fontSize: '0.9rem' }}>人</span>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <input type="text" placeholder="備考（例：近くで祭りがあります）" value={newDateNotes}
+              onChange={e => setNewDateNotes(e.target.value)}
+              style={{ flex: 1, padding: '0.4rem', border: '1px solid #ccc', borderRadius: '4px', fontSize: '0.9rem' }} />
+            <button onClick={addSpecificDate}
+              style={{ backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '6px', padding: '0.4rem 1rem', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              ＋ 追加
+            </button>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+          <button onClick={onClose}
+            style={{ flex: 1, padding: '0.75rem', backgroundColor: '#e0e0e0', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
+            キャンセル
+          </button>
+          <button onClick={handleSave} disabled={saving}
+            style={{ flex: 1, padding: '0.75rem', backgroundColor: '#1976D2', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
+            {saving ? '保存中...' : '💾 保存'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // StaffAddModalの後に追加
 
 // 設定モーダルコンポーネント
@@ -579,6 +750,178 @@ const SettingsModal = ({ isOpen, onClose, settings, onSave }) => {
     </div>
   );
 };
+const CandidateModal = ({ isOpen, onClose, candidates, loading, error, onSelectAndCreate }) => {
+  const [selected, setSelected] = useState(null);
+  const [submissions, setSubmissions] = useState({});
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [subLoading, setSubLoading] = useState(false);
+  const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
+
+  const getDateRange = (start, end) => {
+    const dates = [];
+    const d = new Date(start + 'T00:00:00');
+    while (d <= new Date(end + 'T00:00:00')) {
+      dates.push(d.toISOString().split('T')[0]);
+      d.setDate(d.getDate() + 1);
+    }
+    return dates;
+  };
+
+  const handleClickCandidate = async (c) => {
+    if (c.isDone) return;
+    setSelected(c);
+    setSubLoading(true);
+    try {
+      const [shiftsRes, usersRes] = await Promise.all([
+        supabase.from('shifts').select('date, manager_number').gte('date', c.start).lte('date', c.end),
+        supabase.from('users').select('manager_number').eq('is_deleted', false)
+      ]);
+      const countMap = {};
+      shiftsRes.data?.forEach(s => {
+        if (!countMap[s.date]) countMap[s.date] = new Set();
+        countMap[s.date].add(s.manager_number);
+      });
+      const countByDate = {};
+      Object.entries(countMap).forEach(([date, set]) => { countByDate[date] = set.size; });
+      setSubmissions(countByDate);
+      setTotalUsers(usersRes.data?.length || 0);
+    } catch (e) { console.error(e); }
+    finally { setSubLoading(false); }
+  };
+
+  const handleClose = () => { setSelected(null); onClose(); };
+
+  if (!isOpen) return null;
+
+  const overlayStyle = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' };
+  const cardStyle = { backgroundColor: 'white', borderRadius: '12px', maxWidth: '500px', width: '100%', maxHeight: '85vh', overflow: 'auto', padding: '1.5rem', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' };
+
+  return (
+    <div style={overlayStyle} onClick={handleClose}>
+      <div style={cardStyle} onClick={e => e.stopPropagation()}>
+        {/* ヘッダー */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          {selected ? (
+            <button onClick={() => setSelected(null)}
+              style={{ background: '#607D8B', color: 'white', border: 'none', borderRadius: '6px', padding: '0.3rem 0.8rem', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 'bold' }}>
+              ← 戻る
+            </button>
+          ) : (
+            <h3 style={{ margin: 0, color: '#1976D2' }}>📋 シフト期間の候補</h3>
+          )}
+          <button onClick={handleClose}
+            style={{ background: '#FF5722', color: 'white', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', fontSize: '18px', fontWeight: 'bold' }}>×</button>
+        </div>
+
+        {/* 候補リスト */}
+        {!selected && (
+          <>
+            {loading && <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>⏳ 読み込み中...</div>}
+            {error && <div style={{ backgroundColor: '#ffebee', padding: '1rem', borderRadius: '8px', color: '#c62828' }}>⚠️ {error}</div>}
+            {!loading && !error && (() => {
+              const pending = candidates.filter(c => !c.isDone);
+              const history = candidates.filter(c => c.isDone);
+              return (
+                <>
+                  {pending.length === 0 && history.length === 0 && (
+                    <div style={{ textAlign: 'center', padding: '1rem', color: '#666' }}>候補が見つかりませんでした</div>
+                  )}
+                  {pending.map((c, i) => (
+                    <div key={i} onClick={() => handleClickCandidate(c)}
+                      style={{ border: `2px solid ${c.isExpired ? '#ffcdd2' : '#bbdefb'}`, borderRadius: '8px', padding: '1rem', marginBottom: '0.75rem', cursor: 'pointer', backgroundColor: c.isExpired ? '#fff8f8' : '#f8fbff' }}
+                      onMouseEnter={e => e.currentTarget.style.backgroundColor = c.isExpired ? '#ffebee' : '#e3f2fd'}
+                      onMouseLeave={e => e.currentTarget.style.backgroundColor = c.isExpired ? '#fff8f8' : '#f8fbff'}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+                        <span style={{ fontWeight: 'bold', color: '#1565C0' }}>{c.start} 〜 {c.end}</span>
+                        {c.isExpired && <span style={{ backgroundColor: '#f44336', color: 'white', fontSize: '0.7rem', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>期限切れ</span>}
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: c.isExpired ? '#c62828' : '#555' }}>📅 期限：{c.deadline}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#1976D2', marginTop: '0.3rem', fontWeight: 'bold' }}>→ タップして提出状況を確認</div>
+                    </div>
+                  ))}
+                  {history.length > 0 && (
+                    <>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#888', margin: '1rem 0 0.5rem', borderTop: '1px solid #eee', paddingTop: '0.75rem' }}>📁 最近の履歴</div>
+                      {history.map((c, i) => (
+                        <div key={i} style={{ border: '2px solid #e0e0e0', borderRadius: '8px', padding: '1rem', marginBottom: '0.75rem', backgroundColor: '#fafafa', opacity: 0.75 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 'bold', color: '#888' }}>{c.start} 〜 {c.end}</span>
+                            <span style={{ backgroundColor: '#4CAF50', color: 'white', fontSize: '0.7rem', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>済</span>
+                          </div>
+                          <div style={{ fontSize: '0.85rem', color: '#999' }}>📅 期限：{c.deadline}</div>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </>
+              );
+            })()}
+          </>
+        )}
+
+        {/* 提出状況詳細 */}
+        {selected && (
+          <div>
+            <div style={{ backgroundColor: '#e3f2fd', borderRadius: '8px', padding: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{ fontWeight: 'bold', color: '#1565C0', fontSize: '1rem' }}>{selected.start} 〜 {selected.end}</div>
+              <div style={{ fontSize: '0.85rem', color: '#555', marginTop: '0.2rem' }}>📅 期限：{selected.deadline}</div>
+            </div>
+
+            {subLoading ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>⏳ 提出状況を読み込み中...</div>
+            ) : (
+              <>
+                <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#555', marginBottom: '0.5rem' }}>
+                  📊 シフト提出状況（全{totalUsers}人）
+                </div>
+                <div style={{ border: '1px solid #ddd', borderRadius: '8px', overflow: 'hidden', marginBottom: '1rem' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                    <thead>
+                      <tr style={{ backgroundColor: '#e3f2fd' }}>
+                        <th style={{ padding: '0.5rem 0.75rem', textAlign: 'left', fontWeight: 'bold', color: '#1565C0' }}>日付</th>
+                        <th style={{ padding: '0.5rem 0.75rem', textAlign: 'center', fontWeight: 'bold', color: '#1565C0' }}>提出</th>
+                        <th style={{ padding: '0.5rem 0.75rem', textAlign: 'left', fontWeight: 'bold', color: '#1565C0' }}>進捗</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getDateRange(selected.start, selected.end).map((date, idx) => {
+                        const count = submissions[date] || 0;
+                        const pct = totalUsers > 0 ? Math.min(100, Math.round(count / totalUsers * 100)) : 0;
+                        const dow = new Date(date + 'T00:00:00').getDay();
+                        const isWeekend = dow === 0 || dow === 6;
+                        return (
+                          <tr key={date} style={{ backgroundColor: idx % 2 === 0 ? 'white' : '#fafafa', borderTop: '1px solid #eee' }}>
+                            <td style={{ padding: '0.45rem 0.75rem', color: isWeekend ? (dow === 0 ? '#d32f2f' : '#1565c0') : '#333' }}>
+                              {date}（{DAY_NAMES[dow]}）
+                            </td>
+                            <td style={{ padding: '0.45rem 0.75rem', textAlign: 'center', fontWeight: 'bold', color: count === 0 ? '#bbb' : count >= totalUsers ? '#2e7d32' : '#e65100' }}>
+                              {count}/{totalUsers}
+                            </td>
+                            <td style={{ padding: '0.45rem 0.75rem' }}>
+                              <div style={{ width: '100%', height: '8px', backgroundColor: '#e0e0e0', borderRadius: '4px' }}>
+                                <div style={{ width: `${pct}%`, height: '100%', borderRadius: '4px', backgroundColor: count === 0 ? '#e0e0e0' : count < totalUsers * 0.5 ? '#ff9800' : count >= totalUsers ? '#4CAF50' : '#2196F3', transition: 'width 0.4s' }} />
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <button onClick={() => onSelectAndCreate(selected)}
+                  style={{ width: '100%', padding: '0.85rem', backgroundColor: '#1976D2', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '1rem', fontWeight: 'bold', boxShadow: '0 2px 8px rgba(25,118,210,0.4)' }}>
+                  ✅ この期間でシフト作成
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 
 function ManagerCreate() {
   const [startDate, setStartDate] = useState('');
@@ -598,9 +941,15 @@ function ManagerCreate() {
   const [showStaffAddModal, setShowStaffAddModal] = useState(false);
   const [allUsers, setAllUsers] = useState([]);
 
-const [selectingTimeFor, setSelectingTimeFor] = useState(null); // {rowIndex: number, firstSlot: string | null}
+const [selectingTimeFor, setSelectingTimeFor] = useState(null);
+const [showCandidateModal, setShowCandidateModal] = useState(false);
+const [candidates, setCandidates] = useState([]);
+const [candidateLoading, setCandidateLoading] = useState(false);
+const [candidateError, setCandidateError] = useState('');
 
 const [showSettingsModal, setShowSettingsModal] = useState(false);
+const [showSettingsTypeModal, setShowSettingsTypeModal] = useState(false);
+const [showRecruitmentModal, setShowRecruitmentModal] = useState(false);
 
 const [shiftSettings, setShiftSettings] = useState(() => {
   const saved = localStorage.getItem('shiftSettings');
@@ -616,8 +965,40 @@ const [shiftSettings, setShiftSettings] = useState(() => {
     defaultRole: '社員'
   };
 });
+const fetchCandidates = async () => {
+  setCandidateLoading(true);
+  setCandidateError('');
+  setCandidates([]);
+  try {
+    const res = await fetch(`${GAS_URL}?managerNumber=${encodeURIComponent(MANAGER_NUMBER)}`);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || '取得に失敗しました');
+    if (data.candidates.length === 0) {
+      setCandidateError('未処理の候補シフト期間が見つかりませんでした');
+    } else {
+      setCandidates(data.candidates);
+    }
+  } catch (e) {
+    setCandidateError(e.message || '取得中にエラーが発生しました');
+  } finally {
+    setCandidateLoading(false);
+  }
+};
 
-// ← 追加：マウント時にSupabaseから設定を読み込む
+const handleOpenCandidateModal = () => {
+  setShowCandidateModal(true);
+  // すでにデータあれば再取得しない（プリフェッチ済みの場合）
+  if (candidates.length === 0 && !candidateLoading) fetchCandidates();
+};
+const handleSelectAndCreate = async (candidate) => {
+  setStartDate(candidate.start);
+  setEndDate(candidate.end);
+  setShowCandidateModal(false);
+  await fetchShiftData(candidate.start, candidate.end);
+};
+
+
+// マウント時にSupabaseから設定を読み込む＋候補をプリフェッチ
 useEffect(() => {
   const fetchSettings = async () => {
     const { data, error } = await supabase
@@ -634,6 +1015,7 @@ useEffect(() => {
     }
   };
   fetchSettings();
+  fetchCandidates(); // 候補を事前に取得しておく（ボタンを押した時に即表示）
 }, []);
   useEffect(() => {
     const checkOrientation = () => {
@@ -671,14 +1053,16 @@ useEffect(() => {
     };
   };
 
-  const fetchShiftData = async () => {
-    if (!startDate || !endDate || startDate > endDate) {
+  const fetchShiftData = async (overrideStart, overrideEnd) => {
+    const sd = overrideStart || startDate;
+    const ed = overrideEnd || endDate;
+    if (!sd || !ed || sd > ed) {
       alert('開始日と終了日を正しく入力してください');
       return;
     }
 
     try {
-      const oneAndHalfYearsAgo = new Date(startDate);
+      const oneAndHalfYearsAgo = new Date(sd);
       oneAndHalfYearsAgo.setMonth(oneAndHalfYearsAgo.getMonth() - 18);
       const oneAndHalfYearsAgoStr = oneAndHalfYearsAgo.toISOString().split('T')[0];
 
@@ -703,8 +1087,8 @@ useEffect(() => {
       const { data: shifts, error: shiftError } = await supabase
         .from('shifts')
         .select('*')
-        .gte('date', startDate)
-        .lte('date', endDate)
+        .gte('date', sd)
+        .lte('date', ed)
         .order('created_at', { ascending: false });
 
       const { data: users, error: userError } = await supabase
@@ -716,8 +1100,8 @@ useEffect(() => {
         alert('データ取得に失敗しました');
         return;
       }
-      
- setAllUsers(users);
+
+      setAllUsers(users);
 
       const userManagerNumbers = new Set(users.map(user => String(user.manager_number)));
       const userMapTemp = {};
@@ -733,13 +1117,13 @@ useEffect(() => {
         }
       });
 
-      const filteredShifts = Object.values(latestShiftsMap).filter(shift => 
+      const filteredShifts = Object.values(latestShiftsMap).filter(shift =>
         userManagerNumbers.has(String(shift.manager_number))
       );
 
       const allDates = [];
-      const d = new Date(startDate);
-      while (d <= new Date(endDate)) {
+      const d = new Date(sd + 'T00:00:00');
+      while (d <= new Date(ed + 'T00:00:00')) {
         allDates.push(d.toISOString().split('T')[0]);
         d.setDate(d.getDate() + 1);
       }
@@ -782,10 +1166,20 @@ shiftData.forEach(shift => {
     return slots;
   };
 
-  const handleEditStart = (dateIndex = 0) => {
+const handleEditStart = async (dateIndex = 0) => {
   const date = dates[dateIndex];
   setSelectedDate(date);
   setCurrentDateIndex(dateIndex);
+
+   const { data: finalData } = await supabase
+    .from('final_shifts')
+    .select('*')
+    .eq('date', date);
+
+  const finalMap = {};
+  (finalData || []).forEach(f => {
+    finalMap[String(f.manager_number)] = f;
+  });
   const rows = shiftData
   .filter(shift => shift.date === date)
   .map(shift => {
@@ -808,8 +1202,8 @@ shiftData.forEach(shift => {
         originalEndHour: endTime.hour,
         originalEndMin: endTime.min,
         isOff: isUnavailable,
-        store: shiftSettings.defaultStore,
-        role: shiftSettings.defaultRole,
+      store: shift.store || shiftSettings.defaultStore,
+role: shift.role || shiftSettings.defaultRole,
         isEditingStore: false,
         isEditingRole: false,
         remarks: shift.remarks || ''
@@ -876,12 +1270,12 @@ const handleStoreSelect = (index, value) => {
   setEditRows(updated);
 };
 
-  const handleSave = async () => {
+ const handleSave = async () => {
   try {
     for (const row of editRows) {
       const storeValue = row.store;
-      const roleValue = row.role;  // ← この行を追加（storeValueの下に）
-      
+      const roleValue = row.role;
+
       if (!storeValue || storeValue.trim() === '') {
         alert(`${row.name}の店舗を選択または入力してください`);
         return false;
@@ -892,38 +1286,47 @@ const handleStoreSelect = (index, value) => {
         return false;
       }
 
-      const startTime = row.isOff 
-        ? null 
+      const startTime = row.isOff
+        ? null
         : `${String(row.startHour).padStart(2, '0')}:${String(row.startMin).padStart(2, '0')}:00`;
-      const endTime = row.isOff 
-        ? null 
+      const endTime = row.isOff
+        ? null
         : `${String(row.endHour).padStart(2, '0')}:${String(row.endMin).padStart(2, '0')}:00`;
 
-      const updateData = {
+     const updateData = {
         date: selectedDate,
-        manager_number: row.manager_number,
         start_time: startTime,
         end_time: endTime,
         is_off: row.isOff,
         store: storeValue,
-        role: roleValue  // ← この行も追加
+        role: roleValue,
+        is_boshu: row.isBoshu ? true : false
       };
 
-      const { error } = await supabase
-        .from('final_shifts')
-        .upsert(updateData, {
-          onConflict: 'date,manager_number'
-        });
-
-      if (error) {
-        console.error(`${row.name} の保存エラー:`, error);
-        alert(`${row.name} の保存に失敗しました: ${error.message}`);
-        return false;
+      if (row.isBoshu) {
+        const { error } = await supabase
+          .from('final_shifts')
+          .insert(updateData);
+        if (error) {
+          console.error('募集の保存エラー:', error);
+          alert(`募集の保存に失敗しました: ${error.message}`);
+          return false;
+        }
+      } else {
+        updateData.manager_number = row.manager_number;
+        const { error } = await supabase
+          .from('final_shifts')
+          .upsert(updateData, { onConflict: 'date,manager_number' });
+        if (error) {
+          console.error(`${row.name} の保存エラー:`, error);
+          alert(`${row.name} の保存に失敗しました: ${error.message}`);
+          return false;
+        }
       }
     }
 
     return true;
-    
+
   } catch (error) {
     console.error('予期しないエラー:', error);
     alert(`エラーが発生しました: ${error.message}`);
@@ -932,31 +1335,44 @@ const handleStoreSelect = (index, value) => {
 };
 
   const handlePreviousDay = async () => {
-    if (currentDateIndex > 0) {
-      const saveSuccess = await handleSave();
-      if (saveSuccess) {
-        handleEditStart(currentDateIndex - 1);
-      }
-    }
-  };
-
-  const handleNextDay = async () => {
-    if (currentDateIndex < dates.length - 1) {
-      const saveSuccess = await handleSave();
-      if (saveSuccess) {
-        handleEditStart(currentDateIndex + 1);
-      }
-    }
-  };
-
-  const handleSaveAndExit = async () => {
+  if (currentDateIndex > 0) {
     const saveSuccess = await handleSave();
     if (saveSuccess) {
-      alert('保存しました');
-      setIsEditing(false);
-      fetchShiftData();
+      await handleEditStart(currentDateIndex - 1);  // ← await追加
     }
-  };
+  }
+};
+
+const handleNextDay = async () => {
+  if (currentDateIndex < dates.length - 1) {
+    const saveSuccess = await handleSave();
+    if (saveSuccess) {
+      await handleEditStart(currentDateIndex + 1);  // ← await追加
+    }
+  }
+};
+
+  const handleSaveAndExit = async () => {
+  const saveSuccess = await handleSave();
+  if (saveSuccess) {
+    // 済をGASに書き込む
+    try {
+      await fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          managerNumber: MANAGER_NUMBER,
+          start: startDate,
+          end: endDate
+        })
+      });
+    } catch (e) {
+      console.error('保存に失敗しました:', e);
+    }
+    alert('保存しました');
+    setIsEditing(false);
+    fetchShiftData();
+  }
+};
 
 
 
@@ -1005,6 +1421,33 @@ const handleStoreSelect = (index, value) => {
   setEditRows([...editRows, newRow]);
   setShowStaffAddModal(false);
   alert(`${staff.name}を追加しました`);
+};
+
+
+const handleAddBoshu = () => {
+  const boshuRow = {
+    id: null,
+    name: '募集',
+    manager_number: `boshu_${Date.now()}`, // ユニークなキー
+    startHour: '9',
+    startMin: '0',
+    endHour: '17',
+    endMin: '0',
+    originalStart: null,
+    originalEnd: null,
+    originalStartHour: '',
+    originalStartMin: '',
+    originalEndHour: '',
+    originalEndMin: '',
+    isOff: false,
+    store: shiftSettings.defaultStore,
+    role: shiftSettings.defaultRole,
+    isEditingStore: false,
+    isEditingRole: false,
+    remarks: '',
+    isBoshu: true  // 募集フラグ
+  };
+  setEditRows([...editRows, boshuRow]);
 };
 
 // handleAddStaff関数の後に追加
@@ -1072,15 +1515,15 @@ if (!showTable) {
   return (
     <div className="login-wrapper" style={{ padding: '1rem', boxSizing: 'border-box' }}>
       <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage)} />
-   
-<SettingsModal 
-  isOpen={showSettingsModal} 
+      <CandidateModal isOpen={showCandidateModal} onClose={() => setShowCandidateModal(false)} candidates={candidates} loading={candidateLoading} error={candidateError} onSelectAndCreate={handleSelectAndCreate} />
+
+<SettingsModal
+  isOpen={showSettingsModal}
   onClose={() => setShowSettingsModal(false)}
   settings={shiftSettings}
   onSave={async (newSettings) => {
     setShiftSettings(newSettings);
     localStorage.setItem('shiftSettings', JSON.stringify(newSettings));
-    // ← Supabaseにも保存
     await supabase
       .from('settings')
       .upsert({ key: 'shift_settings', value: JSON.stringify(newSettings) }, { onConflict: 'key' });
@@ -1088,6 +1531,62 @@ if (!showTable) {
     alert('設定を保存しました');
   }}
 />
+
+<RecruitmentSettingsModal
+  isOpen={showRecruitmentModal}
+  onClose={() => setShowRecruitmentModal(false)}
+/>
+
+{showSettingsTypeModal && (
+  <div style={{
+    position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)',
+    zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
+  }} onClick={() => setShowSettingsTypeModal(false)}>
+    <div style={{
+      backgroundColor: 'white', borderRadius: '12px', maxWidth: '360px', width: '100%',
+      padding: '2rem', boxShadow: '0 10px 40px rgba(0,0,0,0.3)'
+    }} onClick={e => e.stopPropagation()}>
+      <h2 style={{ color: '#1976D2', marginBottom: '1.5rem', textAlign: 'center' }}>⚙️ 設定の種類</h2>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <button
+          onClick={() => { setShowSettingsTypeModal(false); setShowSettingsModal(true); }}
+          style={{
+            padding: '1rem', backgroundColor: '#1976D2', color: 'white',
+            border: 'none', borderRadius: '8px', cursor: 'pointer',
+            fontSize: '1rem', fontWeight: 'bold', textAlign: 'left'
+          }}
+        >
+          🏪 役割・店舗の設定
+          <div style={{ fontSize: '0.8rem', fontWeight: 'normal', marginTop: '0.3rem', opacity: 0.9 }}>
+            店舗名・役割・デフォルト設定
+          </div>
+        </button>
+        <button
+          onClick={() => { setShowSettingsTypeModal(false); setShowRecruitmentModal(true); }}
+          style={{
+            padding: '1rem', backgroundColor: '#4CAF50', color: 'white',
+            border: 'none', borderRadius: '8px', cursor: 'pointer',
+            fontSize: '1rem', fontWeight: 'bold', textAlign: 'left'
+          }}
+        >
+          👥 募集人数の設定
+          <div style={{ fontSize: '0.8rem', fontWeight: 'normal', marginTop: '0.3rem', opacity: 0.9 }}>
+            曜日・特定日ごとの必要人数と備考
+          </div>
+        </button>
+        <button
+          onClick={() => setShowSettingsTypeModal(false)}
+          style={{
+            padding: '0.75rem', backgroundColor: '#e0e0e0', color: '#333',
+            border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold'
+          }}
+        >
+          キャンセル
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       <HelpButton onClick={() => {
         setCurrentHelpPage('shiftCreate');
@@ -1098,7 +1597,7 @@ if (!showTable) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <h2 style={{ margin: 0 }}>シフト作成</h2>
           <button
-  onClick={() => setShowSettingsModal(true)}
+  onClick={() => setShowSettingsTypeModal(true)}
   style={{
     padding: '0.6rem 0.5rem',
     backgroundColor: '#FF9800',
@@ -1108,8 +1607,8 @@ if (!showTable) {
     cursor: 'pointer',
     fontSize: '1.0rem',
     whiteSpace: 'nowrap',
-    minWidth: 'auto',  // ← 追加
-    width: 'auto'      // ← 追加
+    minWidth: 'auto',
+    width: 'auto'
   }}
 >
   ⚙️ 設定
@@ -1122,8 +1621,9 @@ if (!showTable) {
         <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={{ width: '100%', boxSizing: 'border-box' }} />
         <label>終了日:</label>
         <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={{ width: '100%', boxSizing: 'border-box' }} />
-        <div style={{ marginTop: '1rem' }}>
+        <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <button onClick={fetchShiftData}>次へ</button>
+          <button onClick={handleOpenCandidateModal} style={{ padding: '0.6rem 1.2rem', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.95rem', fontWeight: 'bold', whiteSpace: 'nowrap', width: 'auto' }}>📋 候補</button>
         </div>
       </div>
     </div>
@@ -1239,7 +1739,7 @@ if (!showTable) {
                   <th style={{ minWidth: '35px', width: '35px', position: 'sticky', left: 0, zIndex: 3, backgroundColor: '#FFB6C1', border: '1px solid #ddd', color: 'black', fontSize: '0.65rem', padding: '0.1rem' }}>名前</th>
                   <th style={{ minWidth: '30px', width: '30px', position: 'sticky', left: '35px', zIndex: 3, backgroundColor: '#ADD8E6', border: '1px solid #ddd', color: 'black', fontSize: '0.65rem', padding: '0.1rem' }}>店舗</th>
                   <th style={{ minWidth: '40px', width: '40px', position: 'sticky', left: '65px', zIndex: 3, backgroundColor: '#DDA0DD', border: '1px solid #ddd', color: 'black', fontSize: '0.65rem', padding: '0.1rem' }}>役割</th>
-                  <th style={{ minWidth: '60px', width: '60px', position: 'sticky', left: '65px', zIndex: 3, backgroundColor: '#FFDAB9', border: '1px solid #ddd', color: 'black', fontSize: '0.65rem', padding: '0.1rem' }}>備考</th>
+                  <th style={{ minWidth: '60px', width: '60px', position: 'sticky', left: '105px' , zIndex: 3, backgroundColor: '#FFDAB9', border: '1px solid #ddd', color: 'black', fontSize: '0.65rem', padding: '0.1rem' }}>備考</th>
                   <th style={{ minWidth: '25px', width: '25px', position: 'sticky', left: '125px', zIndex: 3, backgroundColor: '#E6E6FA', border: '1px solid #ddd', color: 'black', fontSize: '0.65rem', padding: '0.1rem' }}>休</th>
                   <th style={{ minWidth: '85px', width: '85px', position: 'sticky', left: '150px', zIndex: 3, backgroundColor: '#98FB98', border: '1px solid #ddd', color: 'black', fontSize: '0.65rem', padding: '0.1rem' }}>開始</th>
                   <th style={{ minWidth: '85px', width: '85px', position: 'sticky', left: '235px', zIndex: 3, backgroundColor: '#FFE4B5', border: '1px solid #ddd', color: 'black', fontSize: '0.65rem', padding: '0.1rem' }}>終了</th>
@@ -1264,11 +1764,12 @@ const originalEndStr = isFreeRow
                   const finalStartStr = `${String(row.startHour).padStart(2, '0')}:${String(row.startMin).padStart(2, '0')}`;
                   const finalEndStr = `${String(row.endHour).padStart(2, '0')}:${String(row.endMin).padStart(2, '0')}`;
 
-                  return (
-                    <tr key={rowIndex} className={row.isOff ? 'off-row' : ''}>
-                      <td style={{ position: 'sticky', left: 0, zIndex: 2, backgroundColor: 'white', minWidth: '35px', width: '35px', padding: '0.1rem', border: '1px solid #ddd', fontSize: '0.65rem' }}>{row.name}</td>
+                const rowBg = row.isBoshu ? '#fff0f0' : 'white';
+return (
+  <tr key={rowIndex} className={row.isOff ? 'off-row' : ''} style={row.isBoshu ? { backgroundColor: '#fff0f0' } : {}}>
+    <td style={{ position: 'sticky', left: 0, zIndex: 2, backgroundColor: rowBg, minWidth: '35px', width: '35px', padding: '0.1rem', border: '1px solid #ddd', fontSize: '0.65rem' }}>{row.name}</td>
                       
-                      <td style={{ position: 'sticky', left: '35px', zIndex: 2, backgroundColor: 'white', minWidth: '30px', width: '30px', padding: '0.1rem', border: '1px solid #ddd' }}>
+                      <td style={{ position: 'sticky', left: '35px', zIndex: 2, backgroundColor: rowBg, minWidth: '30px', width: '30px', padding: '0.1rem', border: '1px solid #ddd' }}>
   {row.isEditingStore ? (
     <select
       value={row.store}
@@ -1305,7 +1806,7 @@ const originalEndStr = isFreeRow
   )}
 </td>
 
-  <td style={{ position: 'sticky', left: '65px', zIndex: 2, backgroundColor: 'white', minWidth: '40px', width: '40px', padding: '0.1rem', border: '1px solid #ddd' }}>
+  <td style={{ position: 'sticky', left: '65px', zIndex: 2, backgroundColor: rowBg, minWidth: '40px', width: '40px', padding: '0.1rem', border: '1px solid #ddd' }}>
     {row.isEditingRole ? (
       <select
         value={row.role}
@@ -1341,17 +1842,17 @@ const originalEndStr = isFreeRow
       </div>
     )}
   </td>
-                      <td style={{ position: 'sticky', left: '65px', zIndex: 2, backgroundColor: 'white', minWidth: '60px', width: '60px', padding: '0.1rem', fontSize: '0.6rem', color: '#666', border: '1px solid #ddd', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <td style={{ position: 'sticky', left: '65px', zIndex: 2, backgroundColor: rowBg, minWidth: '60px', width: '60px', padding: '0.1rem', fontSize: '0.6rem', color: '#666', border: '1px solid #ddd', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {row.remarks || ''}
                       </td>
-                      <td style={{ position: 'sticky', left: '125px', zIndex: 2, backgroundColor: 'white', minWidth: '25px', width: '25px', padding: '0.1rem', border: '1px solid #ddd', textAlign: 'center' }}>
+                      <td style={{ position: 'sticky', left: '125px', zIndex: 2, backgroundColor: rowBg, minWidth: '25px', width: '25px', padding: '0.1rem', border: '1px solid #ddd', textAlign: 'center' }}>
                         <input 
                           type="checkbox" 
                           checked={row.isOff}
                           onChange={e => handleCheckboxChange(rowIndex, e.target.checked)}
                         />
                       </td>
-                      <td style={{ position: 'sticky', left: '150px', zIndex: 2, backgroundColor: 'white', minWidth: '85px', width: '85px', padding: '0.1rem', border: '1px solid #ddd' }}>
+                      <td style={{ position: 'sticky', left: '150px', zIndex: 2, backgroundColor: rowBg, minWidth: '85px', width: '85px', padding: '0.1rem', border: '1px solid #ddd' }}>
                         <div style={{ display: 'flex', gap: '1px', alignItems: 'center' }}>
                           <select
                             value={row.startHour}
@@ -1376,7 +1877,7 @@ const originalEndStr = isFreeRow
                           </select>
                         </div>
                       </td>
-                      <td style={{ position: 'sticky', left: '235px', zIndex: 2, backgroundColor: 'white', minWidth: '85px', width: '85px', padding: '0.1rem', border: '1px solid #ddd' }}>
+                      <td style={{ position: 'sticky', left: '235px', zIndex: 2, backgroundColor: rowBg, minWidth: '85px', width: '85px', padding: '0.1rem', border: '1px solid #ddd' }}>
                         <div style={{ display: 'flex', gap: '1px', alignItems: 'center' }}>
                           <select
                             value={row.endHour}
@@ -1460,7 +1961,7 @@ const inRequest = isFreeDay ? true : (slot >= originalStartStr && slot < origina
           
         
 <div style={{ marginTop: '1rem', textAlign: 'center', paddingBottom: '1rem', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-  <button onClick={handleSaveAndExit} className="save-button-small" style={{ padding: '0.5rem 1.5rem', fontSize: '0.9rem' }}>
+  <button onClick={handleSaveAndExit} className="save-button-small" style={{ padding: '0.5rem 1.5rem', fontSize: '0.9rem' ,}}>
     確定
   </button>
   <button 
@@ -1469,10 +1970,21 @@ const inRequest = isFreeDay ? true : (slot >= originalStartStr && slot < origina
     style={{ 
       padding: '0.5rem 1.5rem', 
       fontSize: '0.9rem',
-      backgroundColor: '#4CAF50'
+       backgroundColor: '#2196F3'
     }}
   >
     追加
+  </button>
+  <button 
+    onClick={handleAddBoshu} 
+    className="save-button-small"
+    style={{ 
+      padding: '0.5rem 1.5rem', 
+      fontSize: '0.9rem',
+      backgroundColor: '#f44336'
+    }}
+  >
+    募集
   </button>
 </div>
         </div>

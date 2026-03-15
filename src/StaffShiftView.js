@@ -208,13 +208,16 @@ const getHelpContent = (view) => {
   );
 };
 
-function StaffShiftView({ onBack }) {
+function StaffShiftView({ onBack, managerNumber: managerNumberProp }) {
+  // ログイン情報からも取得できるようにする
+  const managerNumber = managerNumberProp;
   const [selectedDate, setSelectedDate] = useState('');
   const [shiftData, setShiftData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [userMap, setUserMap] = useState({});
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [availableDates, setAvailableDates] = useState([]);
+  const [boshuCountMap, setBoshuCountMap] = useState({});
   const [viewMode, setViewMode] = useState('list');
   const [currentView, setCurrentView] = useState('calendar');
   const [showHelp, setShowHelp] = useState(false);
@@ -228,7 +231,7 @@ function StaffShiftView({ onBack }) {
     try {
       const { data: finalShifts, error } = await supabase
         .from('final_shifts')
-        .select('date')
+        .select('date, is_boshu')
         .order('date');
 
       if (error) {
@@ -238,22 +241,31 @@ function StaffShiftView({ onBack }) {
 
       const uniqueDates = finalShifts ? [...new Set(finalShifts.map(item => item.date))].sort() : [];
       setAvailableDates(uniqueDates);
+
+      // 募集行の日付ごと件数を集計
+      const countMap = {};
+      finalShifts?.forEach(item => {
+        if (item.is_boshu) {
+          countMap[item.date] = (countMap[item.date] || 0) + 1;
+        }
+      });
+      setBoshuCountMap(countMap);
     } catch (error) {
       console.error('日付取得エラー:', error);
     }
   };
 
   const fetchUsers = async () => {
-    try {
-      const { data: users, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('is_deleted', false);
+  try {
+    const { data: users, error } = await supabase
+      .from('users')
+      .select('manager_number, name');
 
-      if (error) {
-        console.error('ユーザー取得エラー:', error);
-        return;
-      }
+    if (error) {
+      console.error('ユーザー取得エラー:', error);
+      setUserMap({});
+      return;
+    }
 
       const userMapTemp = {};
       if (users && users.length > 0) {
@@ -284,11 +296,11 @@ function StaffShiftView({ onBack }) {
         .eq('date', date)
         .order('manager_number');
 
-      if (!finalError && finalShifts && finalShifts.length > 0) {
-        setShiftData(finalShifts);
-      } else {
-        setShiftData([]);
-      }
+    if (!finalError && finalShifts && finalShifts.length > 0) {
+  setShiftData(finalShifts);
+} else {
+  setShiftData([]);
+}
 
       setCurrentView('shift');
     } catch (error) {
@@ -363,7 +375,8 @@ function StaffShiftView({ onBack }) {
         dateStr: dateStr,
         day: currentDate.getDate(),
         isCurrentMonth,
-        hasShift
+        hasShift,
+        boshuCount: boshuCountMap[dateStr] || 0
       });
 
       currentDate.setDate(currentDate.getDate() + 1);
@@ -435,13 +448,17 @@ function StaffShiftView({ onBack }) {
   const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
   const timeSlots = generateTimeSlots();
 
-  const sortedShiftData = [...shiftData]
-    .filter(shift => shift.manager_number !== null && shift.manager_number !== undefined)
-    .sort((a, b) => {
-      const aOff = isOffDay(a) ? 1 : 0;
-      const bOff = isOffDay(b) ? 1 : 0;
-      return aOff - bOff;
-    });
+const sortedShiftData = [...shiftData]
+  .filter(shift => shift.is_boshu === true || (shift.manager_number !== null && shift.manager_number !== undefined))
+  .sort((a, b) => {
+    // ソート優先度: 通常出勤(0) → 募集(1) → 休み(2)
+    const getPriority = (shift) => {
+      if (shift.is_boshu) return 1;
+      if (isOffDay(shift)) return 2;
+      return 0;
+    };
+    return getPriority(a) - getPriority(b);
+  });
 
   if (currentView === 'calendar') {
     return (
@@ -535,25 +552,39 @@ function StaffShiftView({ onBack }) {
                     onClick={() => dayInfo.hasShift && handleDateSelect(dayInfo.dateStr)}
                     disabled={!dayInfo.hasShift}
                     style={{
-                      padding: '0.5rem',
+                      padding: '0.3rem 0.2rem',
                       border: 'none',
                       borderRadius: '4px',
                       cursor: dayInfo.hasShift ? 'pointer' : 'not-allowed',
-                      backgroundColor: dayInfo.hasShift ? '#E3F2FD' :
+                      backgroundColor: dayInfo.boshuCount > 0 ? '#FFEBEE' :
+                                     dayInfo.hasShift ? '#E3F2FD' :
                                      dayInfo.isCurrentMonth ? 'white' : '#f0f0f0',
                       color: !dayInfo.hasShift ? '#999' :
+                             dayInfo.boshuCount > 0 ? '#c62828' :
                              dayInfo.isCurrentMonth ? 'black' : '#666',
                       fontWeight: dayInfo.hasShift ? 'bold' : 'normal',
                       opacity: dayInfo.isCurrentMonth ? 1 : 0.5,
                       transition: 'all 0.3s ease',
                       fontSize: 'clamp(12px, 3vw, 14px)',
-                      minHeight: '40px',
+                      minHeight: dayInfo.boshuCount > 0 ? '48px' : '40px',
                       display: 'flex',
+                      flexDirection: 'column',
                       alignItems: 'center',
-                      justifyContent: 'center'
+                      justifyContent: 'center',
+                      gap: '1px'
                     }}
                   >
                     {dayInfo.day}
+                    {dayInfo.boshuCount > 0 && (
+                      <span style={{
+                        fontSize: '9px',
+                        color: '#f44336',
+                        fontWeight: 'bold',
+                        lineHeight: 1
+                      }}>
+                        募集{dayInfo.boshuCount}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -562,9 +593,10 @@ function StaffShiftView({ onBack }) {
                 marginTop: '0.5rem',
                 fontSize: 'clamp(10px, 2vw, 12px)',
                 color: '#666',
-                textAlign: 'center'
+                textAlign: 'center',
+                lineHeight: 1.6
               }}>
-                青色: シフトあり ({availableDates.length}日) | 灰色: シフトなし
+                🔵 青色: シフトあり ｜ 🔴 赤色: 募集あり ｜ ⬜ 灰色: シフトなし
               </div>
             </div>
 
@@ -761,17 +793,21 @@ function StaffShiftView({ onBack }) {
   </tr>
 </thead>
                 <tbody>
-  {sortedShiftData.map((shift, index) => (
-    <tr key={shift.manager_number || index} style={{
-      backgroundColor: index % 2 === 0 ? 'white' : '#f9f9f9'
+ {sortedShiftData.map((shift, index) => {
+  const isBoshu = shift.is_boshu === true;
+  const isOwnShift = String(shift.manager_number) === String(managerNumber);
+const rowBg = isBoshu ? '#fff0f0' : isOwnShift ? '#e8f5e9' : (index % 2 === 0 ? 'white' : '#f9f9f9');
+  return (
+  <tr key={shift.manager_number || index} style={{ backgroundColor: rowBg }}>
+    <td style={{ 
+      padding: '0.75rem 0.5rem', 
+      borderBottom: '1px solid #eee',
+      fontSize: 'clamp(12px, 2.5vw, 14px)'
     }}>
-      <td style={{ 
-        padding: '0.75rem 0.5rem', 
-        borderBottom: '1px solid #eee',
-        fontSize: 'clamp(12px, 2.5vw, 14px)'
-      }}>
-        <strong>{getUserName(shift.manager_number)}</strong>
-      </td>
+      <strong style={{ color: isBoshu ? '#f44336' : 'inherit' }}>
+        {isBoshu ? '募集' : getUserName(shift.manager_number)}
+      </strong>
+    </td>
       <td style={{
         padding: '0.75rem 0.5rem',
         textAlign: 'center',
@@ -833,7 +869,8 @@ function StaffShiftView({ onBack }) {
         </span>
       </td>
     </tr>
-  ))}
+ );
+})}
 </tbody>
                 </table>
               </div>
@@ -922,21 +959,26 @@ function StaffShiftView({ onBack }) {
   </tr>
 </thead>
                 <tbody>
-  {sortedShiftData.map((shift, index) => (
-    <tr key={shift.manager_number || index} style={{ backgroundColor: index % 2 === 0 ? 'white' : '#f9f9f9' }}>
-      <td style={{ 
-        padding: '0.4rem', 
-        fontWeight: 'bold', 
-        borderBottom: '1px solid #ddd',
-        borderRight: '2px solid #999',
-        position: 'sticky',
-        left: 0,
-        backgroundColor: index % 2 === 0 ? 'white' : '#f9f9f9',
-        zIndex: 1,
-        fontSize: 'clamp(11px, 2vw, 13px)'
-      }}>
-        {getUserName(shift.manager_number)}
-      </td>
+  {sortedShiftData.map((shift, index) => {
+  const isBoshu = shift.is_boshu === true;
+ const isOwnShift = String(shift.manager_number) === String(managerNumber);
+const rowBg = isBoshu ? '#fff0f0' : isOwnShift ? '#e8f5e9' : (index % 2 === 0 ? 'white' : '#f9f9f9');
+  return (
+  <tr key={shift.manager_number || index} style={{ backgroundColor: rowBg }}>
+    <td style={{ 
+      padding: '0.4rem', 
+      fontWeight: 'bold', 
+      borderBottom: '1px solid #ddd',
+      borderRight: '2px solid #999',
+      position: 'sticky',
+      left: 0,
+      backgroundColor: rowBg,
+      zIndex: 1,
+      fontSize: 'clamp(11px, 2vw, 13px)',
+      color: isBoshu ? '#f44336' : 'inherit'
+    }}>
+      {isBoshu ? '募集' : getUserName(shift.manager_number)}
+    </td>
       <td style={{
         padding: '0.4rem',
         textAlign: 'center',
@@ -1002,7 +1044,8 @@ function StaffShiftView({ onBack }) {
         );
       })}
     </tr>
-  ))}
+);
+})}
 </tbody>
               </table>
             </div>
