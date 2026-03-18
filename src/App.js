@@ -1147,21 +1147,19 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
           value={endDate}
           onChange={e => setEndDate(e.target.value)}
         />
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.5rem' }}>
-          <button onClick={handleNext} style={{ backgroundColor: '#1976D2', flex: 1, padding: '0.85rem', fontSize: '1.1rem', fontWeight: 'bold' }}>次へ</button>
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+          <button onClick={handleNext} style={{ backgroundColor: '#1976D2', flex: 1 }}>次へ</button>
           <button
             onClick={() => { setShowCandidateModal(true); fetchCandidates(); }}
             style={{
-              padding: '0.4rem 0.75rem',
+              flex: 1,
               backgroundColor: '#4CAF50',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
               cursor: 'pointer',
-              fontSize: '0.78rem',
               fontWeight: 'bold',
-              whiteSpace: 'nowrap',
-              flexShrink: 0
+              whiteSpace: 'nowrap'
             }}
           >
             📋 候補
