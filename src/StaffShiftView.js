@@ -366,7 +366,10 @@ function StaffShiftView({ onBack, managerNumber: managerNumberProp }) {
     const currentDate = new Date(startDate);
 
     for (let i = 0; i < 42; i++) {
-      const dateStr = currentDate.toISOString().split('T')[0];
+      const y = currentDate.getFullYear();
+      const m = String(currentDate.getMonth() + 1).padStart(2, '0');
+      const d = String(currentDate.getDate()).padStart(2, '0');
+      const dateStr = `${y}-${m}-${d}`;
       const isCurrentMonth = currentDate.getMonth() === month;
       const hasShift = availableDates.includes(dateStr);
 
@@ -398,7 +401,8 @@ function StaffShiftView({ onBack, managerNumber: managerNumberProp }) {
 
   const getWeekday = (dateStr) => {
     const days = ['日', '月', '火', '水', '木', '金', '土'];
-    const date = new Date(dateStr);
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
     return days[date.getDay()];
   };
 
