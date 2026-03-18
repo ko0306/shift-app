@@ -394,11 +394,15 @@ const openHelp = (page, managerNumber = '') => {
     return;
   }
 
-  if (managerNumberInput === '0000' && password === '0306') {
-    setIsLoggedIn(true);
-    setLoggedInManagerNumber('0000');
-    setLoginMessage('');
-    setNavigationHistory([]);
+  if (managerNumberInput === '0000') {
+    if (password === '0306') {
+      setIsLoggedIn(true);
+      setLoggedInManagerNumber('0000');
+      setLoginMessage('');
+      setNavigationHistory([]);
+    } else {
+      setLoginMessage('パスワードが違います');
+    }
     return;
   }
 
@@ -913,7 +917,7 @@ const handleSubmit = async () => {
         <div className="login-card" style={{ position: 'relative' }}>
           <BackButton />
           <HelpButton page="roleSelect" managerNumber={loggedInManagerNumber} />
-          <h2>役職を選択してください</h2>
+          <h2>メニューを選択してください</h2>
           <div className="button-row" style={{ flexDirection: 'column', gap: '1rem' }}>
             <button onClick={() => selectRole('staff')} style={{ backgroundColor: '#1976D2' }}>アルバイト</button>
             {loggedInManagerNumber === '0000' && (
