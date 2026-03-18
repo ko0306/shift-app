@@ -1,6 +1,4 @@
 import React, { useState } from 'react';
-
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxRI2c6dCEa4wS8gCJZkNXXY9_4g1IR8mKJs8EYRLquf-yxFz9wZhB3HmfKJBGy-KCU/exec';
 import RegisterUser from './RegisterUser';
 import ManagerCreate from './ManagerCreate';
 import StaffShiftView from './StaffShiftView';
@@ -13,6 +11,8 @@ import PasswordReset from './PasswordReset';
 import { supabase } from './supabaseClient';
 
 import './App.css';
+
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxRI2c6dCEa4wS8gCJZkNXXY9_4g1IR8mKJs8EYRLquf-yxFz9wZhB3HmfKJBGy-KCU/exec';
 
 // 簡易的なハッシュ関数
 const hashPassword = async (password) => {
@@ -1018,7 +1018,7 @@ if (role === 'clockin') {
           </div>
           <button onClick={() => {
             setRole('');
-            setId('');
+
             setPassword('');
             setManagerNumberInput(''); 
             setIsLoggedIn(false);
@@ -1768,7 +1768,7 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
           </div>
           <button onClick={() => {
             setRole('');
-            setId('');
+
             setPassword('');
             setManagerNumberInput('');
             setIsLoggedIn(false);
