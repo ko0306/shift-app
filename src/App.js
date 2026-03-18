@@ -90,7 +90,6 @@ const getHelpContent = (page, managerNumber = '') => {
   <div>
     <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>ログイン画面の使い方</h2>
     <ol style={{ lineHeight: '1.8' }}>
-      <li><strong>ログインID</strong>を入力します</li>
       <li><strong>管理番号</strong>を入力します</li>
       <li><strong>パスワード</strong>を入力します</li>
       <li><strong>ログイン</strong>ボタンをクリックします</li>
@@ -98,7 +97,6 @@ const getHelpContent = (page, managerNumber = '') => {
     <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
       <strong>💡 ポイント：</strong>
       <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem' }}>
-        <li>ログインIDは管理者から指定されたものを使用してください</li>
         <li>管理番号は各自に割り当てられた番号です</li>
         <li>パスワードを忘れた場合は「パスワード変更」から変更できます</li>
         <li>パスワード入力欄の右側の目のマークを押すと、入力した文字の表示・非表示を切り替えられます</li>
@@ -279,7 +277,6 @@ managerAuth: (
 };
 
 function App() {
-  const [id, setId] = useState('');
   const [password, setPassword] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [managerNumberInput, setManagerNumberInput] = useState('');
@@ -387,11 +384,6 @@ const openHelp = (page, managerNumber = '') => {
  const handleLogin = async (e) => {
   e.preventDefault();
   
-  if (!id.trim()) {
-    setLoginMessage('ログインIDを入力してください');
-    return;
-  }
-
   if (!managerNumberInput.trim()) {
     setLoginMessage('管理番号を入力してください');
     return;
@@ -399,11 +391,6 @@ const openHelp = (page, managerNumber = '') => {
 
   if (!password) {
     setLoginMessage('パスワードを入力してください');
-    return;
-  }
-
-  if (id !== 'kouki') {
-    setLoginMessage('ログインIDが違います');
     return;
   }
 
@@ -840,13 +827,7 @@ const handleSubmit = async () => {
           <HelpButton page="login" />
           <h2>ログイン
           </h2>
-          <input 
-            type="text" 
-            placeholder="ログインID" 
-            value={id} 
-            onChange={e => setId(e.target.value)} 
-          />
-          <input 
+          <input
             type="text" 
             placeholder="管理番号" 
             value={managerNumberInput} 
