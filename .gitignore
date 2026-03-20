@@ -24,3 +24,13 @@ yarn-error.log*
 
 # Claude internal
 .claude/
+
+# Supabase CLI
+supabase.exe
+supabase/.temp/
+
+# Screenshots and scripts
+screenshots/
+create_meeting_pptx.cjs
+create_pptx.cjs
+take_screenshots.mjs
