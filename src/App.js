@@ -1065,10 +1065,15 @@ if (role === 'clockin') {
             Safariの共有ボタン（↑）をタップ<br />
             →「ホーム画面に追加」を選択してください
           </div>
-        ) : (
+        ) : installPromptEvent ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{ fontSize: '13px' }}>アプリとして追加するとプッシュ通知が届きます</span>
             <button onClick={handleInstall} style={{ backgroundColor: 'white', color: '#1565C0', border: 'none', borderRadius: '6px', padding: '6px 14px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' }}>追加する</button>
+          </div>
+        ) : (
+          <div style={{ fontSize: '13px', lineHeight: '1.6' }}>
+            ブラウザのメニュー（⋮ または ···）をタップ<br />
+            →「ホーム画面に追加」または「アプリをインストール」を選択してください
           </div>
         )}
       </div>
