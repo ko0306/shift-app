@@ -365,6 +365,7 @@ const [noticeDismissed, setNoticeDismissed] = useState(false);
 const [showInstallBanner, setShowInstallBanner] = useState(false);
 const [installPromptEvent, setInstallPromptEvent] = useState(null);
 const [isIOS, setIsIOS] = useState(false);
+const [showNotifModal, setShowNotifModal] = useState(false);
   const fetchCandidates = async () => {
     setCandidateLoading(true);
     setCandidateError('');
@@ -410,18 +411,16 @@ const [isIOS, setIsIOS] = useState(false);
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
-  // ログイン後にホーム画面追加バナーを表示
+  // ログイン後にホーム画面追加バナーを表示（全ブラウザ対応）
   useEffect(() => {
     if (!isLoggedIn) return;
     try {
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+        || window.navigator.standalone;
       if (isStandalone) return; // すでにホーム画面から起動中
     } catch (e) { /* 一部WebViewではmatchMedia非対応 */ }
-    if (localStorage.getItem('installBannerDismissed')) return; // 以前に閉じた
-    const ua = navigator.userAgent;
-    // LINEブラウザではインストールバナーを非表示
-    if (/Line\//i.test(ua)) return;
-    const ios = /iphone|ipad|ipod/i.test(ua) && !window.MSStream;
+    if (localStorage.getItem('installBannerDismissed')) return;
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
     setIsIOS(ios);
     setShowInstallBanner(true);
   }, [isLoggedIn]);
@@ -1072,20 +1071,26 @@ const handleSubmit = async () => {
 if (role === 'clockin') {
   return (
     <div style={{ position: 'relative' }}>
+      {showInstallBanner && <InstallBanner />}
       <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
       <BackButton />
-      
-      <ClockInInput 
-        onBack={() => setRole('')} 
-        loggedInManagerNumber={loggedInManagerNumber}  // ← この行を追加
+      <ClockInInput
+        onBack={() => setRole('')}
+        loggedInManagerNumber={loggedInManagerNumber}
       />
     </div>
   );
-  }
+}
 
  // ✅ 修正後
 
+  // ========== ホーム画面追加モーダル（全ブラウザ対応・大きく表示） ==========
   const InstallBanner = () => {
+    const ua = navigator.userAgent;
+    const isLine = /Line\//i.test(ua);
+    const isSamsung = /SamsungBrowser/i.test(ua);
+    const isFirefox = /Firefox/i.test(ua);
+
     const dismiss = () => {
       localStorage.setItem('installBannerDismissed', '1');
       setShowInstallBanner(false);
@@ -1097,26 +1102,148 @@ if (role === 'clockin') {
         if (outcome === 'accepted') setShowInstallBanner(false);
       }
     };
+
+    let steps;
+    if (installPromptEvent) {
+      // Chrome/Edge Android: ネイティブプロンプト
+      steps = null;
+    } else if (isIOS) {
+      steps = ['① 画面下の「共有」ボタン（□↑）をタップ', '② 「ホーム画面に追加」をタップ', '③ 右上の「追加」をタップ'];
+    } else if (isLine) {
+      steps = ['① 右上の「…」をタップ', '② 「他のブラウザで開く」を選択', '③ Chromeが開いたら右上「⋮」→「ホーム画面に追加」'];
+    } else if (isSamsung) {
+      steps = ['① 画面下の「≡」メニューをタップ', '② 「ページをホーム画面に追加」を選択', '③ 「追加」をタップ'];
+    } else if (isFirefox) {
+      steps = ['① アドレスバー右の「⋮」をタップ', '② 「ホーム画面に追加」をタップ'];
+    } else {
+      steps = ['① 右上の「⋮」メニューをタップ', '② 「ホーム画面に追加」をタップ', '③ 「追加」をタップ'];
+    }
+
     return (
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: '#1565C0', color: 'white', padding: '14px 16px', zIndex: 4000, boxShadow: '0 -4px 12px rgba(0,0,0,0.3)' }}>
-        <button onClick={dismiss} style={{ position: 'absolute', top: '8px', right: '12px', background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer', lineHeight: 1 }}>×</button>
-        <div style={{ fontWeight: 'bold', fontSize: '15px', marginBottom: '6px' }}>📲 ホーム画面に追加</div>
-        {isIOS ? (
-          <div style={{ fontSize: '13px', lineHeight: '1.6' }}>
-            Safariの共有ボタン（↑）をタップ<br />
-            →「ホーム画面に追加」を選択してください
+      <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.65)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+        <div style={{ backgroundColor: 'white', borderRadius: '20px', padding: '2rem 1.8rem', maxWidth: '380px', width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
+          <div style={{ fontSize: '3.5rem', marginBottom: '0.5rem' }}>📲</div>
+          <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.3rem', color: '#1565C0' }}>ホーム画面に追加</h3>
+          <p style={{ color: '#555', fontSize: '14px', lineHeight: 1.6, margin: '0 0 1.2rem' }}>
+            アイコンから直接開けるようになります。<br />シフト通知もすぐ確認できます！
+          </p>
+
+          {installPromptEvent ? (
+            <button type="button" onClick={handleInstall}
+              style={{ width: '100%', padding: '14px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: 'bold', marginBottom: '10px' }}>
+              ホーム画面に追加する
+            </button>
+          ) : (
+            <div style={{ backgroundColor: '#F0F4FF', borderRadius: '12px', padding: '1rem', textAlign: 'left', marginBottom: '1rem' }}>
+              {steps && steps.map((s, i) => (
+                <div key={i} style={{ fontSize: '14px', color: '#333', lineHeight: 1.8, display: 'flex', gap: '6px' }}>
+                  <span>{s}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button type="button" onClick={dismiss}
+            style={{ width: '100%', padding: '12px', backgroundColor: '#eee', color: '#555', border: 'none', borderRadius: '12px', fontSize: '15px' }}>
+            後で
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // ========== 通知の確認・設定モーダル（全ブラウザ対応） ==========
+  const NotifModal = () => {
+    const [permStatus, setPermStatus] = React.useState(
+      'Notification' in window ? Notification.permission : 'unsupported'
+    );
+    const [subLoading, setSubLoading] = React.useState(false);
+    const [subMsg, setSubMsg] = React.useState('');
+
+    const handleRequestPermission = async () => {
+      if (!('Notification' in window)) {
+        setSubMsg('このブラウザは通知に対応していません');
+        return;
+      }
+      setSubLoading(true);
+      try {
+        const perm = await Notification.requestPermission();
+        setPermStatus(perm);
+        if (perm === 'granted') {
+          // プッシュ通知が使えるブラウザはサブスクライブ
+          if ('serviceWorker' in navigator && 'PushManager' in window) {
+            try {
+              const reg = await navigator.serviceWorker.ready;
+              const sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+              });
+              await supabase.from('push_subscriptions').upsert(
+                { manager_number: loggedInManagerNumber, subscription: JSON.stringify(sub.toJSON()) },
+                { onConflict: 'manager_number' }
+              );
+              setSubMsg('✅ プッシュ通知を有効にしました');
+            } catch (e) {
+              setSubMsg('✅ 通知を許可しました（プッシュは非対応）');
+            }
+          } else {
+            setSubMsg('✅ 通知を許可しました');
+          }
+        } else if (perm === 'denied') {
+          setSubMsg('通知が拒否されました。ブラウザ設定から許可してください');
+        }
+      } catch (e) {
+        setSubMsg('通知設定に失敗しました');
+      }
+      setSubLoading(false);
+    };
+
+    const permLabel = permStatus === 'granted' ? '✅ 通知：許可済み'
+      : permStatus === 'denied' ? '⛔ 通知：拒否中（ブラウザ設定で変更）'
+      : permStatus === 'unsupported' ? '⚠️ このブラウザは通知非対応'
+      : '🔔 通知：未設定';
+    const permColor = permStatus === 'granted' ? '#2E7D32'
+      : permStatus === 'denied' ? '#C62828'
+      : '#F57C00';
+
+    return (
+      <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+        <div style={{ backgroundColor: 'white', borderRadius: '20px', padding: '1.8rem', maxWidth: '380px', width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
+          <h3 style={{ margin: '0 0 1rem', fontSize: '1.2rem', color: '#333', textAlign: 'center' }}>🔔 通知の確認・設定</h3>
+
+          {/* 現在の通知状態 */}
+          <div style={{ backgroundColor: '#F5F5F5', borderRadius: '10px', padding: '10px 14px', marginBottom: '1rem', fontSize: '14px', fontWeight: 'bold', color: permColor }}>
+            {permLabel}
           </div>
-        ) : installPromptEvent ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '13px' }}>アプリとして追加するとプッシュ通知が届きます</span>
-            <button onClick={handleInstall} style={{ backgroundColor: 'white', color: '#1565C0', border: 'none', borderRadius: '6px', padding: '6px 14px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' }}>追加する</button>
+
+          {/* 通知許可ボタン（未設定のみ） */}
+          {permStatus === 'default' && (
+            <button type="button" onClick={handleRequestPermission} disabled={subLoading}
+              style={{ width: '100%', padding: '12px', backgroundColor: '#6A1B9A', color: 'white', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: 'bold', marginBottom: '10px' }}>
+              {subLoading ? '設定中...' : '通知を許可する'}
+            </button>
+          )}
+          {subMsg && <p style={{ fontSize: '13px', color: '#555', textAlign: 'center', margin: '0 0 0.8rem' }}>{subMsg}</p>}
+
+          {/* 過去のお知らせ */}
+          <div style={{ borderTop: '1px solid #eee', paddingTop: '1rem', marginTop: '0.5rem' }}>
+            <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#666', marginBottom: '8px' }}>📋 最近のシフトお知らせ</div>
+            {staffNotice ? (
+              <div style={{ backgroundColor: '#FFF8E1', border: '1px solid #FFB300', borderRadius: '10px', padding: '12px', fontSize: '14px', lineHeight: 1.7 }}>
+                <div style={{ fontWeight: 'bold', color: '#E65100', marginBottom: '4px' }}>シフト提出のお願い</div>
+                <div>期間：{staffNotice.period_start} 〜 {staffNotice.period_end}</div>
+                <div>期限：{staffNotice.deadline}</div>
+              </div>
+            ) : (
+              <div style={{ fontSize: '13px', color: '#999', textAlign: 'center', padding: '12px' }}>現在お知らせはありません</div>
+            )}
           </div>
-        ) : (
-          <div style={{ fontSize: '13px', lineHeight: '1.6' }}>
-            画面下の ＝ をタップ<br />
-            →「ページをホーム画面に追加」を選択
-          </div>
-        )}
+
+          <button type="button" onClick={() => setShowNotifModal(false)}
+            style={{ width: '100%', padding: '12px', backgroundColor: '#eee', color: '#555', border: 'none', borderRadius: '12px', fontSize: '15px', marginTop: '1rem' }}>
+            閉じる
+          </button>
+        </div>
       </div>
     );
   };
@@ -1968,6 +2095,7 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
     return (
       <div className="login-wrapper">
         {showInstallBanner && <InstallBanner />}
+        {showNotifModal && <NotifModal />}
         <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
         <div className="login-card" style={{ position: 'relative' }}>
           <BackButton />
@@ -2029,8 +2157,8 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
             <button onClick={() => {
               window.open('https://docs.google.com/forms/d/e/1FAIpQLSci0UYQ7BKfXjhVj8x3WBR5ncFxxCo_lsV11kY5TaI15wlKSQ/viewform?usp=header', '_blank');
             }} style={{ backgroundColor: '#1554A5' }}>お問い合わせ</button>
-            <button onClick={subscribePush}
-              style={{ backgroundColor: '#6A1B9A' }}>🔔 シフト通知を受け取る</button>
+            <button type="button" onClick={() => setShowNotifModal(true)}
+              style={{ backgroundColor: '#6A1B9A' }}>🔔 通知の確認・設定</button>
           </div>
           <button onClick={() => {
             setRole('');
