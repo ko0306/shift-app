@@ -329,6 +329,9 @@ const [deadlinePeriodEnd, setDeadlinePeriodEnd] = useState('');
 const [deadlineDate, setDeadlineDate] = useState('');
 const [staffNotice, setStaffNotice] = useState(null);
 const [noticeDismissed, setNoticeDismissed] = useState(false);
+const [showInstallBanner, setShowInstallBanner] = useState(false);
+const [installPromptEvent, setInstallPromptEvent] = useState(null);
+const [isIOS, setIsIOS] = useState(false);
   const fetchCandidates = async () => {
     setCandidateLoading(true);
     setCandidateError('');
@@ -363,6 +366,27 @@ const [noticeDismissed, setNoticeDismissed] = useState(false);
     setManagerPass('');
     setManagerPassError('');
   };
+
+  // ホーム画面追加プロンプト（Android）
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setInstallPromptEvent(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  // ログイン後にホーム画面追加バナーを表示
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    if (isStandalone) return; // すでにホーム画面から起動中
+    if (localStorage.getItem('installBannerDismissed')) return; // 以前に閉じた
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+    setIsIOS(ios);
+    setShowInstallBanner(true);
+  }, [isLoggedIn]);
 
   useEffect(() => {
     if (role === 'staff') {
@@ -1020,6 +1044,37 @@ if (role === 'clockin') {
 
  // ✅ 修正後
 
+  const InstallBanner = () => {
+    const dismiss = () => {
+      localStorage.setItem('installBannerDismissed', '1');
+      setShowInstallBanner(false);
+    };
+    const handleInstall = async () => {
+      if (installPromptEvent) {
+        installPromptEvent.prompt();
+        const { outcome } = await installPromptEvent.userChoice;
+        if (outcome === 'accepted') setShowInstallBanner(false);
+      }
+    };
+    return (
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: '#1565C0', color: 'white', padding: '14px 16px', zIndex: 4000, boxShadow: '0 -4px 12px rgba(0,0,0,0.3)' }}>
+        <button onClick={dismiss} style={{ position: 'absolute', top: '8px', right: '12px', background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer', lineHeight: 1 }}>×</button>
+        <div style={{ fontWeight: 'bold', fontSize: '15px', marginBottom: '6px' }}>📲 ホーム画面に追加</div>
+        {isIOS ? (
+          <div style={{ fontSize: '13px', lineHeight: '1.6' }}>
+            Safariの共有ボタン（↑）をタップ<br />
+            →「ホーム画面に追加」を選択してください
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '13px' }}>アプリとして追加するとプッシュ通知が届きます</span>
+            <button onClick={handleInstall} style={{ backgroundColor: 'white', color: '#1565C0', border: 'none', borderRadius: '6px', padding: '6px 14px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' }}>追加する</button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const ShiftDeadlineModal = () => {
     const [saving, setSaving] = useState(false);
     const [saveMsg, setSaveMsg] = useState('');
@@ -1113,6 +1168,7 @@ if (role === 'clockin') {
   if (role === 'manager' && managerStep === '') {
     return (
       <div className="login-wrapper">
+        {showInstallBanner && <InstallBanner />}
         {showDeadlineModal && <ShiftDeadlineModal />}
         <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
         <div className="login-card" style={{ position: 'relative' }}>
@@ -1865,6 +1921,7 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
   if (role === 'staff') {
     return (
       <div className="login-wrapper">
+        {showInstallBanner && <InstallBanner />}
         <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
         <div className="login-card" style={{ position: 'relative' }}>
           <BackButton />
