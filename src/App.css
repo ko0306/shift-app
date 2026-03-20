@@ -6,6 +6,15 @@ body, html {
   height: 100%;
   font-family: 'Segoe UI', sans-serif;
   background: linear-gradient(135deg, #89f7fe, #66a6ff);
+  /* タッチ操作の最適化（LINE・Samsung Internetなど）*/
+  -webkit-text-size-adjust: 100%;
+}
+
+/* 全ボタン・リンクのタッチ最適化（LINEブラウザ対応） */
+button, a, input[type="submit"], input[type="button"], [role="button"] {
+  touch-action: manipulation;       /* 300ms遅延を除去 */
+  -webkit-tap-highlight-color: transparent; /* タップ時の青ハイライトを除去 */
+  cursor: pointer;
 }
 
 .login-wrapper {
@@ -53,9 +62,11 @@ margin: auto;
   transition: all 0.3s ease;
 }
 
-.login-card button:hover {
-  background-color: #155ab6;
-  transform: scale(1.03);
+@media (hover: hover) {
+  .login-card button:hover {
+    background-color: #155ab6;
+    transform: scale(1.03);
+  }
 }
 
 .error-msg {
@@ -73,9 +84,12 @@ margin: auto;
 .button-row button {
   flex: 1;
 }
-button:hover {
-      background-color: #0090aa;
-      scale: 1.05;}
+@media (hover: hover) {
+  button:hover {
+    background-color: #0090aa;
+    transform: scale(1.05);
+  }
+}
 
 /* フルスクリーン専用のシフト表スタイル */
 .fullscreen-table {
@@ -427,9 +441,11 @@ button:hover {
   max-width: 120px !important;
 }
 
-.nav-button-small:hover {
-  background-color: #155ab6 !important;
-  transform: scale(1.05) !important;
+@media (hover: hover) {
+  .nav-button-small:hover {
+    background-color: #155ab6 !important;
+    transform: scale(1.05) !important;
+  }
 }
 
 /* 小さい保存ボタンのスタイル */
@@ -447,7 +463,9 @@ button:hover {
   
 }
 
-.save-button-small:hover {
-  background-color: #45a049 !important;
-  transform: scale(1.05) !important;
+@media (hover: hover) {
+  .save-button-small:hover {
+    background-color: #45a049 !important;
+    transform: scale(1.05) !important;
+  }
 }

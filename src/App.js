@@ -380,10 +380,15 @@ const [isIOS, setIsIOS] = useState(false);
   // ログイン後にホーム画面追加バナーを表示
   useEffect(() => {
     if (!isLoggedIn) return;
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    if (isStandalone) return; // すでにホーム画面から起動中
+    try {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+      if (isStandalone) return; // すでにホーム画面から起動中
+    } catch (e) { /* 一部WebViewではmatchMedia非対応 */ }
     if (localStorage.getItem('installBannerDismissed')) return; // 以前に閉じた
-    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+    const ua = navigator.userAgent;
+    // LINEブラウザではインストールバナーを非表示
+    if (/Line\//i.test(ua)) return;
+    const ios = /iphone|ipad|ipod/i.test(ua) && !window.MSStream;
     setIsIOS(ios);
     setShowInstallBanner(true);
   }, [isLoggedIn]);
@@ -904,10 +909,24 @@ const handleSubmit = async () => {
     );
   }
 
+  // LINEブラウザ検出バナー
+  const isLineBrowser = /Line\//i.test(navigator.userAgent);
+  const LineBrowserBanner = () => !isLineBrowser ? null : (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999,
+      backgroundColor: '#f57c00', color: 'white',
+      padding: '10px 14px', textAlign: 'center', fontSize: '13px', lineHeight: '1.6'
+    }}>
+      ⚠️ LINEブラウザでは正しく動作しません<br />
+      右上の <strong>「・・・」→「他のブラウザで開く」</strong> をタップしてください
+    </div>
+  );
+
   // ログイン画面
   if (!isLoggedIn) {
     return (
-      <div className="login-wrapper">
+      <div className="login-wrapper" style={isLineBrowser ? { paddingTop: '70px' } : {}}>
+        <LineBrowserBanner />
         <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
         <div className="login-card" style={{ position: 'relative' }}>
           <HelpButton page="login" />
