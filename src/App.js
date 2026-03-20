@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import RegisterUser from './RegisterUser';
 import ManagerCreate from './ManagerCreate';
 import StaffShiftView from './StaffShiftView';
@@ -13,6 +13,15 @@ import { supabase } from './supabaseClient';
 import './App.css';
 
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbxRI2c6dCEa4wS8gCJZkNXXY9_4g1IR8mKJs8EYRLquf-yxFz9wZhB3HmfKJBGy-KCU/exec';
+
+const VAPID_PUBLIC_KEY = 'BNoc3LHNMUu2FlyH5MVIQ4DQl0JOzparZUzQFE4WFmW7SjOhABkFj4iwVQRqjpk8qysAlR1Ib49nEGtKqhePNIk';
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
 
 // 簡易的なハッシュ関数
 const hashPassword = async (password) => {
@@ -314,6 +323,12 @@ const [showCandidateModal, setShowCandidateModal] = useState(false);
 const [candidates, setCandidates] = useState([]);
 const [candidateLoading, setCandidateLoading] = useState(false);
 const [candidateError, setCandidateError] = useState('');
+const [showDeadlineModal, setShowDeadlineModal] = useState(false);
+const [deadlinePeriodStart, setDeadlinePeriodStart] = useState('');
+const [deadlinePeriodEnd, setDeadlinePeriodEnd] = useState('');
+const [deadlineDate, setDeadlineDate] = useState('');
+const [staffNotice, setStaffNotice] = useState(null);
+const [noticeDismissed, setNoticeDismissed] = useState(false);
   const fetchCandidates = async () => {
     setCandidateLoading(true);
     setCandidateError('');
@@ -348,6 +363,41 @@ const [candidateError, setCandidateError] = useState('');
     setManagerPass('');
     setManagerPassError('');
   };
+
+  useEffect(() => {
+    if (role === 'staff') {
+      setNoticeDismissed(false);
+      supabase.from('settings').select('value').eq('key', 'shift_deadline_notice').single()
+        .then(({ data }) => {
+          if (data) {
+            const notice = JSON.parse(data.value);
+            if (notice.is_active) setStaffNotice(notice);
+            else setStaffNotice(null);
+          } else {
+            setStaffNotice(null);
+          }
+        });
+
+      // プッシュ通知の購読登録
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        navigator.serviceWorker.ready.then(async (registration) => {
+          try {
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') return;
+            const sub = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+            });
+            const subJson = sub.toJSON();
+            await supabase.from('push_subscriptions').upsert(
+              { manager_number: loggedInManagerNumber, subscription: JSON.stringify(subJson) },
+              { onConflict: 'manager_number' }
+            );
+          } catch (e) { /* 通知拒否などは無視 */ }
+        });
+      }
+    }
+  }, [role, loggedInManagerNumber]);
 
   const pushToHistory = (state) => {
     setNavigationHistory(prev => [...prev, state]);
@@ -962,16 +1012,115 @@ if (role === 'clockin') {
 
  // ✅ 修正後
 
+  const ShiftDeadlineModal = () => {
+    const [saving, setSaving] = useState(false);
+    const [saveMsg, setSaveMsg] = useState('');
+
+    const handleSave = async (sendNotice) => {
+      if (!deadlinePeriodStart || !deadlinePeriodEnd || !deadlineDate) {
+        setSaveMsg('すべての項目を入力してください');
+        return;
+      }
+      setSaving(true);
+      const noticeValue = {
+        period_start: deadlinePeriodStart,
+        period_end: deadlinePeriodEnd,
+        deadline: deadlineDate,
+        is_active: sendNotice,
+        notified_at: new Date().toISOString(),
+      };
+      const { error } = await supabase.from('settings').upsert(
+        { key: 'shift_deadline_notice', value: JSON.stringify(noticeValue) },
+        { onConflict: 'key' }
+      );
+      if (error) { setSaving(false); setSaveMsg('保存に失敗しました: ' + error.message); return; }
+
+      if (sendNotice) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const supabaseUrl = supabase.supabaseUrl;
+          await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabase.supabaseKey}`,
+            },
+            body: JSON.stringify({
+              title: 'シフト提出のお願い',
+              body: `期間：${deadlinePeriodStart}〜${deadlinePeriodEnd}　期限：${deadlineDate}`,
+            }),
+          });
+        } catch (e) { /* Edge Function エラーは無視しない */ }
+      }
+
+      setSaving(false);
+      setSaveMsg(sendNotice ? '✅ 通知を送信しました！' : '✅ 保存しました');
+      setTimeout(() => { setSaveMsg(''); if (sendNotice) setShowDeadlineModal(false); }, 1500);
+    };
+
+    const handleStop = async () => {
+      const { error } = await supabase.from('settings').upsert(
+        { key: 'shift_deadline_notice', value: JSON.stringify({ is_active: false }) },
+        { onConflict: 'key' }
+      );
+      if (!error) { setSaveMsg('✅ 通知を停止しました'); setTimeout(() => { setSaveMsg(''); setShowDeadlineModal(false); }, 1200); }
+    };
+
+    return (
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setShowDeadlineModal(false)}>
+        <div style={{ backgroundColor: 'white', borderRadius: '14px', padding: '2rem', width: '100%', maxWidth: '420px', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
+          <h3 style={{ marginBottom: '1.5rem', color: '#1565C0', textAlign: 'center' }}>シフト期限設定</h3>
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '4px', color: '#333' }}>シフト期間（開始）</label>
+            <input type="date" value={deadlinePeriodStart} onChange={e => setDeadlinePeriodStart(e.target.value)}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc', fontSize: '16px', boxSizing: 'border-box' }} />
+          </div>
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '4px', color: '#333' }}>シフト期間（終了）</label>
+            <input type="date" value={deadlinePeriodEnd} onChange={e => setDeadlinePeriodEnd(e.target.value)}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc', fontSize: '16px', boxSizing: 'border-box' }} />
+          </div>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '4px', color: '#333' }}>提出期限</label>
+            <input type="date" value={deadlineDate} onChange={e => setDeadlineDate(e.target.value)}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc', fontSize: '16px', boxSizing: 'border-box' }} />
+          </div>
+          {saveMsg && <div style={{ textAlign: 'center', marginBottom: '1rem', color: saveMsg.startsWith('✅') ? '#388E3C' : '#D32F2F', fontWeight: 'bold' }}>{saveMsg}</div>}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <button onClick={() => handleSave(true)} disabled={saving}
+              style={{ backgroundColor: '#1E88E5', color: 'white', border: 'none', borderRadius: '8px', padding: '12px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>
+              通知を送信する
+            </button>
+            <button onClick={() => handleSave(false)} disabled={saving}
+              style={{ backgroundColor: '#757575', color: 'white', border: 'none', borderRadius: '8px', padding: '10px', fontSize: '15px', cursor: 'pointer' }}>
+              保存のみ（通知しない）
+            </button>
+            <button onClick={handleStop} disabled={saving}
+              style={{ backgroundColor: '#EF5350', color: 'white', border: 'none', borderRadius: '8px', padding: '10px', fontSize: '15px', cursor: 'pointer' }}>
+              通知を停止する
+            </button>
+          </div>
+          <button onClick={() => setShowDeadlineModal(false)}
+            style={{ marginTop: '1rem', width: '100%', backgroundColor: 'transparent', color: '#999', border: '1px solid #ddd', borderRadius: '8px', padding: '8px', cursor: 'pointer', fontSize: '14px' }}>
+            閉じる
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   if (role === 'manager' && managerStep === '') {
     return (
       <div className="login-wrapper">
+        {showDeadlineModal && <ShiftDeadlineModal />}
         <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
         <div className="login-card" style={{ position: 'relative' }}>
           <BackButton />
           <HelpButton page="managerMenu" />
           <h2>店長メニュー</h2>
           <div className="button-row" style={{ flexDirection: 'column', gap: '1rem' }}>
+            <button onClick={() => setShowDeadlineModal(true)}
+              style={{ backgroundColor: '#43A047' }}>シフト期限設定</button>
             <button onClick={() => {
               pushToHistory({
                 role: role,
@@ -1720,6 +1869,18 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
           <BackButton />
           <HelpButton page="staffMenu" />
           <h2>アルバイトメニュー</h2>
+          {staffNotice && !noticeDismissed && (
+            <div style={{ backgroundColor: '#FFF3E0', border: '2px solid #FB8C00', borderRadius: '10px', padding: '12px 14px', marginBottom: '1rem', position: 'relative' }}>
+              <div style={{ fontWeight: 'bold', color: '#E65100', marginBottom: '6px', fontSize: '15px' }}>シフト提出のお知らせ</div>
+              <div style={{ fontSize: '14px', color: '#333', lineHeight: '1.6' }}>
+                シフトを提出してください。<br />
+                期間：{staffNotice.period_start} 〜 {staffNotice.period_end}<br />
+                期限：{staffNotice.deadline}
+              </div>
+              <button onClick={() => setNoticeDismissed(true)}
+                style={{ position: 'absolute', top: '8px', right: '8px', background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#999', lineHeight: 1 }}>×</button>
+            </div>
+          )}
           <div className="button-row" style={{ flexDirection: 'column', gap: '1rem' }}>
             <button onClick={() => {
               pushToHistory({
