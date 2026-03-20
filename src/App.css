@@ -10,11 +10,19 @@ body, html {
   -webkit-text-size-adjust: 100%;
 }
 
-/* 全ボタン・リンクのタッチ最適化（LINEブラウザ対応） */
+/* 全ボタン・リンクのタッチ最適化（LINE・Samsung・WebView対応） */
 button, a, input[type="submit"], input[type="button"], [role="button"] {
   touch-action: manipulation;       /* 300ms遅延を除去 */
   -webkit-tap-highlight-color: transparent; /* タップ時の青ハイライトを除去 */
+  -webkit-user-select: none;        /* タップ時のテキスト選択を防止 */
+  user-select: none;
   cursor: pointer;
+}
+
+/* input はテキスト選択可能に保つ */
+input, textarea {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .login-wrapper {
