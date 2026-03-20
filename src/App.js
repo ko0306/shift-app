@@ -378,26 +378,34 @@ const [noticeDismissed, setNoticeDismissed] = useState(false);
           }
         });
 
-      // プッシュ通知の購読登録
-      if ('serviceWorker' in navigator && 'PushManager' in window) {
-        navigator.serviceWorker.ready.then(async (registration) => {
-          try {
-            const permission = await Notification.requestPermission();
-            if (permission !== 'granted') return;
-            const sub = await registration.pushManager.subscribe({
-              userVisibleOnly: true,
-              applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-            });
-            const subJson = sub.toJSON();
-            await supabase.from('push_subscriptions').upsert(
-              { manager_number: loggedInManagerNumber, subscription: JSON.stringify(subJson) },
-              { onConflict: 'manager_number' }
-            );
-          } catch (e) { /* 通知拒否などは無視 */ }
-        });
-      }
     }
   }, [role, loggedInManagerNumber]);
+
+  const subscribePush = async () => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      alert('このブラウザはプッシュ通知に対応していません');
+      return;
+    }
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        alert('通知が拒否されました。ブラウザの設定から通知を許可してください');
+        return;
+      }
+      const registration = await navigator.serviceWorker.ready;
+      const sub = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+      await supabase.from('push_subscriptions').upsert(
+        { manager_number: loggedInManagerNumber, subscription: JSON.stringify(sub.toJSON()) },
+        { onConflict: 'manager_number' }
+      );
+      alert('✅ 通知を受け取る設定が完了しました！');
+    } catch (e) {
+      alert('設定に失敗しました: ' + e.message);
+    }
+  };
 
   const pushToHistory = (state) => {
     setNavigationHistory(prev => [...prev, state]);
@@ -1918,6 +1926,8 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
             <button onClick={() => {
               window.open('https://docs.google.com/forms/d/e/1FAIpQLSci0UYQ7BKfXjhVj8x3WBR5ncFxxCo_lsV11kY5TaI15wlKSQ/viewform?usp=header', '_blank');
             }} style={{ backgroundColor: '#1554A5' }}>お問い合わせ</button>
+            <button onClick={subscribePush}
+              style={{ backgroundColor: '#6A1B9A' }}>🔔 シフト通知を受け取る</button>
           </div>
           <button onClick={() => {
             setRole('');
