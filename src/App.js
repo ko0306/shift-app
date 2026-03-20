@@ -1037,20 +1037,13 @@ if (role === 'clockin') {
 
       if (sendNotice) {
         try {
-          const { data: { session } } = await supabase.auth.getSession();
-          const supabaseUrl = supabase.supabaseUrl;
-          await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${supabase.supabaseKey}`,
-            },
-            body: JSON.stringify({
+          await supabase.functions.invoke('send-push-notification', {
+            body: {
               title: 'シフト提出のお願い',
               body: `期間：${deadlinePeriodStart}〜${deadlinePeriodEnd}　期限：${deadlineDate}`,
-            }),
+            },
           });
-        } catch (e) { /* Edge Function エラーは無視しない */ }
+        } catch (e) { console.error('push error', e); }
       }
 
       setSaving(false);
