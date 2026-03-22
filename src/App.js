@@ -14,7 +14,7 @@ import './App.css';
 
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbxRI2c6dCEa4wS8gCJZkNXXY9_4g1IR8mKJs8EYRLquf-yxFz9wZhB3HmfKJBGy-KCU/exec';
 
-const VAPID_PUBLIC_KEY = 'BPzmH2up1tiRRNEPM48zlukHy2Ox8APa9vOZexbZXIJ3hW6AK_XDNTINYTagZ4u9zaYAkpTYRmdZSY_bb9n1mhs';
+const VAPID_PUBLIC_KEY = 'BNE3hcOnLs-ekXFP3EX52HHYAxQgHacGA66A2E6IHRCcSzna-xYwSf4RW33VuXTWtbK_q6oRyUPD966RzYlrDyg';
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
