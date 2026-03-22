@@ -1268,6 +1268,13 @@ if (role === 'clockin') {
               {subLoading ? '設定中...' : '通知を許可する'}
             </button>
           )}
+          {/* 再登録ボタン（許可済みの場合） */}
+          {permStatus === 'granted' && (
+            <button type="button" onClick={handleRequestPermission} disabled={subLoading}
+              style={{ width: '100%', padding: '12px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: 'bold', marginBottom: '10px' }}>
+              {subLoading ? '登録中...' : '🔄 通知を再登録する'}
+            </button>
+          )}
           {subMsg && <p style={{ fontSize: '13px', color: '#555', textAlign: 'center', margin: '0 0 0.8rem' }}>{subMsg}</p>}
 
           {/* 過去のお知らせ */}
