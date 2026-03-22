@@ -337,7 +337,9 @@ function App() {
   const [bulkEndMin, setBulkEndMin] = useState('');
   const [selectedDays, setSelectedDays] = useState([]);
   const [managerAuth, setManagerAuth] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [managerPass, setManagerPass] = useState('');
+  // eslint-disable-next-line no-unused-vars
   const [managerPassError, setManagerPassError] = useState('');
   const [managerStep, setManagerStep] = useState('');
   const [showHelp, setShowHelp] = useState(false);
@@ -346,8 +348,11 @@ const [showPassword, setShowPassword] = useState(false);
   
   const [navigationHistory, setNavigationHistory] = useState([]);
   // 既存の state の下に追加
+// eslint-disable-next-line no-unused-vars
 const [showAddUserModal, setShowAddUserModal] = useState(false);
+// eslint-disable-next-line no-unused-vars
 const [availableUsers, setAvailableUsers] = useState([]); // シフト未提出の人
+// eslint-disable-next-line no-unused-vars
 const [selectedUsersToAdd, setSelectedUsersToAdd] = useState([]); // 追加対象として選択した人
 const [bulkMode, setBulkMode] = useState('time'); // 一括設定のモード
 const [recruitmentInfo, setRecruitmentInfo] = useState({}); // 募集人数設定
@@ -443,6 +448,7 @@ const [showNotifModal, setShowNotifModal] = useState(false);
     }
   }, [role, loggedInManagerNumber]);
 
+  // eslint-disable-next-line no-unused-vars
   const subscribePush = async () => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
       alert('このブラウザはプッシュ通知に対応していません');
@@ -1068,7 +1074,6 @@ const handleSubmit = async () => {
   
 
 
- 変更:
 if (role === 'clockin') {
   return (
     <div style={{ position: 'relative' }}>

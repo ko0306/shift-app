@@ -502,7 +502,7 @@ const checkAndHandleAction = (actionType) => {
       logData.store = selectedStore;
     }
     
-    const { data, error } = await supabase
+    const { data: _data, error } = await supabase
       .from('attendance_logs')
       .insert([logData])
       .select();

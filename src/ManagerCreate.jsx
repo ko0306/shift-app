@@ -1257,6 +1257,7 @@ const handleRoleSelect = (index, value) => {
   setEditRows(updated);
 };
 
+ // eslint-disable-next-line no-unused-vars
  const handleStoreInputChange = (index, value) => {
   const updated = [...editRows];
   updated[index].store = value;
