@@ -9,8 +9,8 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY') ?? '';
-  const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY') ?? '';
+  const VAPID_PUBLIC_KEY = 'BPzmH2up1tiRRNEPM48zlukHy2Ox8APa9vOZexbZXIJ3hW6AK_XDNTINYTagZ4u9zaYAkpTYRmdZSY_bb9n1mhs';
+  const VAPID_PRIVATE_KEY = '6GTFrj_5wDwfJyChtXEsqaP34klVnipv9lcqmrfySnA';
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SERVICE_ROLE_KEY') ?? '';
 
