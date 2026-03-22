@@ -1231,13 +1231,19 @@ if (role === 'clockin') {
                 userVisibleOnly: true,
                 applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
               });
-              await supabase.from('push_subscriptions').upsert(
-                { manager_number: loggedInManagerNumber, subscription: JSON.stringify(sub.toJSON()) },
-                { onConflict: 'manager_number' }
+              const subJson = JSON.stringify(sub.toJSON());
+              // 既存行を削除してから挿入
+              await supabase.from('push_subscriptions').delete().eq('manager_number', loggedInManagerNumber);
+              const { error: upsertErr } = await supabase.from('push_subscriptions').insert(
+                { manager_number: loggedInManagerNumber, subscription: subJson }
               );
-              setSubMsg('✅ プッシュ通知を有効にしました');
+              if (upsertErr) {
+                setSubMsg('❌ DB保存エラー: ' + upsertErr.message);
+              } else {
+                setSubMsg('✅ プッシュ通知を有効にしました (ID:' + loggedInManagerNumber + ')');
+              }
             } catch (e) {
-              setSubMsg('✅ 通知を許可しました（プッシュは非対応）');
+              setSubMsg('❌ エラー: ' + (e && e.message ? e.message : String(e)));
             }
           } else {
             setSubMsg('✅ 通知を許可しました');
