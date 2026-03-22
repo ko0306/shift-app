@@ -14,7 +14,7 @@ import './App.css';
 
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbxRI2c6dCEa4wS8gCJZkNXXY9_4g1IR8mKJs8EYRLquf-yxFz9wZhB3HmfKJBGy-KCU/exec';
 
-const VAPID_PUBLIC_KEY = 'BNoc3LHNMUu2FlyH5MVIQ4DQl0JOzparZUzQFE4WFmW7SjOhABkFj4iwVQRqjpk8qysAlR1Ib49nEGtKqhePNIk';
+const VAPID_PUBLIC_KEY = 'BHDVH2PnYaguYmgMnroOge00KB-9E7VebZVht5MbXIyzYDzW6J1L0vDKNe6JRfXxObHgLbcXkpy4d6fDzLVvsWQ';
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -419,7 +419,8 @@ const [showNotifModal, setShowNotifModal] = useState(false);
         || window.navigator.standalone;
       if (isStandalone) return; // すでにホーム画面から起動中
     } catch (e) { /* 一部WebViewではmatchMedia非対応 */ }
-    if (localStorage.getItem('installBannerDismissed')) return;
+    const dismissedAt = localStorage.getItem('installBannerDismissedAt');
+    if (dismissedAt && Date.now() - parseInt(dismissedAt) < 7 * 24 * 60 * 60 * 1000) return;
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
     setIsIOS(ios);
     setShowInstallBanner(true);
@@ -1088,13 +1089,18 @@ if (role === 'clockin') {
   const InstallBanner = () => {
     const ua = navigator.userAgent;
     const isLine = /Line\//i.test(ua);
+    const isAndroid = /Android/i.test(ua);
     const isSamsung = /SamsungBrowser/i.test(ua);
     const isFirefox = /Firefox/i.test(ua);
+    const isLineAndroid = isLine && isAndroid;
+    const isLineIOS = isLine && isIOS;
+    const [copied, setCopied] = React.useState(false);
 
     const dismiss = () => {
-      localStorage.setItem('installBannerDismissed', '1');
+      localStorage.setItem('installBannerDismissedAt', String(Date.now()));
       setShowInstallBanner(false);
     };
+
     const handleInstall = async () => {
       if (installPromptEvent) {
         installPromptEvent.prompt();
@@ -1103,48 +1109,87 @@ if (role === 'clockin') {
       }
     };
 
-    let steps;
-    if (installPromptEvent) {
-      // Chrome/Edge Android: ネイティブプロンプト
-      steps = null;
-    } else if (isIOS) {
-      steps = ['① 画面下の「共有」ボタン（□↑）をタップ', '② 「ホーム画面に追加」をタップ', '③ 右上の「追加」をタップ'];
-    } else if (isLine) {
-      steps = ['① 右上の「…」をタップ', '② 「他のブラウザで開く」を選択', '③ Chromeが開いたら右上「⋮」→「ホーム画面に追加」'];
-    } else if (isSamsung) {
-      steps = ['① 画面下の「≡」メニューをタップ', '② 「ページをホーム画面に追加」を選択', '③ 「追加」をタップ'];
-    } else if (isFirefox) {
-      steps = ['① アドレスバー右の「⋮」をタップ', '② 「ホーム画面に追加」をタップ'];
-    } else {
-      steps = ['① 右上の「⋮」メニューをタップ', '② 「ホーム画面に追加」をタップ', '③ 「追加」をタップ'];
-    }
+    const openInChrome = () => {
+      const url = window.location.href;
+      const intentUrl = 'intent://' + url.replace(/^https?:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;end;';
+      window.location.href = intentUrl;
+    };
+
+    const copyURL = async () => {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 3000);
+      } catch (e) {
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = window.location.href;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 3000);
+        } catch (e2) {}
+      }
+    };
+
+    // Androidセクション
+    const androidSection = (
+      <div style={{ backgroundColor: '#E8F5E9', borderRadius: '14px', padding: '1rem', marginBottom: '10px', textAlign: 'left' }}>
+        <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#1B5E20', marginBottom: '8px' }}>🤖 Androidの方</div>
+        {installPromptEvent ? (
+          <button type="button" onClick={handleInstall}
+            style={{ width: '100%', padding: '12px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold' }}>
+            ホーム画面に追加する
+          </button>
+        ) : (
+          <button type="button" onClick={openInChrome}
+            style={{ width: '100%', padding: '12px', backgroundColor: '#34A853', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold' }}>
+            Chromeで開く → ホーム画面に追加
+          </button>
+        )}
+      </div>
+    );
+
+    // iOSセクション
+    const iosSection = (
+      <div style={{ backgroundColor: '#E3F2FD', borderRadius: '14px', padding: '1rem', marginBottom: '10px', textAlign: 'left' }}>
+        <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#0D47A1', marginBottom: '8px' }}>🍎 iOSの方</div>
+        {isLineIOS ? (
+          <>
+            <button type="button" onClick={copyURL}
+              style={{ width: '100%', padding: '12px', backgroundColor: copied ? '#4CAF50' : '#1565C0', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', marginBottom: '8px' }}>
+              {copied ? '✅ URLをコピーしました' : 'URLをコピー'}
+            </button>
+            <div style={{ fontSize: '12px', color: '#444', lineHeight: 1.8 }}>
+              <div>① Safariを開いてアドレスバーに貼り付ける</div>
+              <div>② 画面下の「共有」ボタン（□↑）をタップ</div>
+              <div>③「ホーム画面に追加」→「追加」をタップ</div>
+            </div>
+          </>
+        ) : (
+          <div style={{ fontSize: '12px', color: '#444', lineHeight: 1.8 }}>
+            <div>① Safariで開く</div>
+            <div>② 画面下の「共有」ボタン（□↑）をタップ</div>
+            <div>③「ホーム画面に追加」→「追加」をタップ</div>
+          </div>
+        )}
+      </div>
+    );
 
     return (
       <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.65)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
-        <div style={{ backgroundColor: 'white', borderRadius: '20px', padding: '2rem 1.8rem', maxWidth: '380px', width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
-          <div style={{ fontSize: '3.5rem', marginBottom: '0.5rem' }}>📲</div>
-          <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.3rem', color: '#1565C0' }}>ホーム画面に追加</h3>
-          <p style={{ color: '#555', fontSize: '14px', lineHeight: 1.6, margin: '0 0 1.2rem' }}>
+        <div style={{ backgroundColor: 'white', borderRadius: '20px', padding: '1.8rem 1.6rem', maxWidth: '380px', width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '0.3rem' }}>📲</div>
+          <h3 style={{ margin: '0 0 0.4rem', fontSize: '1.2rem', color: '#1565C0' }}>ホーム画面に追加</h3>
+          <p style={{ color: '#555', fontSize: '13px', lineHeight: 1.6, margin: '0 0 1rem' }}>
             アイコンから直接開けるようになります。<br />シフト通知もすぐ確認できます！
           </p>
-
-          {installPromptEvent ? (
-            <button type="button" onClick={handleInstall}
-              style={{ width: '100%', padding: '14px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: 'bold', marginBottom: '10px' }}>
-              ホーム画面に追加する
-            </button>
-          ) : (
-            <div style={{ backgroundColor: '#F0F4FF', borderRadius: '12px', padding: '1rem', textAlign: 'left', marginBottom: '1rem' }}>
-              {steps && steps.map((s, i) => (
-                <div key={i} style={{ fontSize: '14px', color: '#333', lineHeight: 1.8, display: 'flex', gap: '6px' }}>
-                  <span>{s}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
+          {androidSection}
+          {iosSection}
           <button type="button" onClick={dismiss}
-            style={{ width: '100%', padding: '12px', backgroundColor: '#eee', color: '#555', border: 'none', borderRadius: '12px', fontSize: '15px' }}>
+            style={{ width: '100%', padding: '11px', backgroundColor: '#eee', color: '#555', border: 'none', borderRadius: '12px', fontSize: '14px', marginTop: '4px' }}>
             後で
           </button>
         </div>
