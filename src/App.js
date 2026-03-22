@@ -365,6 +365,7 @@ const [showDeadlineModal, setShowDeadlineModal] = useState(false);
 const [deadlinePeriodStart, setDeadlinePeriodStart] = useState('');
 const [deadlinePeriodEnd, setDeadlinePeriodEnd] = useState('');
 const [deadlineDate, setDeadlineDate] = useState('');
+const [deadlineDaysBefore, setDeadlineDaysBefore] = useState(3);
 const [staffNotice, setStaffNotice] = useState(null);
 const [noticeDismissed, setNoticeDismissed] = useState(false);
 const [showInstallBanner, setShowInstallBanner] = useState(false);
@@ -1328,6 +1329,7 @@ if (role === 'clockin') {
         period_start: deadlinePeriodStart,
         period_end: deadlinePeriodEnd,
         deadline: deadlineDate,
+        days_before: Number(deadlineDaysBefore),
         is_active: sendNotice,
         notified_at: new Date().toISOString(),
       };
@@ -1375,10 +1377,20 @@ if (role === 'clockin') {
             <input type="date" value={deadlinePeriodEnd} onChange={e => setDeadlinePeriodEnd(e.target.value)}
               style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc', fontSize: '16px', boxSizing: 'border-box' }} />
           </div>
-          <div style={{ marginBottom: '1.5rem' }}>
+          <div style={{ marginBottom: '1rem' }}>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '4px', color: '#333' }}>提出期限</label>
             <input type="date" value={deadlineDate} onChange={e => setDeadlineDate(e.target.value)}
               style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc', fontSize: '16px', boxSizing: 'border-box' }} />
+          </div>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '4px', color: '#333' }}>自動通知タイミング</label>
+            <select value={deadlineDaysBefore} onChange={e => setDeadlineDaysBefore(e.target.value)}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc', fontSize: '16px', boxSizing: 'border-box', backgroundColor: 'white' }}>
+              {[1,2,3,4,5,6,7].map(d => (
+                <option key={d} value={d}>期限の{d}日前に自動通知</option>
+              ))}
+            </select>
+            <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>毎日自動でチェックし、該当日に通知を送信します</div>
           </div>
           {saveMsg && <div style={{ textAlign: 'center', marginBottom: '1rem', color: saveMsg.startsWith('✅') ? '#388E3C' : '#D32F2F', fontWeight: 'bold' }}>{saveMsg}</div>}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -1413,6 +1425,12 @@ if (role === 'clockin') {
         <div className="login-card" style={{ position: 'relative' }}>
           <BackButton />
           <HelpButton page="managerMenu" />
+          <div style={{ textAlign: 'center', marginBottom: '0.3rem' }}>
+            <button type="button" onClick={() => setShowInstallBanner(true)}
+              style={{ background: 'none', border: '1px solid #1a73e8', color: '#1a73e8', borderRadius: '20px', padding: '3px 12px', fontSize: '12px', cursor: 'pointer' }}>
+              📲 ホーム画面に追加
+            </button>
+          </div>
           <h2>店長メニュー</h2>
           <div className="button-row" style={{ flexDirection: 'column', gap: '1rem' }}>
             <button onClick={() => setShowDeadlineModal(true)}
@@ -2166,6 +2184,12 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
         <div className="login-card" style={{ position: 'relative' }}>
           <BackButton />
           <HelpButton page="staffMenu" />
+          <div style={{ textAlign: 'center', marginBottom: '0.3rem' }}>
+            <button type="button" onClick={() => setShowInstallBanner(true)}
+              style={{ background: 'none', border: '1px solid #1a73e8', color: '#1a73e8', borderRadius: '20px', padding: '3px 12px', fontSize: '12px', cursor: 'pointer' }}>
+              📲 ホーム画面に追加
+            </button>
+          </div>
           <h2>アルバイトメニュー</h2>
           {staffNotice && !noticeDismissed && (
             <div style={{ backgroundColor: '#FFF3E0', border: '2px solid #FB8C00', borderRadius: '10px', padding: '12px 14px', marginBottom: '1rem', position: 'relative' }}>
