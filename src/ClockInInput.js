@@ -786,6 +786,17 @@ if (hasExpenseData) {
   setExpenseStatus('pending');
 }
 
+// 店長へプッシュ通知（申請したスタッフを除く全員に通知）
+try {
+  await supabase.functions.invoke('send-push-notification', {
+    body: {
+      title: '勤怠修正の申請',
+      body: `管理番号 ${selectedManagerNumber} から ${date} の勤怠修正申請が届きました`,
+      exclude_manager_numbers: [String(selectedManagerNumber)]
+    }
+  });
+} catch (e) { console.error('通知エラー:', e); }
+
 setMessage('修正を申請しました');
 setMessageType('success');
 setEditMode(false);

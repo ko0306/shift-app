@@ -48,12 +48,17 @@ Deno.serve(async (req) => {
       const timeInfo = shift.start_time && shift.end_time
         ? `${shift.start_time}〜${shift.end_time}`
         : shift.start_time || '時間未定';
-      const payload = JSON.stringify({
-        title: '明日の出勤リマインダー',
-        body: `明日(${tomorrowStr})の出勤時間：${timeInfo}`,
-      });
+      const title = '明日の出勤リマインダー';
+      const body = `明日(${tomorrowStr})の出勤時間：${timeInfo}`;
+      const payload = JSON.stringify({ title, body });
       try {
         await webpush.sendNotification(JSON.parse(sub.subscription), payload);
+        // 個人向け通知を保存
+        await supabase.from('notifications').insert([{
+          title,
+          body,
+          target_manager_number: String(sub.manager_number)
+        }]);
         results.push({ type: 'reminder', manager_number: sub.manager_number, status: 'sent' });
       } catch (e: unknown) {
         const err = e as { message?: string };
@@ -79,18 +84,23 @@ Deno.serve(async (req) => {
 
       if (todayStr === notifyDateStr) {
         const { data: allSubs } = await supabase.from('push_subscriptions').select('subscription');
-        const payload = JSON.stringify({
-          title: 'シフト提出のお願い',
-          body: `期間：${setting.period_start}〜${setting.period_end}　期限：${setting.deadline}`,
-        });
+        const title = 'シフト提出のお願い';
+        const body = `期間：${setting.period_start}〜${setting.period_end}　期限：${setting.deadline}`;
+        const payload = JSON.stringify({ title, body });
+        let sent = 0;
         for (const row of (allSubs ?? [])) {
           try {
             await webpush.sendNotification(JSON.parse(row.subscription), payload);
+            sent++;
             results.push({ type: 'deadline_auto', status: 'sent' });
           } catch (e: unknown) {
             const err = e as { message?: string };
             results.push({ type: 'deadline_auto', status: 'failed', error: err.message });
           }
+        }
+        if (sent > 0) {
+          // 全員向け通知を保存
+          await supabase.from('notifications').insert([{ title, body, target_manager_number: null }]);
         }
       }
     }

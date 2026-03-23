@@ -16,10 +16,22 @@ Deno.serve(async (req) => {
 
   webpush.setVapidDetails('mailto:admin@example.com', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
-  const { title, body } = await req.json();
+  const { title, body, target_manager_numbers, exclude_manager_numbers } = await req.json();
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-  const { data: subs, error } = await supabase.from('push_subscriptions').select('subscription');
+
+  let query = supabase.from('push_subscriptions').select('manager_number, subscription');
+
+  // target_manager_numbers が指定されている場合は対象のみ
+  if (target_manager_numbers && target_manager_numbers.length > 0) {
+    query = query.in('manager_number', target_manager_numbers);
+  }
+  // exclude_manager_numbers が指定されている場合は除外
+  else if (exclude_manager_numbers && exclude_manager_numbers.length > 0) {
+    query = query.not('manager_number', 'in', `(${exclude_manager_numbers.join(',')})`);
+  }
+
+  const { data: subs, error } = await query;
 
   if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
 

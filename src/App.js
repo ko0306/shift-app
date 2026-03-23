@@ -380,6 +380,24 @@ const [showHelpNotifModal, setShowHelpNotifModal] = useState(false);
 const [notifEnabled, setNotifEnabled] = useState(() => localStorage.getItem('notifEnabled') !== 'false');
 const [notifHistory, setNotifHistory] = useState([]);
 const [showNotifList, setShowNotifList] = useState(false);
+  const fetchNotifHistory = async (managerNum) => {
+    try {
+      const { data } = await supabase
+        .from('notifications')
+        .select('title, body, created_at, target_manager_number')
+        .or(`target_manager_number.is.null,target_manager_number.eq.${managerNum}`)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (data) setNotifHistory(data);
+    } catch (e) { console.error('通知履歴取得エラー:', e); }
+  };
+
+  const saveNotif = async (title, body, targetManagerNumber = null) => {
+    try {
+      await supabase.from('notifications').insert([{ title, body, target_manager_number: targetManagerNumber }]);
+    } catch (e) { console.error('通知保存エラー:', e); }
+  };
+
   const fetchCandidates = async () => {
     setCandidateLoading(true);
     setCandidateError('');
@@ -483,8 +501,11 @@ const [showNotifList, setShowNotifList] = useState(false);
             setStaffNotice(null);
           }
         });
-
     }
+    if (role && loggedInManagerNumber) {
+      fetchNotifHistory(loggedInManagerNumber);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role, loggedInManagerNumber]);
 
   // eslint-disable-next-line no-unused-vars
@@ -1477,6 +1498,7 @@ if (role === 'clockin') {
       const body = shortages.length > 0 ? `人手不足の日：${shortages.join('、')}` : '現在人手不足の日はありません';
       try {
         await supabase.functions.invoke('send-push-notification', { body: { title: 'シフトヘルプのお願い', body } });
+        await saveNotif('シフトヘルプのお願い', body);
         setHelpMsg('✅ 通知を送信しました');
       } catch (e) { setHelpMsg('❌ 送信エラー'); }
       setSending(false);
@@ -1489,6 +1511,7 @@ if (role === 'clockin') {
       setSending(true);
       try {
         await supabase.functions.invoke('send-push-notification', { body: { title: `⚠️ 緊急連絡（${dateStr}）`, body: emergencyText } });
+        await saveNotif(`⚠️ 緊急連絡（${dateStr}）`, emergencyText);
         setEmergencyMsg('✅ 緊急通知を送信しました');
       } catch (e) { setEmergencyMsg('❌ 送信エラー'); }
       setSending(false);
@@ -1584,13 +1607,12 @@ if (role === 'clockin') {
       if (error) { setSaving(false); setSaveMsg('保存に失敗しました: ' + error.message); return; }
 
       if (sendNotice) {
+        const notifBody = `期間：${deadlinePeriodStart}〜${deadlinePeriodEnd}　期限：${deadlineDate}`;
         try {
           await supabase.functions.invoke('send-push-notification', {
-            body: {
-              title: 'シフト提出のお願い',
-              body: `期間：${deadlinePeriodStart}〜${deadlinePeriodEnd}　期限：${deadlineDate}`,
-            },
+            body: { title: 'シフト提出のお願い', body: notifBody },
           });
+          await supabase.from('notifications').insert([{ title: 'シフト提出のお願い', body: notifBody }]);
         } catch (e) { console.error('push error', e); }
       }
 

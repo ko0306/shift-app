@@ -675,7 +675,9 @@ if (!isAuthenticated && loggedInManagerNumber) {
                 cursor: 'pointer',
                 fontSize: '0.85rem',
                 fontWeight: 'bold',
-                whiteSpace: 'nowrap'
+                whiteSpace: 'nowrap',
+                width: 'fit-content',
+                alignSelf: 'flex-start'
               }}
             >
               ⚙️ 時間帯設定
@@ -751,9 +753,11 @@ if (!isAuthenticated && loggedInManagerNumber) {
                         color: 'white',
                         border: 'none',
                         borderRadius: '4px',
-                        padding: '0.25rem 0.5rem',
+                        padding: '0.35rem 0.75rem',
                         cursor: 'pointer',
-                        fontSize: '0.8rem'
+                        fontSize: '1rem',
+                        fontWeight: 'bold',
+                        width: 'fit-content'
                       }}
                     >
                       削除

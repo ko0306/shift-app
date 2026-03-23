@@ -705,7 +705,8 @@ const [shiftSettings, setShiftSettings] = useState(() => {
         end_time: endTime,
         store: storeValue,
         role: roleValue,  // ← 追加
-        is_off: shift.is_off
+        is_off: shift.is_off,
+        remarks: shift.remarks || null
       };
 
       const { error } = await supabase
@@ -1384,6 +1385,9 @@ if (isFirstClick) {
     <th style={{ padding: '0.75rem', textAlign: 'center', borderBottom: '1px solid #ddd', fontSize: 'clamp(0.8rem, 3vw, 0.9rem)', whiteSpace: 'nowrap' }}>
       状態
     </th>
+    <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #ddd', fontSize: 'clamp(0.8rem, 3vw, 0.9rem)', whiteSpace: 'nowrap' }}>
+      備考
+    </th>
     {isEditing && (
       <>
         <th style={{ padding: '0.75rem', textAlign: 'center', borderBottom: '1px solid #ddd', fontSize: 'clamp(0.8rem, 3vw, 0.9rem)', whiteSpace: 'nowrap' }}>
@@ -1484,6 +1488,32 @@ if (isFirstClick) {
                         }}>
                           {(isEditing ? editingShift.is_off : isOffDay(shift)) ? '休み' : '出勤'}
                         </span>
+                      </td>
+                      <td style={{
+                        padding: '0.75rem',
+                        borderBottom: '1px solid #eee',
+                        fontSize: 'clamp(0.75rem, 2.5vw, 0.85rem)',
+                        color: '#555',
+                        minWidth: isEditing ? '120px' : '80px'
+                      }}>
+                        {isEditing ? (
+                          <textarea
+                            value={editingShift.remarks || ''}
+                            onChange={(e) => handleShiftChange(shift.id || shift.manager_number, 'remarks', e.target.value)}
+                            rows={2}
+                            style={{
+                              width: '100%',
+                              padding: '0.25rem',
+                              border: '1px solid #ddd',
+                              borderRadius: '4px',
+                              fontSize: 'clamp(0.75rem, 2.5vw, 0.85rem)',
+                              resize: 'vertical',
+                              minWidth: '100px'
+                            }}
+                          />
+                        ) : (
+                          <span style={{ whiteSpace: 'pre-wrap' }}>{shift.remarks || ''}</span>
+                        )}
                       </td>
                      {isEditing && (
   <>
