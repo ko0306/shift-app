@@ -417,6 +417,18 @@ const [showNotifModal, setShowNotifModal] = useState(false);
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
+  // ?install=1 パラメータがあればログイン前でも即バナー表示
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('install') === '1') {
+      const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+      setIsIOS(ios);
+      setShowInstallBanner(true);
+      // URLからパラメータを除去（履歴を汚さない）
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
   // ログイン後にホーム画面追加バナーを表示（全ブラウザ対応）
   useEffect(() => {
     if (!isLoggedIn) return;
@@ -953,6 +965,7 @@ const handleSubmit = async () => {
   if (!isLoggedIn) {
     return (
       <div className="login-wrapper">
+        {showInstallBanner && <InstallBanner />}
         <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
         <div className="login-card" style={{ position: 'relative' }}>
           <HelpButton page="login" />
@@ -1116,7 +1129,8 @@ if (role === 'clockin') {
     };
 
     const openInChrome = () => {
-      const url = window.location.href;
+      const base = window.location.origin + window.location.pathname;
+      const url = base + '?install=1';
       const intentUrl = 'intent://' + url.replace(/^https?:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;end;';
       window.location.href = intentUrl;
     };
