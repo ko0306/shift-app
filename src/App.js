@@ -600,7 +600,7 @@ const openHelp = (page, managerNumber = '') => {
     // ✅ is_deleted = false のユーザーのみ取得
     const { data, error } = await supabase
       .from('users')
-      .select('manager_number, user_password, is_deleted, user_name')
+      .select('manager_number, user_password, is_deleted, name')
       .eq('manager_number', managerNumberInput)
       .eq('is_deleted', false)
       .single();
@@ -621,7 +621,7 @@ const openHelp = (page, managerNumber = '') => {
       return;
     }
 
-    const name = data?.user_name || managerNumberInput;
+    const name = data?.name || managerNumberInput;
     setIsLoggedIn(true);
     setLoggedInManagerNumber(managerNumberInput);
     setLoggedInName(name);
