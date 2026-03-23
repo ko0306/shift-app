@@ -372,6 +372,14 @@ const [showInstallBanner, setShowInstallBanner] = useState(false);
 const [installPromptEvent, setInstallPromptEvent] = useState(null);
 const [isIOS, setIsIOS] = useState(false);
 const [showNotifModal, setShowNotifModal] = useState(false);
+const [rememberMe, setRememberMe] = useState(false);
+const [loggedInName, setLoggedInName] = useState('');
+const [staffShiftSub, setStaffShiftSub] = useState(false);
+const [managerShiftSub, setManagerShiftSub] = useState(false);
+const [showHelpNotifModal, setShowHelpNotifModal] = useState(false);
+const [notifEnabled, setNotifEnabled] = useState(() => localStorage.getItem('notifEnabled') !== 'false');
+const [notifHistory, setNotifHistory] = useState([]);
+const [showNotifList, setShowNotifList] = useState(false);
   const fetchCandidates = async () => {
     setCandidateLoading(true);
     setCandidateError('');
@@ -406,6 +414,24 @@ const [showNotifModal, setShowNotifModal] = useState(false);
     setManagerPass('');
     setManagerPassError('');
   };
+
+  // 自動ログイン（ログイン省略設定）
+  useEffect(() => {
+    const saved = localStorage.getItem('autoLoginData');
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        if (data.expiresAt > Date.now()) {
+          setLoggedInManagerNumber(data.managerNumber);
+          setLoggedInName(data.name || '');
+          setIsLoggedIn(true);
+        } else {
+          localStorage.removeItem('autoLoginData');
+        }
+      } catch (e) { localStorage.removeItem('autoLoginData'); }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ホーム画面追加プロンプト（Android）
   useEffect(() => {
@@ -537,8 +563,12 @@ const openHelp = (page, managerNumber = '') => {
     if (password === '0306') {
       setIsLoggedIn(true);
       setLoggedInManagerNumber('0000');
+      setLoggedInName('店長');
       setLoginMessage('');
       setNavigationHistory([]);
+      if (rememberMe) {
+        localStorage.setItem('autoLoginData', JSON.stringify({ managerNumber: '0000', name: '店長', expiresAt: Date.now() + 30*24*60*60*1000 }));
+      }
     } else {
       setLoginMessage('パスワードが違います');
     }
@@ -549,9 +579,9 @@ const openHelp = (page, managerNumber = '') => {
     // ✅ is_deleted = false のユーザーのみ取得
     const { data, error } = await supabase
       .from('users')
-      .select('manager_number, user_password, is_deleted')
+      .select('manager_number, user_password, is_deleted, user_name')
       .eq('manager_number', managerNumberInput)
-      .eq('is_deleted', false)  // ← この行を追加
+      .eq('is_deleted', false)
       .single();
 
     if (error || !data) {
@@ -570,10 +600,15 @@ const openHelp = (page, managerNumber = '') => {
       return;
     }
 
+    const name = data?.user_name || managerNumberInput;
     setIsLoggedIn(true);
     setLoggedInManagerNumber(managerNumberInput);
+    setLoggedInName(name);
     setLoginMessage('');
     setNavigationHistory([]);
+    if (rememberMe) {
+      localStorage.setItem('autoLoginData', JSON.stringify({ managerNumber: managerNumberInput, name, expiresAt: Date.now() + 30*24*60*60*1000 }));
+    }
   } catch (err) {
     setLoginMessage('ログイン中にエラーが発生しました');
   }
@@ -1020,6 +1055,11 @@ const handleSubmit = async () => {
 )}
   </button>
 </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0.5rem 0', justifyContent: 'flex-start' }}>
+            <input type="checkbox" id="rememberMe" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)}
+              style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
+            <label htmlFor="rememberMe" style={{ fontSize: '14px', color: '#555', cursor: 'pointer' }}>次回からログイン省略</label>
+          </div>
           <button
             type="button"
             onClick={handleLogin}
@@ -1060,6 +1100,7 @@ const handleSubmit = async () => {
         <div className="login-card" style={{ position: 'relative' }}>
           <BackButton />
           <HelpButton page="roleSelect" managerNumber={loggedInManagerNumber} />
+          {loggedInName && <div style={{ textAlign: 'center', color: '#1976D2', fontWeight: 'bold', marginBottom: '0.5rem' }}>{loggedInName}さん</div>}
           <h2>メニューを選択してください</h2>
           <div className="button-row" style={{ flexDirection: 'column', gap: '1rem' }}>
             <button onClick={() => selectRole('staff')} style={{ backgroundColor: '#1976D2' }}>アルバイト</button>
@@ -1356,6 +1397,168 @@ if (role === 'clockin') {
     );
   };
 
+  // ========== 通知一覧モーダル ==========
+  const NotifListModal = () => (
+    <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 6000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+      <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', maxWidth: '400px', width: '100%', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+        <h3 style={{ margin: '0 0 1rem', textAlign: 'center', color: '#333' }}>通知一覧</h3>
+        <div style={{ overflowY: 'auto', flex: 1 }}>
+          {notifHistory.length === 0 ? (
+            <div style={{ textAlign: 'center', color: '#999', padding: '2rem' }}>通知はありません</div>
+          ) : notifHistory.map((n, i) => (
+            <div key={i} style={{ borderBottom: '1px solid #eee', padding: '10px', marginBottom: '4px', backgroundColor: '#fafafa', borderRadius: '8px' }}>
+              <div style={{ fontWeight: 'bold', color: '#E65100', fontSize: '14px' }}>{n.title}</div>
+              <div style={{ fontSize: '13px', color: '#333', marginTop: '2px' }}>{n.body}</div>
+              <div style={{ fontSize: '11px', color: '#999', marginTop: '4px' }}>{n.created_at?.slice(0,16).replace('T',' ')}</div>
+            </div>
+          ))}
+        </div>
+        <button onClick={() => setShowNotifList(false)} style={{ marginTop: '1rem', padding: '10px', backgroundColor: '#eee', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>閉じる</button>
+      </div>
+    </div>
+  );
+
+  // ========== ヘルプ通知モーダル ==========
+  const HelpNotifModal = () => {
+    const [helpStart, setHelpStart] = React.useState('');
+    const [helpEnd, setHelpEnd] = React.useState('');
+    const [helpMsg, setHelpMsg] = React.useState('');
+    const [recentDeadlines, setRecentDeadlines] = React.useState([]);
+    const [showCandidates, setShowCandidates] = React.useState(false);
+    const [sending, setSending] = React.useState(false);
+    // 緊急通知
+    const [emergencyMode, setEmergencyMode] = React.useState(false);
+    const [emergencyDateType, setEmergencyDateType] = React.useState('today');
+    const [emergencyCustomDate, setEmergencyCustomDate] = React.useState('');
+    const [emergencyText, setEmergencyText] = React.useState('');
+    const [emergencyMsg, setEmergencyMsg] = React.useState('');
+
+    const pad = (n) => String(n).padStart(2, '0');
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+    const tomorrowDate = new Date(today); tomorrowDate.setDate(tomorrowDate.getDate()+1);
+    const tomorrowStr = `${tomorrowDate.getFullYear()}-${pad(tomorrowDate.getMonth()+1)}-${pad(tomorrowDate.getDate())}`;
+
+    React.useEffect(() => {
+      // 直近3つの期限設定を取得（settingsテーブルのshift_deadline_noticeから）
+      supabase.from('settings').select('value').eq('key', 'shift_deadline_notice').single().then(({ data }) => {
+        if (data) {
+          try {
+            const v = JSON.parse(data.value);
+            if (v.period_start && v.period_end) {
+              setRecentDeadlines([{ label: `${v.period_start}〜${v.period_end}（期限:${v.deadline}）`, start: v.period_start, end: v.period_end }]);
+            }
+          } catch (e) {}
+        }
+      });
+    }, []);
+
+    const sendHelpNotif = async () => {
+      if (!helpStart || !helpEnd) { setHelpMsg('期間を入力してください'); return; }
+      setSending(true);
+      // シフト期間の日ごとに提出人数を集計
+      const { data: shifts } = await supabase.from('shifts').select('date, manager_number').gte('date', helpStart).lte('date', helpEnd).not('start_time', 'is', null).neq('start_time', '');
+      const { data: recSetting } = await supabase.from('settings').select('value').eq('key', 'recruitment_settings').single();
+      let required = {};
+      try { if (recSetting) required = JSON.parse(recSetting.value); } catch (e) {}
+      // 日ごとカウント
+      const countMap = {};
+      (shifts || []).forEach(s => { countMap[s.date] = (countMap[s.date] || 0) + 1; });
+      // 不足日をまとめる
+      const shortages = [];
+      const d = new Date(helpStart);
+      while (d <= new Date(helpEnd)) {
+        const ds = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+        const req = required[ds] || required['default'] || 0;
+        const actual = countMap[ds] || 0;
+        if (req > 0 && actual < req) shortages.push(`${ds}(${actual}/${req}人)`);
+        d.setDate(d.getDate()+1);
+      }
+      const body = shortages.length > 0 ? `人手不足の日：${shortages.join('、')}` : '現在人手不足の日はありません';
+      try {
+        await supabase.functions.invoke('send-push-notification', { body: { title: 'シフトヘルプのお願い', body } });
+        setHelpMsg('✅ 通知を送信しました');
+      } catch (e) { setHelpMsg('❌ 送信エラー'); }
+      setSending(false);
+    };
+
+    const sendEmergency = async () => {
+      if (!emergencyText) { setEmergencyMsg('通知内容を入力してください'); return; }
+      const dateStr = emergencyDateType === 'today' ? todayStr : emergencyDateType === 'tomorrow' ? tomorrowStr : emergencyCustomDate;
+      if (!dateStr) { setEmergencyMsg('日付を選択してください'); return; }
+      setSending(true);
+      try {
+        await supabase.functions.invoke('send-push-notification', { body: { title: `⚠️ 緊急連絡（${dateStr}）`, body: emergencyText } });
+        setEmergencyMsg('✅ 緊急通知を送信しました');
+      } catch (e) { setEmergencyMsg('❌ 送信エラー'); }
+      setSending(false);
+    };
+
+    return (
+      <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 5500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setShowHelpNotifModal(false)}>
+        <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', maxWidth: '420px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+          {!emergencyMode ? (
+            <>
+              <h3 style={{ margin: '0 0 1rem', textAlign: 'center', color: '#E53935' }}>🆘 ヘルプ通知</h3>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>期間（開始）</label>
+                <input type="date" value={helpStart} onChange={e => setHelpStart(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc', fontSize: '16px', boxSizing: 'border-box' }} />
+              </div>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>期間（終了）</label>
+                <input type="date" value={helpEnd} onChange={e => setHelpEnd(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc', fontSize: '16px', boxSizing: 'border-box' }} />
+              </div>
+              <button onClick={() => setShowCandidates(v => !v)} style={{ width: '100%', padding: '10px', backgroundColor: '#FF9800', color: 'white', border: 'none', borderRadius: '8px', marginBottom: '8px', cursor: 'pointer' }}>
+                📋 候補から選ぶ
+              </button>
+              {showCandidates && (
+                <div style={{ backgroundColor: '#FFF8E1', border: '1px solid #FFB300', borderRadius: '8px', padding: '10px', marginBottom: '1rem' }}>
+                  {recentDeadlines.length === 0 ? <div style={{ color: '#999', fontSize: '13px' }}>候補がありません</div> : recentDeadlines.map((d, i) => (
+                    <button key={i} onClick={() => { setHelpStart(d.start); setHelpEnd(d.end); setShowCandidates(false); }}
+                      style={{ width: '100%', padding: '8px', marginBottom: '4px', backgroundColor: '#FFF', border: '1px solid #FFB300', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {helpMsg && <div style={{ textAlign: 'center', color: helpMsg.startsWith('✅') ? '#388E3C' : '#D32F2F', fontWeight: 'bold', marginBottom: '8px' }}>{helpMsg}</div>}
+              <button onClick={sendHelpNotif} disabled={sending} style={{ width: '100%', padding: '12px', backgroundColor: '#E53935', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', marginBottom: '8px' }}>
+                {sending ? '送信中...' : '🆘 ヘルプ通知を送る'}
+              </button>
+              <button onClick={() => setEmergencyMode(true)} style={{ width: '100%', padding: '12px', backgroundColor: '#B71C1C', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }}>
+                ⚡ 緊急通知
+              </button>
+            </>
+          ) : (
+            <>
+              <h3 style={{ margin: '0 0 1rem', textAlign: 'center', color: '#B71C1C' }}>⚡ 緊急通知</h3>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '1rem' }}>
+                {[['today','今日'],['tomorrow','明日'],['custom','日付選択']].map(([v,l]) => (
+                  <button key={v} onClick={() => setEmergencyDateType(v)} style={{ flex: 1, padding: '10px', backgroundColor: emergencyDateType === v ? '#B71C1C' : '#eee', color: emergencyDateType === v ? 'white' : '#333', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>{l}</button>
+                ))}
+              </div>
+              {emergencyDateType === 'custom' && (
+                <input type="date" value={emergencyCustomDate} onChange={e => setEmergencyCustomDate(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc', fontSize: '16px', boxSizing: 'border-box', marginBottom: '1rem' }} />
+              )}
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>通知内容</label>
+                <textarea value={emergencyText} onChange={e => setEmergencyText(e.target.value)} rows={4}
+                  placeholder="緊急連絡の内容を入力してください"
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc', fontSize: '15px', boxSizing: 'border-box', resize: 'vertical' }} />
+              </div>
+              {emergencyMsg && <div style={{ textAlign: 'center', color: emergencyMsg.startsWith('✅') ? '#388E3C' : '#D32F2F', fontWeight: 'bold', marginBottom: '8px' }}>{emergencyMsg}</div>}
+              <button onClick={sendEmergency} disabled={sending} style={{ width: '100%', padding: '12px', backgroundColor: '#B71C1C', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', marginBottom: '8px' }}>
+                {sending ? '送信中...' : '⚡ 全員に送信'}
+              </button>
+              <button onClick={() => setEmergencyMode(false)} style={{ width: '100%', padding: '10px', backgroundColor: '#eee', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>← ヘルプ通知に戻る</button>
+            </>
+          )}
+          <button onClick={() => { setShowHelpNotifModal(false); setEmergencyMode(false); }} style={{ marginTop: '12px', width: '100%', padding: '10px', backgroundColor: '#eee', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>閉じる</button>
+        </div>
+      </div>
+    );
+  };
+
   const ShiftDeadlineModal = () => {
     const [saving, setSaving] = useState(false);
     const [saveMsg, setSaveMsg] = useState('');
@@ -1406,8 +1609,9 @@ if (role === 'clockin') {
 
     return (
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setShowDeadlineModal(false)}>
-        <div style={{ backgroundColor: 'white', borderRadius: '14px', padding: '2rem', width: '100%', maxWidth: '420px', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
-          <h3 style={{ marginBottom: '1.5rem', color: '#1565C0', textAlign: 'center' }}>シフト期限設定</h3>
+        <div style={{ backgroundColor: 'white', borderRadius: '14px', padding: '1.5rem', paddingTop: '3.5rem', width: '100%', maxWidth: '420px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', position: 'relative' }} onClick={e => e.stopPropagation()}>
+          <button onClick={() => setShowDeadlineModal(false)} style={{ position: 'absolute', top: '1rem', left: '1rem', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '8px', padding: '6px 14px', cursor: 'pointer', fontWeight: 'bold' }}>← 戻る</button>
+          <h3 style={{ marginBottom: '1rem', color: '#1565C0', textAlign: 'center' }}>シフト期限設定</h3>
           <div style={{ marginBottom: '1rem' }}>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '4px', color: '#333' }}>シフト期間（開始）</label>
             <input type="date" value={deadlinePeriodStart} onChange={e => setDeadlinePeriodStart(e.target.value)}
@@ -1462,74 +1666,83 @@ if (role === 'clockin') {
       <div className="login-wrapper">
         {showInstallBanner && <InstallBanner />}
         {showDeadlineModal && <ShiftDeadlineModal />}
+        {showHelpNotifModal && <HelpNotifModal />}
+        {showNotifList && <NotifListModal />}
         <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
         <div className="login-card" style={{ position: 'relative' }}>
           <BackButton />
           <HelpButton page="managerMenu" />
-          <div style={{ textAlign: 'center', marginBottom: '0.3rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+            <button type="button" onClick={() => { setNotifEnabled(v => { localStorage.setItem('notifEnabled', String(!v)); return !v; })}
+            } style={{ background: 'none', border: '1px solid #aaa', color: '#666', borderRadius: '20px', padding: '2px 10px', fontSize: '11px', cursor: 'pointer' }}>
+              {notifEnabled ? '🔔 通知ON' : '🔕 通知OFF'}
+            </button>
             <button type="button" onClick={() => setShowInstallBanner(true)}
               style={{ background: 'none', border: '1px solid #1a73e8', color: '#1a73e8', borderRadius: '20px', padding: '3px 12px', fontSize: '12px', cursor: 'pointer' }}>
               📲 ホーム画面に追加
             </button>
           </div>
-          <h2>店長メニュー</h2>
-          <div className="button-row" style={{ flexDirection: 'column', gap: '1rem' }}>
-            <button onClick={() => setShowDeadlineModal(true)}
-              style={{ backgroundColor: '#43A047' }}>シフト期限設定</button>
-            <button onClick={() => {
-              pushToHistory({
-                role: role,
-                currentStep: currentStep,
-                managerAuth: managerAuth,
-                managerStep: '',
-                isLoggedIn: true
-              });
-              setManagerStep('create');
-            }} style={{ backgroundColor: '#1E88E5' }}>シフト作成</button>
-            <button onClick={() => {
-              pushToHistory({
-                role: role,
-                currentStep: currentStep,
-                managerAuth: managerAuth,
-                managerStep: '',
-                isLoggedIn: true
-              });
-              setManagerStep('view');
-            }} style={{ backgroundColor: '#1976D2' }}>シフト確認</button>
-            <button onClick={() => {
-              pushToHistory({
-                role: role,
-                currentStep: currentStep,
-                managerAuth: managerAuth,
-                managerStep: '',
-                isLoggedIn: true
-              });
-              setManagerStep('attendance');
-            }} style={{ backgroundColor: '#0D47A1' }}>勤怠管理</button>
-            <button onClick={() => {
-              pushToHistory({
-                role: role,
-                currentStep: currentStep,
-                managerAuth: managerAuth,
-                managerStep: '',
-                isLoggedIn: true
-              });
-              setManagerStep('register');
-            }} style={{ backgroundColor: '#1554A5' }}>新人登録</button>
-            <button onClick={() => {
-              window.open('https://docs.google.com/forms/d/e/1FAIpQLSci0UYQ7BKfXjhVj8x3WBR5ncFxxCo_lsV11kY5TaI15wlKSQ/viewform?usp=header', '_blank');
-            }} style={{ backgroundColor: '#1565C0' }}>お問い合わせ</button>
-          </div>
+          {loggedInName && <div style={{ textAlign: 'center', color: '#1976D2', fontWeight: 'bold', marginBottom: '0.3rem' }}>{loggedInName}さん</div>}
+          <h2 style={{ marginTop: '0.3rem' }}>店長メニュー</h2>
+          {notifEnabled && notifHistory.length > 0 && (
+            <div style={{ position: 'relative', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>📋 お知らせ</span>
+                <button type="button" onClick={() => setShowNotifList(true)}
+                  style={{ background: 'none', border: '1px solid #aaa', borderRadius: '10px', padding: '1px 8px', fontSize: '11px', color: '#555', cursor: 'pointer' }}>通知一覧</button>
+              </div>
+              <div style={{ maxHeight: '110px', overflowY: 'auto', border: '1px solid #eee', borderRadius: '8px' }}>
+                {notifHistory.slice(0, 5).map((n, i) => (
+                  <div key={i} style={{ backgroundColor: i === 0 ? '#FFF3E0' : '#f9f9f9', borderBottom: '1px solid #eee', padding: '8px 10px', fontSize: '13px' }}>
+                    <div style={{ fontWeight: 'bold', color: '#E65100' }}>{n.title}</div>
+                    <div style={{ color: '#333' }}>{n.body}</div>
+                    <div style={{ fontSize: '11px', color: '#999' }}>{n.created_at?.slice(0,10)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {!managerShiftSub ? (
+            <div className="button-row" style={{ flexDirection: 'column', gap: '1rem' }}>
+              <button onClick={() => setManagerShiftSub(true)} style={{ backgroundColor: '#43A047' }}>📅 シフト関連</button>
+              <button onClick={() => {
+                pushToHistory({ role, currentStep, managerAuth, managerStep: '', isLoggedIn: true });
+                setManagerStep('attendance');
+              }} style={{ backgroundColor: '#0D47A1' }}>勤怠管理</button>
+              <button onClick={() => {
+                pushToHistory({ role, currentStep, managerAuth, managerStep: '', isLoggedIn: true });
+                setManagerStep('register');
+              }} style={{ backgroundColor: '#1554A5' }}>新人登録</button>
+              <button onClick={() => {
+                window.open('https://docs.google.com/forms/d/e/1FAIpQLSci0UYQ7BKfXjhVj8x3WBR5ncFxxCo_lsV11kY5TaI15wlKSQ/viewform?usp=header', '_blank');
+              }} style={{ backgroundColor: '#1565C0' }}>お問い合わせ</button>
+            </div>
+          ) : (
+            <div className="button-row" style={{ flexDirection: 'column', gap: '1rem' }}>
+              <button onClick={() => setManagerShiftSub(false)} style={{ backgroundColor: '#78909C', marginBottom: '0.5rem' }}>← 戻る</button>
+              <button onClick={() => setShowDeadlineModal(true)} style={{ backgroundColor: '#43A047' }}>シフト期限設定</button>
+              <button onClick={() => {
+                pushToHistory({ role, currentStep, managerAuth, managerStep: '', isLoggedIn: true });
+                setManagerStep('create');
+              }} style={{ backgroundColor: '#1E88E5' }}>シフト作成</button>
+              <button onClick={() => {
+                pushToHistory({ role, currentStep, managerAuth, managerStep: '', isLoggedIn: true });
+                setManagerStep('view');
+              }} style={{ backgroundColor: '#1976D2' }}>シフト確認</button>
+              <button onClick={() => setShowHelpNotifModal(true)} style={{ backgroundColor: '#E53935' }}>🆘 ヘルプ通知</button>
+            </div>
+          )}
+
           <button onClick={() => {
             setRole('');
-
             setPassword('');
-            setManagerNumberInput(''); 
+            setManagerNumberInput('');
             setIsLoggedIn(false);
             setManagerAuth(false);
+            setManagerShiftSub(false);
             resetAllInputs();
             setNavigationHistory([]);
-          }} style={{ backgroundColor: '#FF5722' }}>ログアウト</button>
+          }} style={{ backgroundColor: '#FF5722', marginTop: '1rem' }}>ログアウト</button>
         </div>
       </div>
     );
@@ -2221,18 +2434,42 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
       <div className="login-wrapper">
         {showInstallBanner && <InstallBanner />}
         {showNotifModal && <NotifModal />}
+        {showNotifList && <NotifListModal />}
         <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
         <div className="login-card" style={{ position: 'relative' }}>
           <BackButton />
           <HelpButton page="staffMenu" />
-          <div style={{ textAlign: 'center', marginBottom: '0.3rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+            <button type="button" onClick={() => { setNotifEnabled(v => { localStorage.setItem('notifEnabled', String(!v)); return !v; })}
+            } style={{ background: 'none', border: '1px solid #aaa', color: '#666', borderRadius: '20px', padding: '2px 10px', fontSize: '11px', cursor: 'pointer' }}>
+              {notifEnabled ? '🔔 通知ON' : '🔕 通知OFF'}
+            </button>
             <button type="button" onClick={() => setShowInstallBanner(true)}
               style={{ background: 'none', border: '1px solid #1a73e8', color: '#1a73e8', borderRadius: '20px', padding: '3px 12px', fontSize: '12px', cursor: 'pointer' }}>
               📲 ホーム画面に追加
             </button>
           </div>
-          <h2>アルバイトメニュー</h2>
-          {staffNotice && !noticeDismissed && (
+          {loggedInName && <div style={{ textAlign: 'center', color: '#1976D2', fontWeight: 'bold', marginBottom: '0.3rem' }}>{loggedInName}さん</div>}
+          <h2 style={{ marginTop: '0.3rem' }}>アルバイトメニュー</h2>
+          {notifEnabled && notifHistory.length > 0 && (
+            <div style={{ position: 'relative', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>📋 お知らせ</span>
+                <button type="button" onClick={() => setShowNotifList(true)}
+                  style={{ background: 'none', border: '1px solid #aaa', borderRadius: '10px', padding: '1px 8px', fontSize: '11px', color: '#555', cursor: 'pointer' }}>通知一覧</button>
+              </div>
+              <div style={{ maxHeight: '110px', overflowY: 'auto', border: '1px solid #eee', borderRadius: '8px' }}>
+                {notifHistory.slice(0, 5).map((n, i) => (
+                  <div key={i} style={{ backgroundColor: i === 0 ? '#FFF3E0' : '#f9f9f9', borderBottom: '1px solid #eee', padding: '8px 10px', fontSize: '13px' }}>
+                    <div style={{ fontWeight: 'bold', color: '#E65100' }}>{n.title}</div>
+                    <div style={{ color: '#333' }}>{n.body}</div>
+                    <div style={{ fontSize: '11px', color: '#999' }}>{n.created_at?.slice(0,10)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {notifEnabled && staffNotice && !noticeDismissed && notifHistory.length === 0 && (
             <div style={{ backgroundColor: '#FFF3E0', border: '2px solid #FB8C00', borderRadius: '10px', padding: '12px 14px', marginBottom: '1rem', position: 'relative' }}>
               <div style={{ fontWeight: 'bold', color: '#E65100', marginBottom: '6px', fontSize: '15px' }}>シフト提出のお知らせ</div>
               <div style={{ fontSize: '14px', color: '#333', lineHeight: '1.6' }}>
@@ -2244,63 +2481,47 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
                 style={{ position: 'absolute', top: '8px', right: '8px', background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#999', lineHeight: 1 }}>×</button>
             </div>
           )}
-          <div className="button-row" style={{ flexDirection: 'column', gap: '1rem' }}>
-            <button onClick={() => {
-              pushToHistory({
-                role: role,
-                currentStep: '',
-                managerAuth: managerAuth,
-                managerStep: managerStep,
-                isLoggedIn: true
-              });
-              setCurrentStep('shiftPeriod');
-            }} style={{ backgroundColor: '#1E88E5' }}>新規提出</button>
-            <button onClick={() => {
-              pushToHistory({
-                role: role,
-                currentStep: '',
-                managerAuth: managerAuth,
-                managerStep: managerStep,
-                isLoggedIn: true
-              });
-              setCurrentStep('shiftEdit');
-            }} style={{ backgroundColor: '#1976D2' }}>シフト変更</button>
-            <button onClick={() => {
-              pushToHistory({
-                role: role,
-                currentStep: '',
-                managerAuth: managerAuth,
-                managerStep: managerStep,
-                isLoggedIn: true
-              });
-              setCurrentStep('shiftView');
-            }} style={{ backgroundColor: '#1565C0' }}>シフト確認</button>
-            <button onClick={() => {
-              pushToHistory({
-                role: role,
-                currentStep: '',
-                managerAuth: managerAuth,
-                managerStep: managerStep,
-                isLoggedIn: true
-              });
-              setCurrentStep('workHours');
-            }} style={{ backgroundColor: '#0D47A1' }}>就労時間</button>
-            <button onClick={() => {
-              window.open('https://docs.google.com/forms/d/e/1FAIpQLSci0UYQ7BKfXjhVj8x3WBR5ncFxxCo_lsV11kY5TaI15wlKSQ/viewform?usp=header', '_blank');
-            }} style={{ backgroundColor: '#1554A5' }}>お問い合わせ</button>
-            <button type="button" onClick={() => setShowNotifModal(true)}
-              style={{ backgroundColor: '#6A1B9A' }}>🔔 通知の確認・設定</button>
-          </div>
+          {!staffShiftSub ? (
+            <div className="button-row" style={{ flexDirection: 'column', gap: '1rem' }}>
+              <button onClick={() => setStaffShiftSub(true)} style={{ backgroundColor: '#1E88E5' }}>📅 シフト関連</button>
+              <button onClick={() => {
+                pushToHistory({ role, currentStep: '', managerAuth, managerStep, isLoggedIn: true });
+                setCurrentStep('workHours');
+              }} style={{ backgroundColor: '#0D47A1' }}>就労時間確認</button>
+              <button onClick={() => {
+                window.open('https://docs.google.com/forms/d/e/1FAIpQLSci0UYQ7BKfXjhVj8x3WBR5ncFxxCo_lsV11kY5TaI15wlKSQ/viewform?usp=header', '_blank');
+              }} style={{ backgroundColor: '#1554A5' }}>お問い合わせ</button>
+              <button type="button" onClick={() => setShowNotifModal(true)}
+                style={{ backgroundColor: '#6A1B9A' }}>🔔 通知設定</button>
+            </div>
+          ) : (
+            <div className="button-row" style={{ flexDirection: 'column', gap: '1rem' }}>
+              <button onClick={() => setStaffShiftSub(false)}
+                style={{ backgroundColor: '#78909C', marginBottom: '0.5rem' }}>← 戻る</button>
+              <button onClick={() => {
+                pushToHistory({ role, currentStep: '', managerAuth, managerStep, isLoggedIn: true });
+                setCurrentStep('shiftPeriod');
+              }} style={{ backgroundColor: '#1E88E5' }}>シフト提出</button>
+              <button onClick={() => {
+                pushToHistory({ role, currentStep: '', managerAuth, managerStep, isLoggedIn: true });
+                setCurrentStep('shiftEdit');
+              }} style={{ backgroundColor: '#1976D2' }}>シフト変更</button>
+              <button onClick={() => {
+                pushToHistory({ role, currentStep: '', managerAuth, managerStep, isLoggedIn: true });
+                setCurrentStep('shiftView');
+              }} style={{ backgroundColor: '#1565C0' }}>シフト確認</button>
+            </div>
+          )}
           <button onClick={() => {
             setRole('');
-
             setPassword('');
             setManagerNumberInput('');
             setIsLoggedIn(false);
             setCurrentStep('');
+            setStaffShiftSub(false);
             resetAllInputs();
             setNavigationHistory([]);
-          }} style={{ backgroundColor: '#FF5722' }}>ログアウト</button>
+          }} style={{ backgroundColor: '#FF5722', marginTop: '1rem' }}>ログアウト</button>
         </div>
       </div>
     );
