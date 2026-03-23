@@ -1109,10 +1109,8 @@ if (role === 'clockin') {
     const ua = navigator.userAgent;
     const isLine = /Line\//i.test(ua);
     const isAndroid = /Android/i.test(ua);
-    const isSamsung = /SamsungBrowser/i.test(ua);
-    const isFirefox = /Firefox/i.test(ua);
-    const isLineAndroid = isLine && isAndroid;
     const isLineIOS = isLine && isIOS;
+    const isDesktop = !isAndroid && !isIOS;
     const [copied, setCopied] = React.useState(false);
 
     const dismiss = () => {
@@ -1135,15 +1133,20 @@ if (role === 'clockin') {
       window.location.href = intentUrl;
     };
 
+    const openInSafari = () => {
+      const base = window.location.origin + window.location.pathname;
+      window.location.href = base + '?install=1&openExternalBrowser=1';
+    };
+
     const copyURL = async () => {
       try {
-        await navigator.clipboard.writeText(window.location.href);
+        await navigator.clipboard.writeText(window.location.origin + window.location.pathname + '?install=1');
         setCopied(true);
         setTimeout(() => setCopied(false), 3000);
       } catch (e) {
         try {
           const ta = document.createElement('textarea');
-          ta.value = window.location.href;
+          ta.value = window.location.origin + window.location.pathname + '?install=1';
           document.body.appendChild(ta);
           ta.select();
           document.execCommand('copy');
@@ -1153,6 +1156,24 @@ if (role === 'clockin') {
         } catch (e2) {}
       }
     };
+
+    // PCセクション
+    const desktopSection = (
+      <div style={{ backgroundColor: '#F3E5F5', borderRadius: '14px', padding: '1rem', marginBottom: '10px', textAlign: 'left' }}>
+        <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#4A148C', marginBottom: '8px' }}>💻 パソコンの方</div>
+        {installPromptEvent ? (
+          <button type="button" onClick={handleInstall}
+            style={{ width: '100%', padding: '12px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold' }}>
+            アプリとしてインストール
+          </button>
+        ) : (
+          <div style={{ fontSize: '12px', color: '#444', lineHeight: 1.8 }}>
+            <div>Chromeのアドレスバー右端の</div>
+            <div>「⊕」アイコンをクリックしてインストール</div>
+          </div>
+        )}
+      </div>
+    );
 
     // Androidセクション
     const androidSection = (
@@ -1178,14 +1199,16 @@ if (role === 'clockin') {
         <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#0D47A1', marginBottom: '8px' }}>🍎 iOSの方</div>
         {isLineIOS ? (
           <>
-            <button type="button" onClick={copyURL}
-              style={{ width: '100%', padding: '12px', backgroundColor: copied ? '#4CAF50' : '#1565C0', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', marginBottom: '8px' }}>
-              {copied ? '✅ URLをコピーしました' : 'URLをコピー'}
+            <button type="button" onClick={openInSafari}
+              style={{ width: '100%', padding: '12px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', marginBottom: '8px' }}>
+              Safariで開く → ホーム画面に追加
             </button>
-            <div style={{ fontSize: '12px', color: '#444', lineHeight: 1.8 }}>
-              <div>① Safariを開いてアドレスバーに貼り付ける</div>
-              <div>② 画面下の「共有」ボタン（□↑）をタップ</div>
-              <div>③「ホーム画面に追加」→「追加」をタップ</div>
+            <button type="button" onClick={copyURL}
+              style={{ width: '100%', padding: '10px', backgroundColor: copied ? '#4CAF50' : '#607D8B', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', marginBottom: '6px' }}>
+              {copied ? '✅ URLをコピーしました' : 'URLをコピー（手動で貼り付ける場合）'}
+            </button>
+            <div style={{ fontSize: '11px', color: '#888', lineHeight: 1.6 }}>
+              上ボタンで開かない場合：URLをコピー→Safariに貼り付け→共有→ホーム画面に追加
             </div>
           </>
         ) : (
@@ -1206,8 +1229,12 @@ if (role === 'clockin') {
           <p style={{ color: '#555', fontSize: '13px', lineHeight: 1.6, margin: '0 0 1rem' }}>
             アイコンから直接開けるようになります。<br />シフト通知もすぐ確認できます！
           </p>
-          {androidSection}
-          {iosSection}
+          {isDesktop ? desktopSection : (
+            <>
+              {androidSection}
+              {iosSection}
+            </>
+          )}
           <button type="button" onClick={dismiss}
             style={{ width: '100%', padding: '11px', backgroundColor: '#eee', color: '#555', border: 'none', borderRadius: '12px', fontSize: '14px', marginTop: '4px' }}>
             後で
