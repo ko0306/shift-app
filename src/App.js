@@ -1232,17 +1232,16 @@ if (role === 'clockin') {
           </button>
         ) : (
           <div>
-            <a
-              href={installUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ display: 'block', width: '100%', padding: '12px', backgroundColor: '#1565C0', color: 'white', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', textDecoration: 'none', textAlign: 'center', boxSizing: 'border-box', marginBottom: '8px' }}
-            >
-              🌐 Chromeで開く → インストール画面へ
-            </a>
-            <div style={{ fontSize: '11px', color: '#888', lineHeight: 1.6 }}>
-              ※すでにChromeお使いの方：アドレスバー右端の「⊕」アイコンをクリック
+            <div style={{ backgroundColor: '#fff', border: '1px solid #CE93D8', borderRadius: '8px', padding: '10px', marginBottom: '8px', fontSize: '13px', color: '#333', lineHeight: 1.7 }}>
+              <div style={{ fontWeight: 'bold', color: '#4A148C', marginBottom: '4px' }}>Chromeでインストールする手順</div>
+              <div>① 下のボタンでURLをコピー</div>
+              <div>② Chromeのアドレスバーに貼り付けてEnter</div>
+              <div>③ アドレスバー右端の <strong style={{ fontSize: '15px' }}>⊕</strong> をクリック</div>
             </div>
+            <button type="button" onClick={copyURL}
+              style={{ width: '100%', padding: '11px', backgroundColor: copied ? '#4CAF50' : '#7B1FA2', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>
+              {copied ? '✅ URLをコピーしました！ Chromeに貼り付けてください' : '📋 インストール用URLをコピー'}
+            </button>
           </div>
         )}
       </div>
@@ -1729,7 +1728,7 @@ if (role === 'clockin') {
           <HelpButton page="managerMenu" />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
             <button type="button" onClick={() => { setNotifEnabled(v => { localStorage.setItem('notifEnabled', String(!v)); return !v; })}
-            } style={{ background: 'none', border: '1px solid #aaa', color: '#666', borderRadius: '20px', padding: '2px 10px', fontSize: '11px', cursor: 'pointer' }}>
+            } style={{ backgroundColor: notifEnabled ? '#4CAF50' : '#9E9E9E', color: 'white', border: 'none', borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
               {notifEnabled ? '🔔 通知ON' : '🔕 通知OFF'}
             </button>
             <button type="button" onClick={() => setShowInstallBanner(true)}
@@ -2496,7 +2495,7 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
           <HelpButton page="staffMenu" />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
             <button type="button" onClick={() => { setNotifEnabled(v => { localStorage.setItem('notifEnabled', String(!v)); return !v; })}
-            } style={{ background: 'none', border: '1px solid #aaa', color: '#666', borderRadius: '20px', padding: '2px 10px', fontSize: '11px', cursor: 'pointer' }}>
+            } style={{ backgroundColor: notifEnabled ? '#4CAF50' : '#9E9E9E', color: 'white', border: 'none', borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
               {notifEnabled ? '🔔 通知ON' : '🔕 通知OFF'}
             </button>
             <button type="button" onClick={() => setShowInstallBanner(true)}
@@ -2546,8 +2545,6 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
               <button onClick={() => {
                 window.open('https://docs.google.com/forms/d/e/1FAIpQLSci0UYQ7BKfXjhVj8x3WBR5ncFxxCo_lsV11kY5TaI15wlKSQ/viewform?usp=header', '_blank');
               }} style={{ backgroundColor: '#1554A5' }}>お問い合わせ</button>
-              <button type="button" onClick={() => setShowNotifModal(true)}
-                style={{ backgroundColor: '#6A1B9A' }}>🔔 通知設定</button>
             </div>
           ) : (
             <div className="button-row" style={{ flexDirection: 'column', gap: '1rem' }}>
