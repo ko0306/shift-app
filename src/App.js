@@ -453,9 +453,14 @@ const [showNotifList, setShowNotifList] = useState(false);
 
   // ホーム画面追加プロンプト（Android）
   useEffect(() => {
+    // index.htmlで早期キャプチャしたイベントを取得
+    if (window.__pwaInstallEvent) {
+      setInstallPromptEvent(window.__pwaInstallEvent);
+    }
     const handler = (e) => {
       e.preventDefault();
       setInstallPromptEvent(e);
+      window.__pwaInstallEvent = e;
     };
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
@@ -1736,11 +1741,11 @@ if (role === 'clockin') {
           {loggedInName && <div style={{ textAlign: 'center', color: '#1976D2', fontWeight: 'bold', marginBottom: '0.3rem' }}>{loggedInName}さん</div>}
           <h2 style={{ marginTop: '0.3rem' }}>店長メニュー</h2>
           {notifEnabled && notifHistory.length > 0 && (
-            <div style={{ position: 'relative', marginBottom: '1rem', maxWidth: '280px', margin: '0 auto 1rem' }}>
+            <div style={{ position: 'relative', marginBottom: '1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                 <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>📋 お知らせ</span>
                 <button type="button" onClick={() => setShowNotifList(true)}
-                  style={{ backgroundColor: '#FF9800', color: 'white', border: 'none', borderRadius: '10px', padding: '3px 10px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>通知一覧</button>
+                  style={{ backgroundColor: '#FF9800', color: 'white', border: 'none', borderRadius: '8px', padding: '2px 7px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' }}>通知一覧</button>
               </div>
               <div style={{ maxHeight: '110px', overflowY: 'auto', border: '1px solid #eee', borderRadius: '8px' }}>
                 {notifHistory.slice(0, 5).map((n, i) => (
@@ -2503,11 +2508,11 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
           {loggedInName && <div style={{ textAlign: 'center', color: '#1976D2', fontWeight: 'bold', marginBottom: '0.3rem' }}>{loggedInName}さん</div>}
           <h2 style={{ marginTop: '0.3rem' }}>アルバイトメニュー</h2>
           {notifEnabled && notifHistory.length > 0 && (
-            <div style={{ position: 'relative', marginBottom: '1rem', maxWidth: '280px', margin: '0 auto 1rem' }}>
+            <div style={{ position: 'relative', marginBottom: '1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                 <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>📋 お知らせ</span>
                 <button type="button" onClick={() => setShowNotifList(true)}
-                  style={{ backgroundColor: '#FF9800', color: 'white', border: 'none', borderRadius: '10px', padding: '3px 10px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>通知一覧</button>
+                  style={{ backgroundColor: '#FF9800', color: 'white', border: 'none', borderRadius: '8px', padding: '2px 7px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' }}>通知一覧</button>
               </div>
               <div style={{ maxHeight: '110px', overflowY: 'auto', border: '1px solid #eee', borderRadius: '8px' }}>
                 {notifHistory.slice(0, 5).map((n, i) => (
@@ -2554,11 +2559,11 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
               <button onClick={() => {
                 pushToHistory({ role, currentStep: '', managerAuth, managerStep, isLoggedIn: true });
                 setCurrentStep('shiftEdit');
-              }} style={{ backgroundColor: '#1976D2' }}>シフト変更</button>
+              }} style={{ backgroundColor: '#FF7043' }}>シフト変更</button>
               <button onClick={() => {
                 pushToHistory({ role, currentStep: '', managerAuth, managerStep, isLoggedIn: true });
                 setCurrentStep('shiftView');
-              }} style={{ backgroundColor: '#1565C0' }}>シフト確認</button>
+              }} style={{ backgroundColor: '#43A047' }}>シフト確認</button>
             </div>
           )}
           <button onClick={() => {
