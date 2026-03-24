@@ -1237,10 +1237,10 @@ if (role === 'clockin') {
           </button>
         ) : (
           <div>
-            <button type="button" onClick={() => window.open(installUrl, '_blank')}
-              style={{ width: '100%', padding: '12px', backgroundColor: '#7B1FA2', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '8px' }}>
+            <a href={`googlechrome://navigate?url=${encodeURIComponent(installUrl)}`}
+              style={{ display: 'block', width: '100%', padding: '12px', backgroundColor: '#7B1FA2', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '8px', textAlign: 'center', textDecoration: 'none', boxSizing: 'border-box' }}>
               🌐 Chromeで開く → インストール画面へ
-            </button>
+            </a>
             <div style={{ fontSize: '11px', color: '#888', lineHeight: 1.6 }}>
               開いたらアドレスバー右端の <strong>⊕</strong> をクリックしてインストール
             </div>
@@ -1741,11 +1741,11 @@ if (role === 'clockin') {
           {loggedInName && <div style={{ textAlign: 'center', color: '#1976D2', fontWeight: 'bold', marginBottom: '0.3rem' }}>{loggedInName}さん</div>}
           <h2 style={{ marginTop: '0.3rem' }}>店長メニュー</h2>
           {notifEnabled && notifHistory.length > 0 && (
-            <div style={{ position: 'relative', marginBottom: '1rem' }}>
+            <div style={{ position: 'relative', marginBottom: '1rem', backgroundColor: '#FFF8E1', borderRadius: '10px', padding: '8px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                 <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>📋 お知らせ</span>
                 <button type="button" onClick={() => setShowNotifList(true)}
-                  style={{ backgroundColor: '#FF9800', color: 'white', border: 'none', borderRadius: '8px', padding: '2px 7px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' }}>通知一覧</button>
+                  style={{ backgroundColor: '#FF9800', color: 'white', border: 'none', borderRadius: '8px', padding: '2px 7px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap', width: 'fit-content' }}>通知一覧</button>
               </div>
               <div style={{ maxHeight: '110px', overflowY: 'auto', border: '1px solid #eee', borderRadius: '8px' }}>
                 {notifHistory.slice(0, 5).map((n, i) => (
@@ -2508,11 +2508,11 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
           {loggedInName && <div style={{ textAlign: 'center', color: '#1976D2', fontWeight: 'bold', marginBottom: '0.3rem' }}>{loggedInName}さん</div>}
           <h2 style={{ marginTop: '0.3rem' }}>アルバイトメニュー</h2>
           {notifEnabled && notifHistory.length > 0 && (
-            <div style={{ position: 'relative', marginBottom: '1rem' }}>
+            <div style={{ position: 'relative', marginBottom: '1rem', backgroundColor: '#FFF8E1', borderRadius: '10px', padding: '8px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                 <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>📋 お知らせ</span>
                 <button type="button" onClick={() => setShowNotifList(true)}
-                  style={{ backgroundColor: '#FF9800', color: 'white', border: 'none', borderRadius: '8px', padding: '2px 7px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' }}>通知一覧</button>
+                  style={{ backgroundColor: '#FF9800', color: 'white', border: 'none', borderRadius: '8px', padding: '2px 7px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap', width: 'fit-content' }}>通知一覧</button>
               </div>
               <div style={{ maxHeight: '110px', overflowY: 'auto', border: '1px solid #eee', borderRadius: '8px' }}>
                 {notifHistory.slice(0, 5).map((n, i) => (
