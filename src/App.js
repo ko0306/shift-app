@@ -1219,19 +1219,30 @@ if (role === 'clockin') {
       }
     };
 
+    const installUrl = window.location.origin + '/?install=1';
+
     // PCセクション
     const desktopSection = (
       <div style={{ backgroundColor: '#F3E5F5', borderRadius: '14px', padding: '1rem', marginBottom: '10px', textAlign: 'left' }}>
         <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#4A148C', marginBottom: '8px' }}>💻 パソコンの方</div>
         {installPromptEvent ? (
           <button type="button" onClick={handleInstall}
-            style={{ width: '100%', padding: '12px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold' }}>
-            アプリとしてインストール
+            style={{ width: '100%', padding: '12px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>
+            ✚ アプリとしてインストール
           </button>
         ) : (
-          <div style={{ fontSize: '12px', color: '#444', lineHeight: 1.8 }}>
-            <div>Chromeのアドレスバー右端の</div>
-            <div>「⊕」アイコンをクリックしてインストール</div>
+          <div>
+            <a
+              href={installUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ display: 'block', width: '100%', padding: '12px', backgroundColor: '#1565C0', color: 'white', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', textDecoration: 'none', textAlign: 'center', boxSizing: 'border-box', marginBottom: '8px' }}
+            >
+              🌐 Chromeで開く → インストール画面へ
+            </a>
+            <div style={{ fontSize: '11px', color: '#888', lineHeight: 1.6 }}>
+              ※すでにChromeお使いの方：アドレスバー右端の「⊕」アイコンをクリック
+            </div>
           </div>
         )}
       </div>
@@ -1243,12 +1254,12 @@ if (role === 'clockin') {
         <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#1B5E20', marginBottom: '8px' }}>🤖 Androidの方</div>
         {installPromptEvent ? (
           <button type="button" onClick={handleInstall}
-            style={{ width: '100%', padding: '12px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold' }}>
+            style={{ width: '100%', padding: '12px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>
             ホーム画面に追加する
           </button>
         ) : (
           <button type="button" onClick={openInChrome}
-            style={{ width: '100%', padding: '12px', backgroundColor: '#34A853', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold' }}>
+            style={{ width: '100%', padding: '12px', backgroundColor: '#34A853', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>
             Chromeで開く → ホーム画面に追加
           </button>
         )}
@@ -1261,23 +1272,45 @@ if (role === 'clockin') {
         <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#0D47A1', marginBottom: '8px' }}>🍎 iOSの方</div>
         {isLineIOS ? (
           <>
-            <button type="button" onClick={openInSafari}
-              style={{ width: '100%', padding: '12px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', marginBottom: '8px' }}>
+            {/* LINE iOS: <a target="_blank"> でSafariが開く（window.location.hrefだと白紙になる） */}
+            <a
+              href={installUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ display: 'block', width: '100%', padding: '12px', backgroundColor: '#1565C0', color: 'white', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', textDecoration: 'none', textAlign: 'center', boxSizing: 'border-box', marginBottom: '8px' }}
+            >
               Safariで開く → ホーム画面に追加
-            </button>
+            </a>
             <button type="button" onClick={copyURL}
-              style={{ width: '100%', padding: '10px', backgroundColor: copied ? '#4CAF50' : '#607D8B', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', marginBottom: '6px' }}>
-              {copied ? '✅ URLをコピーしました' : 'URLをコピー（手動で貼り付ける場合）'}
+              style={{ width: '100%', padding: '10px', backgroundColor: copied ? '#4CAF50' : '#607D8B', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', marginBottom: '6px', cursor: 'pointer' }}>
+              {copied ? '✅ URLをコピーしました' : 'URLをコピー（上で開かない場合）'}
             </button>
             <div style={{ fontSize: '11px', color: '#888', lineHeight: 1.6 }}>
-              上ボタンで開かない場合：URLをコピー→Safariに貼り付け→共有→ホーム画面に追加
+              コピー後：Safariを開いて貼り付け → 共有(□↑) → ホーム画面に追加
             </div>
           </>
         ) : (
-          <div style={{ fontSize: '12px', color: '#444', lineHeight: 1.8 }}>
-            <div>① Safariで開く</div>
-            <div>② 画面下の「共有」ボタン（□↑）をタップ</div>
-            <div>③「ホーム画面に追加」→「追加」をタップ</div>
+          // Safari直接の場合：視覚的なガイド
+          <div>
+            <div style={{ backgroundColor: '#fff', borderRadius: '8px', padding: '10px', marginBottom: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                <span style={{ fontSize: '20px' }}>①</span>
+                <span style={{ fontSize: '13px', color: '#333' }}>画面下の共有ボタンをタップ</span>
+                <span style={{ fontSize: '22px', color: '#1565C0', fontWeight: 'bold' }}>□↑</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                <span style={{ fontSize: '20px' }}>②</span>
+                <span style={{ fontSize: '13px', color: '#333' }}>「ホーム画面に追加」をタップ</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '20px' }}>③</span>
+                <span style={{ fontSize: '13px', color: '#333' }}>右上の「追加」をタップ</span>
+              </div>
+            </div>
+            <button type="button" onClick={copyURL}
+              style={{ width: '100%', padding: '10px', backgroundColor: copied ? '#4CAF50' : '#607D8B', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', cursor: 'pointer' }}>
+              {copied ? '✅ URLをコピーしました' : '📋 URLをコピー'}
+            </button>
           </div>
         )}
       </div>
