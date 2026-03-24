@@ -5,7 +5,7 @@ body, html {
   padding: 0;
   height: 100%;
   font-family: 'Segoe UI', sans-serif;
-  background: linear-gradient(135deg, #89f7fe, #66a6ff);
+  background: #ffffff;
   /* タッチ操作の最適化（LINE・Samsung Internetなど）*/
   -webkit-text-size-adjust: 100%;
 }
@@ -30,6 +30,7 @@ input, textarea {
   align-items: center;
   justify-content: center;
   height: 100vh;
+  background: linear-gradient(135deg, #89f7fe, #66a6ff);
 }
 
 .login-card {

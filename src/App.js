@@ -1232,16 +1232,13 @@ if (role === 'clockin') {
           </button>
         ) : (
           <div>
-            <div style={{ backgroundColor: '#fff', border: '1px solid #CE93D8', borderRadius: '8px', padding: '10px', marginBottom: '8px', fontSize: '13px', color: '#333', lineHeight: 1.7 }}>
-              <div style={{ fontWeight: 'bold', color: '#4A148C', marginBottom: '4px' }}>Chromeでインストールする手順</div>
-              <div>① 下のボタンでURLをコピー</div>
-              <div>② Chromeのアドレスバーに貼り付けてEnter</div>
-              <div>③ アドレスバー右端の <strong style={{ fontSize: '15px' }}>⊕</strong> をクリック</div>
-            </div>
-            <button type="button" onClick={copyURL}
-              style={{ width: '100%', padding: '11px', backgroundColor: copied ? '#4CAF50' : '#7B1FA2', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>
-              {copied ? '✅ URLをコピーしました！ Chromeに貼り付けてください' : '📋 インストール用URLをコピー'}
+            <button type="button" onClick={() => window.open(installUrl, '_blank')}
+              style={{ width: '100%', padding: '12px', backgroundColor: '#7B1FA2', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '8px' }}>
+              🌐 Chromeで開く → インストール画面へ
             </button>
+            <div style={{ fontSize: '11px', color: '#888', lineHeight: 1.6 }}>
+              開いたらアドレスバー右端の <strong>⊕</strong> をクリックしてインストール
+            </div>
           </div>
         )}
       </div>
@@ -1728,7 +1725,7 @@ if (role === 'clockin') {
           <HelpButton page="managerMenu" />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
             <button type="button" onClick={() => { setNotifEnabled(v => { localStorage.setItem('notifEnabled', String(!v)); return !v; })}
-            } style={{ backgroundColor: notifEnabled ? '#4CAF50' : '#9E9E9E', color: 'white', border: 'none', borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
+            } style={{ backgroundColor: notifEnabled ? '#FF9800' : '#9E9E9E', color: 'white', border: 'none', borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
               {notifEnabled ? '🔔 通知ON' : '🔕 通知OFF'}
             </button>
             <button type="button" onClick={() => setShowInstallBanner(true)}
@@ -1739,11 +1736,11 @@ if (role === 'clockin') {
           {loggedInName && <div style={{ textAlign: 'center', color: '#1976D2', fontWeight: 'bold', marginBottom: '0.3rem' }}>{loggedInName}さん</div>}
           <h2 style={{ marginTop: '0.3rem' }}>店長メニュー</h2>
           {notifEnabled && notifHistory.length > 0 && (
-            <div style={{ position: 'relative', marginBottom: '1rem' }}>
+            <div style={{ position: 'relative', marginBottom: '1rem', maxWidth: '280px', margin: '0 auto 1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                 <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>📋 お知らせ</span>
                 <button type="button" onClick={() => setShowNotifList(true)}
-                  style={{ background: 'none', border: '1px solid #aaa', borderRadius: '10px', padding: '1px 8px', fontSize: '11px', color: '#555', cursor: 'pointer' }}>通知一覧</button>
+                  style={{ backgroundColor: '#FF9800', color: 'white', border: 'none', borderRadius: '10px', padding: '3px 10px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>通知一覧</button>
               </div>
               <div style={{ maxHeight: '110px', overflowY: 'auto', border: '1px solid #eee', borderRadius: '8px' }}>
                 {notifHistory.slice(0, 5).map((n, i) => (
@@ -2495,7 +2492,7 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
           <HelpButton page="staffMenu" />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
             <button type="button" onClick={() => { setNotifEnabled(v => { localStorage.setItem('notifEnabled', String(!v)); return !v; })}
-            } style={{ backgroundColor: notifEnabled ? '#4CAF50' : '#9E9E9E', color: 'white', border: 'none', borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
+            } style={{ backgroundColor: notifEnabled ? '#FF9800' : '#9E9E9E', color: 'white', border: 'none', borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
               {notifEnabled ? '🔔 通知ON' : '🔕 通知OFF'}
             </button>
             <button type="button" onClick={() => setShowInstallBanner(true)}
@@ -2506,11 +2503,11 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
           {loggedInName && <div style={{ textAlign: 'center', color: '#1976D2', fontWeight: 'bold', marginBottom: '0.3rem' }}>{loggedInName}さん</div>}
           <h2 style={{ marginTop: '0.3rem' }}>アルバイトメニュー</h2>
           {notifEnabled && notifHistory.length > 0 && (
-            <div style={{ position: 'relative', marginBottom: '1rem' }}>
+            <div style={{ position: 'relative', marginBottom: '1rem', maxWidth: '280px', margin: '0 auto 1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                 <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>📋 お知らせ</span>
                 <button type="button" onClick={() => setShowNotifList(true)}
-                  style={{ background: 'none', border: '1px solid #aaa', borderRadius: '10px', padding: '1px 8px', fontSize: '11px', color: '#555', cursor: 'pointer' }}>通知一覧</button>
+                  style={{ backgroundColor: '#FF9800', color: 'white', border: 'none', borderRadius: '10px', padding: '3px 10px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>通知一覧</button>
               </div>
               <div style={{ maxHeight: '110px', overflowY: 'auto', border: '1px solid #eee', borderRadius: '8px' }}>
                 {notifHistory.slice(0, 5).map((n, i) => (
