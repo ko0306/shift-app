@@ -1235,25 +1235,16 @@ if (role === 'clockin') {
               {/* PC */}
               {isDesktop && (
                 <div style={{ backgroundColor: '#F3E5F5', borderRadius: '12px', padding: '1rem', marginBottom: '8px', textAlign: 'left' }}>
-                  <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#4A148C', marginBottom: '8px' }}>💻 ChromeまたはEdgeで開いてください：</div>
-                  <button type="button" onClick={() => { window.location.href = 'googlechrome://navigate?url=' + encodeURIComponent(installUrl); }}
-                    style={{ width: '100%', padding: '11px', backgroundColor: '#4285F4', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '6px' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#4A148C', marginBottom: '8px' }}>💻 ChromeまたはEdgeで開く：</div>
+                  <a href={`googlechrome://navigate?url=${encodeURIComponent(installUrl)}`}
+                    style={{ display: 'block', width: '100%', padding: '11px', backgroundColor: '#4285F4', color: 'white', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', textDecoration: 'none', textAlign: 'center', boxSizing: 'border-box', marginBottom: '6px' }}>
                     🌐 Chromeで開く
-                  </button>
-                  <button type="button" onClick={() => { window.location.href = 'microsoft-edge:' + installUrl; }}
-                    style={{ width: '100%', padding: '11px', backgroundColor: '#0078D4', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '10px' }}>
+                  </a>
+                  <a href={`microsoft-edge:${installUrl}`}
+                    style={{ display: 'block', width: '100%', padding: '11px', backgroundColor: '#0078D4', color: 'white', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', textDecoration: 'none', textAlign: 'center', boxSizing: 'border-box', marginBottom: '8px' }}>
                     🌐 Edgeで開く
-                  </button>
-                  <div style={{ fontSize: '12px', color: '#888', marginBottom: '6px' }}>上のボタンで開いたら「ホーム画面に追加する」を押してください。<br/>ボタンが動かない場合はURLをコピーしてChrome/Edgeに貼り付け：</div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <div style={{ flex: 1, backgroundColor: '#fff', border: '1px solid #CE93D8', borderRadius: '6px', padding: '6px', fontFamily: 'monospace', fontSize: '10px', color: '#555', wordBreak: 'break-all', userSelect: 'text', WebkitUserSelect: 'text' }}>
-                      {installUrl}
-                    </div>
-                    <button type="button" onClick={copyURL}
-                      style={{ flexShrink: 0, padding: '6px 10px', backgroundColor: copied ? '#43A047' : '#7B1FA2', color: 'white', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
-                      {copied ? '✅' : '📋'}
-                    </button>
-                  </div>
+                  </a>
+                  <div style={{ fontSize: '11px', color: '#999', textAlign: 'center' }}>開いたら「ホーム画面に追加する」を押してください</div>
                 </div>
               )}
 
