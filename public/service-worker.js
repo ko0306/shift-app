@@ -1,6 +1,17 @@
-// PWAインストール要件：fetchハンドラーが必要
+// 新しいSWをすぐに有効化（待機状態をスキップ）
+self.addEventListener('install', () => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
+// PWAインストール要件：fetchハンドラー必須
 self.addEventListener('fetch', (event) => {
-  event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+  event.respondWith(
+    fetch(event.request).catch(() => caches.match(event.request))
+  );
 });
 
 self.addEventListener('push', (event) => {

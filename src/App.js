@@ -1233,20 +1233,54 @@ if (role === 'clockin') {
           {!installPromptEvent && (
             <>
               {/* PC */}
-              {isDesktop && (
-                <div style={{ backgroundColor: '#F3E5F5', borderRadius: '12px', padding: '1rem', marginBottom: '8px', textAlign: 'left' }}>
-                  <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#4A148C', marginBottom: '8px' }}>💻 ChromeまたはEdgeで開く：</div>
-                  <a href={`googlechrome://navigate?url=${encodeURIComponent(installUrl)}`}
-                    style={{ display: 'block', width: '100%', padding: '11px', backgroundColor: '#4285F4', color: 'white', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', textDecoration: 'none', textAlign: 'center', boxSizing: 'border-box', marginBottom: '6px' }}>
-                    🌐 Chromeで開く
-                  </a>
-                  <a href={`microsoft-edge:${installUrl}`}
-                    style={{ display: 'block', width: '100%', padding: '11px', backgroundColor: '#0078D4', color: 'white', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', textDecoration: 'none', textAlign: 'center', boxSizing: 'border-box', marginBottom: '8px' }}>
-                    🌐 Edgeで開く
-                  </a>
-                  <div style={{ fontSize: '11px', color: '#999', textAlign: 'center' }}>開いたら「ホーム画面に追加する」を押してください</div>
-                </div>
-              )}
+              {isDesktop && (() => {
+                const isChromeBrowser = /Chrome\//.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua);
+                const isEdgeBrowser = /Edg\//.test(ua);
+                const isChromiumBased = isChromeBrowser || isEdgeBrowser;
+
+                if (isChromiumBased) {
+                  // Chrome/Edge内にいるがinstallPromptEventがまだない → メニューから追加 or リロード待ち
+                  return (
+                    <div style={{ backgroundColor: '#F3E5F5', borderRadius: '12px', padding: '1rem', marginBottom: '8px', textAlign: 'left' }}>
+                      <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#4A148C', marginBottom: '8px' }}>
+                        💻 {isChromeBrowser ? 'Chrome' : 'Edge'}のメニューから追加：
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#333', lineHeight: 2.1 }}>
+                        <div>① 右上の <strong style={{ fontSize: '17px' }}>⋮</strong> をクリック</div>
+                        <div>② <strong>「その他のツール」</strong> をクリック</div>
+                        <div>③ <strong>「ショートカットを作成」</strong> をクリック</div>
+                        <div>④ <strong>「ウィンドウとして開く」</strong> にチェック → <strong>「作成」</strong></div>
+                      </div>
+                      <button type="button" onClick={() => window.location.reload()}
+                        style={{ width: '100%', marginTop: '10px', padding: '9px', backgroundColor: '#7B1FA2', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}>
+                        🔄 再読み込み（インストールボタンが出る場合あり）
+                      </button>
+                    </div>
+                  );
+                }
+
+                // Firefox・その他ブラウザ → Chrome/Edgeに誘導
+                return (
+                  <div style={{ backgroundColor: '#F3E5F5', borderRadius: '12px', padding: '1rem', marginBottom: '8px', textAlign: 'left' }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#4A148C', marginBottom: '8px' }}>💻 ChromeまたはEdgeで開いてください：</div>
+                    <a href={`googlechrome://navigate?url=${encodeURIComponent(installUrl)}`}
+                      style={{ display: 'block', width: '100%', padding: '11px', backgroundColor: '#4285F4', color: 'white', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', textDecoration: 'none', textAlign: 'center', boxSizing: 'border-box', marginBottom: '6px' }}>
+                      🌐 Chromeで開く
+                    </a>
+                    <a href={`microsoft-edge:${installUrl}`}
+                      style={{ display: 'block', width: '100%', padding: '11px', backgroundColor: '#0078D4', color: 'white', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', textDecoration: 'none', textAlign: 'center', boxSizing: 'border-box', marginBottom: '8px' }}>
+                      🌐 Edgeで開く
+                    </a>
+                    <div style={{ fontSize: '11px', color: '#777', textAlign: 'center', marginBottom: '8px' }}>
+                      開いたら「ホーム画面に追加する」を押してください
+                    </div>
+                    <a href="https://www.google.com/chrome/" target="_blank" rel="noopener noreferrer"
+                      style={{ display: 'block', width: '100%', padding: '9px', backgroundColor: '#eee', color: '#555', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', textDecoration: 'none', textAlign: 'center', boxSizing: 'border-box' }}>
+                      Chromeがない場合はこちらからダウンロード
+                    </a>
+                  </div>
+                );
+              })()}
 
               {/* Android（Chromeでない場合） */}
               {isAndroid && (
