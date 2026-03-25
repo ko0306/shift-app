@@ -1239,24 +1239,35 @@ if (role === 'clockin') {
             ✚ アプリとしてインストール
           </button>
         ) : (
-          // Chrome・Edge両対応：メニューからのインストール手順
+          // Chromeメニューからのインストール手順（beforeinstallprompt不要）
           <div>
-            <div style={{ backgroundColor: '#EDE7F6', borderRadius: '8px', padding: '12px', fontSize: '13px', color: '#333', lineHeight: 2 }}>
-              <div style={{ fontWeight: 'bold', color: '#4A148C', marginBottom: '6px' }}>Chromeのメニューから追加できます：</div>
-              <div>① 右上の <strong style={{ fontSize: '16px' }}>⋮</strong> をクリック</div>
-              <div>② <strong>「その他のツール」</strong> をクリック</div>
-              <div>③ <strong>「ショートカットを作成」</strong> をクリック</div>
-              <div>④ <strong>「ウィンドウとして開く」</strong> にチェック → <strong>「作成」</strong></div>
-            </div>
-            {!isChrome && (
-              <div style={{ marginTop: '10px' }}>
-                <div style={{ fontSize: '12px', color: '#888', marginBottom: '6px', textAlign: 'center' }}>Chromeを使っていない場合：</div>
-                <button type="button" onClick={() => { window.location.href = `googlechrome://navigate?url=${encodeURIComponent(installUrl)}`; }}
-                  style={{ width: '100%', padding: '10px', backgroundColor: '#4285F4', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '6px' }}>
-                  🌐 Chromeで開く
-                </button>
-                <div style={{ backgroundColor: '#fff', border: '1px solid #CE93D8', borderRadius: '8px', padding: '8px', fontFamily: 'monospace', fontSize: '11px', color: '#333', wordBreak: 'break-all', userSelect: 'text', WebkitUserSelect: 'text' }}>
-                  {installUrl}
+            {isChrome ? (
+              <div style={{ backgroundColor: '#EDE7F6', borderRadius: '8px', padding: '12px', fontSize: '13px', color: '#333', lineHeight: 2.2 }}>
+                <div style={{ fontWeight: 'bold', color: '#4A148C', marginBottom: '4px' }}>Chromeのメニューから追加：</div>
+                <div>① 右上の <strong style={{ fontSize: '18px', letterSpacing: '2px' }}>⋮</strong> をクリック</div>
+                <div>② <strong>「その他のツール」</strong> をクリック</div>
+                <div>③ <strong>「ショートカットを作成」</strong> をクリック</div>
+                <div>④ <strong>「ウィンドウとして開く」</strong> にチェック → <strong>「作成」</strong></div>
+              </div>
+            ) : (
+              <div>
+                <div style={{ backgroundColor: '#FFF3E0', borderRadius: '8px', padding: '10px', fontSize: '13px', color: '#E65100', marginBottom: '8px' }}>
+                  ⚠️ Chromeを開いて、下のURLをアドレスバーに貼り付けてください
+                </div>
+                <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+                  <div style={{ flex: 1, backgroundColor: '#fff', border: '2px solid #7B1FA2', borderRadius: '8px', padding: '8px', fontFamily: 'monospace', fontSize: '11px', color: '#333', wordBreak: 'break-all', userSelect: 'text', WebkitUserSelect: 'text' }}>
+                    {installUrl}
+                  </div>
+                  <button type="button" onClick={copyURL}
+                    style={{ flexShrink: 0, padding: '8px 12px', backgroundColor: copied ? '#43A047' : '#7B1FA2', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
+                    {copied ? '✅' : '📋 コピー'}
+                  </button>
+                </div>
+                <div style={{ backgroundColor: '#EDE7F6', borderRadius: '8px', padding: '10px', fontSize: '13px', color: '#333', lineHeight: 2 }}>
+                  <div style={{ fontWeight: 'bold', color: '#4A148C', marginBottom: '2px' }}>Chromeで開いたら：</div>
+                  <div>① 右上 <strong>⋮</strong> →「その他のツール」</div>
+                  <div>② <strong>「ショートカットを作成」</strong></div>
+                  <div>③ <strong>「ウィンドウとして開く」</strong> にチェック → <strong>「作成」</strong></div>
                 </div>
               </div>
             )}
