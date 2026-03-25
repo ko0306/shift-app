@@ -1226,6 +1226,9 @@ if (role === 'clockin') {
 
     const installUrl = window.location.origin + '/?install=1';
 
+    // Chrome判定
+    const isChrome = /Chrome/.test(ua) && !/Chromium\/|Edg\/|OPR\//.test(ua);
+
     // PCセクション
     const desktopSection = (
       <div style={{ backgroundColor: '#F3E5F5', borderRadius: '14px', padding: '1rem', marginBottom: '10px', textAlign: 'left' }}>
@@ -1235,15 +1238,30 @@ if (role === 'clockin') {
             style={{ width: '100%', padding: '12px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>
             ✚ アプリとしてインストール
           </button>
+        ) : isChrome ? (
+          <div>
+            <div style={{ backgroundColor: '#EDE7F6', borderRadius: '8px', padding: '10px', fontSize: '13px', color: '#4A148C', lineHeight: 1.8 }}>
+              <div style={{ fontWeight: 'bold', marginBottom: '6px' }}>Chromeのアドレスバーを見てください：</div>
+              <div>① アドレスバーの右端にある <strong style={{ fontSize: '15px' }}>⊕</strong> または <strong>🖥</strong> アイコンをクリック</div>
+              <div>② 「○○をインストール」と表示されたら「インストール」をクリック</div>
+            </div>
+            <button type="button" onClick={() => window.location.reload()}
+              style={{ width: '100%', padding: '10px', backgroundColor: '#7B1FA2', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', marginTop: '8px' }}>
+              🔄 ページを再読み込みして再試行
+            </button>
+          </div>
         ) : (
           <div>
-            <a href={`googlechrome://navigate?url=${encodeURIComponent(installUrl)}`}
-              style={{ display: 'block', width: '100%', padding: '12px', backgroundColor: '#7B1FA2', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '8px', textAlign: 'center', textDecoration: 'none', boxSizing: 'border-box' }}>
-              🌐 Chromeで開く → インストール画面へ
-            </a>
-            <div style={{ fontSize: '11px', color: '#888', lineHeight: 1.6 }}>
-              開いたらアドレスバー右端の <strong>⊕</strong> をクリックしてインストール
+            <div style={{ backgroundColor: '#EDE7F6', borderRadius: '8px', padding: '10px', fontSize: '13px', color: '#4A148C', lineHeight: 1.8, marginBottom: '8px' }}>
+              <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>Chromeでこのページを開いてください：</div>
+              <div>① 下のURLをコピー</div>
+              <div>② Chromeのアドレスバーに貼り付けて開く</div>
+              <div>③ アドレスバー右端の <strong>⊕</strong> をクリック</div>
             </div>
+            <button type="button" onClick={copyURL}
+              style={{ width: '100%', padding: '10px', backgroundColor: copied ? '#43A047' : '#7B1FA2', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}>
+              {copied ? '✅ コピーしました' : '📋 URLをコピー'}
+            </button>
           </div>
         )}
       </div>
