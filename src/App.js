@@ -1254,9 +1254,11 @@ if (role === 'clockin') {
           <div>
             <div style={{ backgroundColor: '#EDE7F6', borderRadius: '8px', padding: '10px', fontSize: '13px', color: '#4A148C', lineHeight: 1.8, marginBottom: '8px' }}>
               <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>Chromeでこのページを開いてください：</div>
-              <div>① 下のURLをコピー</div>
-              <div>② Chromeのアドレスバーに貼り付けて開く</div>
-              <div>③ アドレスバー右端の <strong>⊕</strong> をクリック</div>
+              <div>① 下のURLをコピー → Chromeのアドレスバーに貼り付け</div>
+              <div>② アドレスバー右端の <strong>⊕</strong> をクリック → インストール</div>
+            </div>
+            <div style={{ backgroundColor: '#fff', border: '1px solid #CE93D8', borderRadius: '8px', padding: '8px', marginBottom: '8px', fontFamily: 'monospace', fontSize: '11px', color: '#333', wordBreak: 'break-all', userSelect: 'text', WebkitUserSelect: 'text' }}>
+              {installUrl}
             </div>
             <button type="button" onClick={copyURL}
               style={{ width: '100%', padding: '10px', backgroundColor: copied ? '#43A047' : '#7B1FA2', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}>
@@ -1309,8 +1311,13 @@ if (role === 'clockin') {
             </div>
           </>
         ) : (
-          // Safari直接の場合：視覚的なガイド
+          // Safari直接の場合：Chromeリンク + 視覚的なガイド
           <div>
+            <a href={`googlechrome://${installUrl.replace(/^https?:\/\//, '')}`}
+              style={{ display: 'block', width: '100%', padding: '12px', backgroundColor: '#4285F4', color: 'white', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', textDecoration: 'none', textAlign: 'center', boxSizing: 'border-box', marginBottom: '8px' }}>
+              🌐 Chromeで開く
+            </a>
+            <div style={{ fontSize: '12px', color: '#555', marginBottom: '8px', textAlign: 'center' }}>Chromeがない場合はSafariでそのまま追加：</div>
             <div style={{ backgroundColor: '#fff', borderRadius: '8px', padding: '10px', marginBottom: '6px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                 <span style={{ fontSize: '20px' }}>①</span>
@@ -1326,10 +1333,6 @@ if (role === 'clockin') {
                 <span style={{ fontSize: '13px', color: '#333' }}>右上の「追加」をタップ</span>
               </div>
             </div>
-            <button type="button" onClick={copyURL}
-              style={{ width: '100%', padding: '10px', backgroundColor: copied ? '#4CAF50' : '#607D8B', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', cursor: 'pointer' }}>
-              {copied ? '✅ URLをコピーしました' : '📋 URLをコピー'}
-            </button>
           </div>
         )}
       </div>
