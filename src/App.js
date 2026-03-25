@@ -1171,7 +1171,7 @@ if (role === 'clockin') {
 
  // ✅ 修正後
 
-  // ========== ホーム画面追加モーダル（全ブラウザ対応・大きく表示） ==========
+  // ========== ホーム画面追加モーダル ==========
   const InstallBanner = () => {
     const ua = navigator.userAgent;
     const isLine = /Line\//i.test(ua);
@@ -1194,156 +1194,23 @@ if (role === 'clockin') {
     };
 
     const openInChrome = () => {
-      const base = window.location.origin + window.location.pathname;
-      const url = base + '?install=1';
-      const intentUrl = 'intent://' + url.replace(/^https?:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;end;';
-      window.location.href = intentUrl;
-    };
-
-    const openInSafari = () => {
-      const base = window.location.origin + window.location.pathname;
-      window.location.href = base + '?install=1&openExternalBrowser=1';
+      const url = window.location.origin + '/?install=1';
+      window.location.href = 'intent://' + url.replace(/^https?:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;end;';
     };
 
     const copyURL = async () => {
+      const url = window.location.origin + '/?install=1';
       try {
-        await navigator.clipboard.writeText(window.location.origin + window.location.pathname + '?install=1');
-        setCopied(true);
-        setTimeout(() => setCopied(false), 3000);
+        await navigator.clipboard.writeText(url);
       } catch (e) {
-        try {
-          const ta = document.createElement('textarea');
-          ta.value = window.location.origin + window.location.pathname + '?install=1';
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand('copy');
-          document.body.removeChild(ta);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 3000);
-        } catch (e2) {}
+        const ta = document.createElement('textarea');
+        ta.value = url; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
       }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
     };
 
     const installUrl = window.location.origin + '/?install=1';
-
-    // Chrome判定
-    const isChrome = /Chrome/.test(ua) && !/Chromium\/|Edg\/|OPR\//.test(ua);
-
-    // PCセクション
-    const desktopSection = (
-      <div style={{ backgroundColor: '#F3E5F5', borderRadius: '14px', padding: '1rem', marginBottom: '10px', textAlign: 'left' }}>
-        <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#4A148C', marginBottom: '8px' }}>💻 パソコンの方</div>
-        {installPromptEvent ? (
-          <button type="button" onClick={handleInstall}
-            style={{ width: '100%', padding: '12px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>
-            ✚ アプリとしてインストール
-          </button>
-        ) : (
-          // Chromeメニューからのインストール手順（beforeinstallprompt不要）
-          <div>
-            {isChrome ? (
-              <div style={{ backgroundColor: '#EDE7F6', borderRadius: '8px', padding: '12px', fontSize: '13px', color: '#333', lineHeight: 2.2 }}>
-                <div style={{ fontWeight: 'bold', color: '#4A148C', marginBottom: '4px' }}>Chromeのメニューから追加：</div>
-                <div>① 右上の <strong style={{ fontSize: '18px', letterSpacing: '2px' }}>⋮</strong> をクリック</div>
-                <div>② <strong>「その他のツール」</strong> をクリック</div>
-                <div>③ <strong>「ショートカットを作成」</strong> をクリック</div>
-                <div>④ <strong>「ウィンドウとして開く」</strong> にチェック → <strong>「作成」</strong></div>
-              </div>
-            ) : (
-              <div>
-                <div style={{ backgroundColor: '#FFF3E0', borderRadius: '8px', padding: '10px', fontSize: '13px', color: '#E65100', marginBottom: '8px' }}>
-                  ⚠️ Chromeを開いて、下のURLをアドレスバーに貼り付けてください
-                </div>
-                <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
-                  <div style={{ flex: 1, backgroundColor: '#fff', border: '2px solid #7B1FA2', borderRadius: '8px', padding: '8px', fontFamily: 'monospace', fontSize: '11px', color: '#333', wordBreak: 'break-all', userSelect: 'text', WebkitUserSelect: 'text' }}>
-                    {installUrl}
-                  </div>
-                  <button type="button" onClick={copyURL}
-                    style={{ flexShrink: 0, padding: '8px 12px', backgroundColor: copied ? '#43A047' : '#7B1FA2', color: 'white', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
-                    {copied ? '✅' : '📋 コピー'}
-                  </button>
-                </div>
-                <div style={{ backgroundColor: '#EDE7F6', borderRadius: '8px', padding: '10px', fontSize: '13px', color: '#333', lineHeight: 2 }}>
-                  <div style={{ fontWeight: 'bold', color: '#4A148C', marginBottom: '2px' }}>Chromeで開いたら：</div>
-                  <div>① 右上 <strong>⋮</strong> →「その他のツール」</div>
-                  <div>② <strong>「ショートカットを作成」</strong></div>
-                  <div>③ <strong>「ウィンドウとして開く」</strong> にチェック → <strong>「作成」</strong></div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    );
-
-    // Androidセクション
-    const androidSection = (
-      <div style={{ backgroundColor: '#E8F5E9', borderRadius: '14px', padding: '1rem', marginBottom: '10px', textAlign: 'left' }}>
-        <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#1B5E20', marginBottom: '8px' }}>🤖 Androidの方</div>
-        {installPromptEvent ? (
-          <button type="button" onClick={handleInstall}
-            style={{ width: '100%', padding: '12px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>
-            ホーム画面に追加する
-          </button>
-        ) : (
-          <button type="button" onClick={openInChrome}
-            style={{ width: '100%', padding: '12px', backgroundColor: '#34A853', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>
-            Chromeで開く → ホーム画面に追加
-          </button>
-        )}
-      </div>
-    );
-
-    // iOSセクション
-    const iosSection = (
-      <div style={{ backgroundColor: '#E3F2FD', borderRadius: '14px', padding: '1rem', marginBottom: '10px', textAlign: 'left' }}>
-        <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#0D47A1', marginBottom: '8px' }}>🍎 iOSの方</div>
-        {isLineIOS ? (
-          <>
-            {/* LINE iOS: <a target="_blank"> でSafariが開く（window.location.hrefだと白紙になる） */}
-            <a
-              href={installUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ display: 'block', width: '100%', padding: '12px', backgroundColor: '#1565C0', color: 'white', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', textDecoration: 'none', textAlign: 'center', boxSizing: 'border-box', marginBottom: '8px' }}
-            >
-              Safariで開く → ホーム画面に追加
-            </a>
-            <button type="button" onClick={copyURL}
-              style={{ width: '100%', padding: '10px', backgroundColor: copied ? '#4CAF50' : '#607D8B', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', marginBottom: '6px', cursor: 'pointer' }}>
-              {copied ? '✅ URLをコピーしました' : 'URLをコピー（上で開かない場合）'}
-            </button>
-            <div style={{ fontSize: '11px', color: '#888', lineHeight: 1.6 }}>
-              コピー後：Safariを開いて貼り付け → 共有(□↑) → ホーム画面に追加
-            </div>
-          </>
-        ) : (
-          // Safari直接の場合：Chromeリンク + 視覚的なガイド
-          <div>
-            <a href={`googlechrome://${installUrl.replace(/^https?:\/\//, '')}`}
-              style={{ display: 'block', width: '100%', padding: '12px', backgroundColor: '#4285F4', color: 'white', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', textDecoration: 'none', textAlign: 'center', boxSizing: 'border-box', marginBottom: '8px' }}>
-              🌐 Chromeで開く
-            </a>
-            <div style={{ fontSize: '12px', color: '#555', marginBottom: '8px', textAlign: 'center' }}>Chromeがない場合はSafariでそのまま追加：</div>
-            <div style={{ backgroundColor: '#fff', borderRadius: '8px', padding: '10px', marginBottom: '6px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                <span style={{ fontSize: '20px' }}>①</span>
-                <span style={{ fontSize: '13px', color: '#333' }}>画面下の共有ボタンをタップ</span>
-                <span style={{ fontSize: '22px', color: '#1565C0', fontWeight: 'bold' }}>□↑</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                <span style={{ fontSize: '20px' }}>②</span>
-                <span style={{ fontSize: '13px', color: '#333' }}>「ホーム画面に追加」をタップ</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '20px' }}>③</span>
-                <span style={{ fontSize: '13px', color: '#333' }}>右上の「追加」をタップ</span>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    );
 
     return (
       <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.65)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
@@ -1353,12 +1220,75 @@ if (role === 'clockin') {
           <p style={{ color: '#555', fontSize: '13px', lineHeight: 1.6, margin: '0 0 1rem' }}>
             アイコンから直接開けるようになります。<br />シフト通知もすぐ確認できます！
           </p>
-          {isDesktop ? desktopSection : (
+
+          {/* Chrome/Edge (PC・Android): installPromptEventがあればボタン1つ */}
+          {installPromptEvent && (
+            <button type="button" onClick={handleInstall}
+              style={{ width: '100%', padding: '14px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '8px' }}>
+              ＋ ホーム画面に追加する
+            </button>
+          )}
+
+          {/* installPromptEventなし */}
+          {!installPromptEvent && (
             <>
-              {androidSection}
-              {iosSection}
+              {/* PC */}
+              {isDesktop && (
+                <div style={{ backgroundColor: '#F3E5F5', borderRadius: '12px', padding: '1rem', marginBottom: '8px', textAlign: 'left' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#4A148C', marginBottom: '8px' }}>💻 Chromeのメニューから追加：</div>
+                  <div style={{ fontSize: '13px', color: '#333', lineHeight: 2 }}>
+                    <div>① 右上の <strong style={{ fontSize: '16px' }}>⋮</strong> をクリック</div>
+                    <div>② <strong>「その他のツール」</strong></div>
+                    <div>③ <strong>「ショートカットを作成」</strong></div>
+                    <div>④ <strong>「ウィンドウとして開く」</strong> にチェック→<strong>「作成」</strong></div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
+                    <div style={{ flex: 1, backgroundColor: '#fff', border: '1px solid #CE93D8', borderRadius: '6px', padding: '6px', fontFamily: 'monospace', fontSize: '10px', color: '#555', wordBreak: 'break-all', userSelect: 'text', WebkitUserSelect: 'text' }}>
+                      {installUrl}
+                    </div>
+                    <button type="button" onClick={copyURL}
+                      style={{ flexShrink: 0, padding: '6px 10px', backgroundColor: copied ? '#43A047' : '#7B1FA2', color: 'white', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
+                      {copied ? '✅' : '📋'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Android（Chromeでない場合） */}
+              {isAndroid && (
+                <div style={{ backgroundColor: '#E8F5E9', borderRadius: '12px', padding: '1rem', marginBottom: '8px', textAlign: 'left' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#1B5E20', marginBottom: '8px' }}>🤖 Android の方</div>
+                  <button type="button" onClick={openInChrome}
+                    style={{ width: '100%', padding: '12px', backgroundColor: '#34A853', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>
+                    Chromeで開く → ホーム画面に追加
+                  </button>
+                </div>
+              )}
+
+              {/* iOS LINE */}
+              {isLineIOS && (
+                <div style={{ backgroundColor: '#E3F2FD', borderRadius: '12px', padding: '1rem', marginBottom: '8px', textAlign: 'left' }}>
+                  <a href={installUrl} target="_blank" rel="noopener noreferrer"
+                    style={{ display: 'block', width: '100%', padding: '12px', backgroundColor: '#1565C0', color: 'white', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', textDecoration: 'none', textAlign: 'center', boxSizing: 'border-box' }}>
+                    Safariで開く → ホーム画面に追加
+                  </a>
+                </div>
+              )}
+
+              {/* iOS Safari */}
+              {isIOS && !isLineIOS && (
+                <div style={{ backgroundColor: '#E3F2FD', borderRadius: '12px', padding: '1rem', marginBottom: '8px', textAlign: 'left' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#0D47A1', marginBottom: '8px' }}>🍎 Safariで追加：</div>
+                  <div style={{ fontSize: '13px', color: '#333', lineHeight: 2 }}>
+                    <div>① 画面下の共有 <strong style={{ fontSize: '16px' }}>□↑</strong> をタップ</div>
+                    <div>② <strong>「ホーム画面に追加」</strong> をタップ</div>
+                    <div>③ 右上 <strong>「追加」</strong> をタップ</div>
+                  </div>
+                </div>
+              )}
             </>
           )}
+
           <button type="button" onClick={dismiss}
             style={{ width: '100%', padding: '11px', backgroundColor: '#eee', color: '#555', border: 'none', borderRadius: '12px', fontSize: '14px', marginTop: '4px' }}>
             後で
