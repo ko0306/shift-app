@@ -451,7 +451,7 @@ const [showNotifList, setShowNotifList] = useState(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ホーム画面追加プロンプト（Android）
+  // ホーム画面追加プロンプト（Chrome/Edge）
   useEffect(() => {
     // index.htmlで早期キャプチャしたイベントを取得
     if (window.__pwaInstallEvent) {
@@ -465,6 +465,18 @@ const [showNotifList, setShowNotifList] = useState(false);
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
+
+  // beforeinstallpromptが発火したら自動でバナー表示（ログイン前でも）
+  useEffect(() => {
+    if (!installPromptEvent) return;
+    try {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+      if (isStandalone) return;
+    } catch(e) {}
+    const dismissedAt = localStorage.getItem('installBannerDismissedAt');
+    if (dismissedAt && Date.now() - parseInt(dismissedAt) < 7 * 24 * 60 * 60 * 1000) return;
+    setShowInstallBanner(true);
+  }, [installPromptEvent]);
 
   // ?install=1 パラメータがあればログイン前でも即バナー表示
   useEffect(() => {
@@ -1310,28 +1322,43 @@ if (role === 'clockin') {
               {/* Android（Chromeでない場合） */}
               {isAndroid && (
                 <div style={{ backgroundColor: '#E8F5E9', borderRadius: '12px', padding: '1rem', marginBottom: '8px', textAlign: 'left' }}>
-                  <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#1B5E20', marginBottom: '8px' }}>🤖 Android の方</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#1B5E20', marginBottom: '8px' }}>🤖 Androidの方</div>
                   <button type="button" onClick={openInChrome}
-                    style={{ width: '100%', padding: '12px', backgroundColor: '#34A853', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>
-                    Chromeで開く → ホーム画面に追加
+                    style={{ width: '100%', padding: '14px', backgroundColor: '#34A853', color: 'white', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '4px' }}>
+                    🌐 Chromeで開いてインストール
                   </button>
+                  <div style={{ fontSize: '11px', color: '#555', textAlign: 'center' }}>↑ Chromeが開いたら「＋ ホーム画面に追加する」が表示されます</div>
                 </div>
               )}
 
               {/* iOS LINE */}
               {isLineIOS && (
                 <div style={{ backgroundColor: '#E3F2FD', borderRadius: '12px', padding: '1rem', marginBottom: '8px', textAlign: 'left' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#0D47A1', marginBottom: '8px' }}>🍎 LINEから追加するには：</div>
                   <a href={installUrl} target="_blank" rel="noopener noreferrer"
-                    style={{ display: 'block', width: '100%', padding: '12px', backgroundColor: '#1565C0', color: 'white', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', textDecoration: 'none', textAlign: 'center', boxSizing: 'border-box' }}>
-                    Safariで開く → ホーム画面に追加
+                    style={{ display: 'block', width: '100%', padding: '14px', backgroundColor: '#1565C0', color: 'white', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', textDecoration: 'none', textAlign: 'center', boxSizing: 'border-box', marginBottom: '4px' }}>
+                    🌐 Safariで開いてインストール
                   </a>
+                  <div style={{ fontSize: '11px', color: '#555', textAlign: 'center' }}>↑ Safariが開いたら「ホーム画面に追加」が表示されます</div>
+                </div>
+              )}
+
+              {/* iOS Chrome/Firefox などSafari以外 */}
+              {isIOS && !isLineIOS && (/CriOS\//.test(ua) || /FxiOS\//.test(ua) || /OPiOS\//.test(ua)) && (
+                <div style={{ backgroundColor: '#E3F2FD', borderRadius: '12px', padding: '1rem', marginBottom: '8px', textAlign: 'left' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#0D47A1', marginBottom: '8px' }}>🍎 iOSはSafariからのみ追加できます：</div>
+                  <a href={installUrl} target="_blank" rel="noopener noreferrer"
+                    style={{ display: 'block', width: '100%', padding: '14px', backgroundColor: '#1565C0', color: 'white', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', textDecoration: 'none', textAlign: 'center', boxSizing: 'border-box', marginBottom: '4px' }}>
+                    🌐 Safariで開いてインストール
+                  </a>
+                  <div style={{ fontSize: '11px', color: '#555', textAlign: 'center' }}>↑ Safariが開いたら「ホーム画面に追加」が表示されます</div>
                 </div>
               )}
 
               {/* iOS Safari */}
-              {isIOS && !isLineIOS && (
+              {isIOS && !isLineIOS && !/CriOS\//.test(ua) && !/FxiOS\//.test(ua) && !/OPiOS\//.test(ua) && (
                 <div style={{ backgroundColor: '#E3F2FD', borderRadius: '12px', padding: '1rem', marginBottom: '8px', textAlign: 'left' }}>
-                  <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#0D47A1', marginBottom: '8px' }}>🍎 Safariで追加：</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#0D47A1', marginBottom: '8px' }}>🍎 ホーム画面に追加：</div>
                   <div style={{ fontSize: '13px', color: '#333', lineHeight: 2 }}>
                     <div>① 画面下の共有 <strong style={{ fontSize: '16px' }}>□↑</strong> をタップ</div>
                     <div>② <strong>「ホーム画面に追加」</strong> をタップ</div>
