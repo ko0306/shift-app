@@ -1157,39 +1157,73 @@ const handleSubmit = async () => {
                 </div>
               )}
 
-              {/* iOS LINE */}
-              {isLineIOS && (
+              {/* iOS LINE / Chrome / Firefox など Safari 以外 */}
+              {isIOS && !isLineIOS && (
                 <div style={{ backgroundColor: '#E3F2FD', borderRadius: '12px', padding: '1rem', marginBottom: '8px', textAlign: 'left' }}>
-                  <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#0D47A1', marginBottom: '8px' }}>🍎 LINEから追加するには：</div>
-                  <a href={installUrl} target="_blank" rel="noopener noreferrer"
-                    style={{ display: 'block', width: '100%', padding: '14px', backgroundColor: '#1565C0', color: 'white', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', textDecoration: 'none', textAlign: 'center', boxSizing: 'border-box', marginBottom: '4px' }}>
-                    🌐 Safariで開いてインストール
-                  </a>
-                  <div style={{ fontSize: '11px', color: '#555', textAlign: 'center' }}>↑ Safariが開いたら「ホーム画面に追加」が表示されます</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#0D47A1', marginBottom: '10px' }}>
+                    🍎 Safariで開いてからインストールできます
+                  </div>
+                  {/* URLコピー */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '8px', padding: '6px 8px', marginBottom: '6px' }}>
+                    <div style={{ flex: 1, fontSize: '11px', color: '#333', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{installUrl}</div>
+                    <button type="button" onClick={() => { navigator.clipboard.writeText(installUrl).catch(()=>{}); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+                      style={{ flexShrink: 0, padding: '5px 10px', backgroundColor: copied ? '#34A853' : '#1565C0', color: 'white', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
+                      {copied ? '✓ コピー済' : 'URLをコピー'}
+                    </button>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#555', marginBottom: '10px' }}>
+                    ① URLをコピー → ② Safariを開いてアドレスバーに貼り付け
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#888', backgroundColor: '#EEF2FF', borderRadius: '6px', padding: '6px 8px' }}>
+                    Safariが開いたら「ホーム画面に追加する」ボタンが自動表示されます
+                  </div>
                 </div>
               )}
 
-              {/* iOS Chrome/Firefox などSafari以外 */}
-              {isIOS && !isLineIOS && (/CriOS\//.test(ua) || /FxiOS\//.test(ua) || /OPiOS\//.test(ua)) && (
+              {/* iOS LINE */}
+              {isLineIOS && (
                 <div style={{ backgroundColor: '#E3F2FD', borderRadius: '12px', padding: '1rem', marginBottom: '8px', textAlign: 'left' }}>
-                  <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#0D47A1', marginBottom: '8px' }}>🍎 iOSはSafariからのみ追加できます：</div>
-                  <a href={installUrl} target="_blank" rel="noopener noreferrer"
-                    style={{ display: 'block', width: '100%', padding: '14px', backgroundColor: '#1565C0', color: 'white', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', textDecoration: 'none', textAlign: 'center', boxSizing: 'border-box', marginBottom: '4px' }}>
-                    🌐 Safariで開いてインストール
-                  </a>
-                  <div style={{ fontSize: '11px', color: '#555', textAlign: 'center' }}>↑ Safariが開いたら「ホーム画面に追加」が表示されます</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#0D47A1', marginBottom: '10px' }}>🍎 Safariで開いてからインストールできます</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '8px', padding: '6px 8px', marginBottom: '6px' }}>
+                    <div style={{ flex: 1, fontSize: '11px', color: '#333', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{installUrl}</div>
+                    <button type="button" onClick={() => { navigator.clipboard.writeText(installUrl).catch(()=>{}); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+                      style={{ flexShrink: 0, padding: '5px 10px', backgroundColor: copied ? '#34A853' : '#1565C0', color: 'white', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
+                      {copied ? '✓ コピー済' : 'URLをコピー'}
+                    </button>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#555', marginBottom: '10px' }}>
+                    ① URLをコピー → ② Safariを開いてアドレスバーに貼り付け
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#888', backgroundColor: '#EEF2FF', borderRadius: '6px', padding: '6px 8px' }}>
+                    Safariが開いたら「ホーム画面に追加する」ボタンが自動表示されます
+                  </div>
                 </div>
               )}
 
               {/* iOS Safari */}
               {isIOS && !isLineIOS && !/CriOS\//.test(ua) && !/FxiOS\//.test(ua) && !/OPiOS\//.test(ua) && (
-                <div style={{ backgroundColor: '#E3F2FD', borderRadius: '12px', padding: '1rem', marginBottom: '8px', textAlign: 'left' }}>
-                  <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#0D47A1', marginBottom: '8px' }}>🍎 ホーム画面に追加：</div>
-                  <div style={{ fontSize: '13px', color: '#333', lineHeight: 2 }}>
-                    <div>① 画面下の共有 <strong style={{ fontSize: '16px' }}>□↑</strong> をタップ</div>
-                    <div>② <strong>「ホーム画面に追加」</strong> をタップ</div>
-                    <div>③ 右上 <strong>「追加」</strong> をタップ</div>
-                  </div>
+                <div style={{ backgroundColor: '#E3F2FD', borderRadius: '12px', padding: '1rem', marginBottom: '8px', textAlign: 'center' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#0D47A1', marginBottom: '12px' }}>🍎 ホーム画面に追加</div>
+                  {/* navigator.share() でシェアシートを開く（ユーザーが「ホーム画面に追加」を選ぶ） */}
+                  {typeof navigator.share === 'function' ? (
+                    <>
+                      <button type="button" onClick={async () => {
+                        try { await navigator.share({ title: 'オゾシフ', url: window.location.origin }); } catch(e) {}
+                      }}
+                        style={{ width: '100%', padding: '14px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '6px' }}>
+                        📤 ホーム画面に追加する
+                      </button>
+                      <div style={{ fontSize: '12px', color: '#555' }}>
+                        ↑ タップ後「ホーム画面に追加」を選んでください
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ textAlign: 'left', fontSize: '13px', color: '#333', lineHeight: 2 }}>
+                      <div>① 画面下の共有 <strong style={{ fontSize: '16px' }}>□↑</strong> をタップ</div>
+                      <div>② <strong>「ホーム画面に追加」</strong> をタップ</div>
+                      <div>③ 右上 <strong>「追加」</strong> をタップ</div>
+                    </div>
+                  )}
                 </div>
               )}
             </>
