@@ -380,6 +380,8 @@ const [showHelpNotifModal, setShowHelpNotifModal] = useState(false);
 const [notifEnabled, setNotifEnabled] = useState(() => localStorage.getItem('notifEnabled') !== 'false');
 const [notifHistory, setNotifHistory] = useState([]);
 const [showNotifList, setShowNotifList] = useState(false);
+const [showNotifSettings, setShowNotifSettings] = useState(false);
+const [managerNotifSettings, setManagerNotifSettings] = useState({ dayBeforeReminder: true });
   const fetchNotifHistory = async (managerNum) => {
     try {
       const { data } = await supabase
@@ -521,6 +523,14 @@ const [showNotifList, setShowNotifList] = useState(false);
     }
     if (role && loggedInManagerNumber) {
       fetchNotifHistory(loggedInManagerNumber);
+    }
+    if (role === 'manager') {
+      supabase.from('settings').select('value').eq('key', 'manager_notif_settings').single()
+        .then(({ data }) => {
+          if (data) {
+            try { setManagerNotifSettings(JSON.parse(data.value)); } catch (e) {}
+          }
+        });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role, loggedInManagerNumber]);
@@ -1026,8 +1036,13 @@ const handleSubmit = async () => {
     const ua = navigator.userAgent;
     const isLine = /Line\//i.test(ua);
     const isAndroid = /Android/i.test(ua);
-    const isLineIOS = isLine && isIOS;
-    const isDesktop = !isAndroid && !isIOS;
+    // iOSをローカルで検出（iPadOS対応：navigator.platform=MacIntel + maxTouchPoints）
+    const iosDetect = (
+      /iphone|ipad|ipod/i.test(ua) ||
+      (typeof navigator.platform === 'string' && navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    ) && !window.MSStream;
+    const isLineIOS = isLine && iosDetect;
+    const isDesktop = !isAndroid && !iosDetect;
     const [copied, setCopied] = React.useState(false);
     const [waitingForPrompt, setWaitingForPrompt] = React.useState(true);
     React.useEffect(() => {
@@ -1158,7 +1173,7 @@ const handleSubmit = async () => {
               )}
 
               {/* iOS LINE / Chrome / Firefox など Safari 以外 */}
-              {isIOS && !isLineIOS && (
+              {iosDetect && !isLineIOS && (
                 <div style={{ backgroundColor: '#E3F2FD', borderRadius: '12px', padding: '1rem', marginBottom: '8px', textAlign: 'left' }}>
                   <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#0D47A1', marginBottom: '10px' }}>
                     🍎 Safariで開いてからインストールできます
@@ -1201,7 +1216,7 @@ const handleSubmit = async () => {
               )}
 
               {/* iOS Safari */}
-              {isIOS && !isLineIOS && !/CriOS\//.test(ua) && !/FxiOS\//.test(ua) && !/OPiOS\//.test(ua) && (
+              {iosDetect && !isLineIOS && !/CriOS\//.test(ua) && !/FxiOS\//.test(ua) && !/OPiOS\//.test(ua) && (
                 <div style={{ backgroundColor: '#E3F2FD', borderRadius: '12px', padding: '1rem', marginBottom: '8px', textAlign: 'center' }}>
                   <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#0D47A1', marginBottom: '12px' }}>🍎 ホーム画面に追加</div>
                   {/* navigator.share() でシェアシートを開く（ユーザーが「ホーム画面に追加」を選ぶ） */}
@@ -1674,6 +1689,54 @@ if (role === 'clockin') {
     );
   };
 
+  // ========== 店長通知設定モーダル ==========
+  const ManagerNotifSettingsModal = () => {
+    const [settings, setSettings] = React.useState({ ...managerNotifSettings });
+    const [saving, setSaving] = React.useState(false);
+    const [saveMsg, setSaveMsg] = React.useState('');
+
+    const handleSave = async () => {
+      setSaving(true);
+      try {
+        await supabase.from('settings').upsert({ key: 'manager_notif_settings', value: JSON.stringify(settings) }, { onConflict: 'key' });
+        setManagerNotifSettings(settings);
+        setSaveMsg('✅ 保存しました');
+        setTimeout(() => setShowNotifSettings(false), 1000);
+      } catch (e) {
+        setSaveMsg('❌ 保存に失敗しました');
+      }
+      setSaving(false);
+    };
+
+    return (
+      <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 5500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setShowNotifSettings(false)}>
+        <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', maxWidth: '380px', width: '100%' }} onClick={e => e.stopPropagation()}>
+          <h3 style={{ margin: '0 0 1.2rem', textAlign: 'center', color: '#1565C0' }}>⚙️ 通知設定</h3>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F5F5F5', borderRadius: '12px', padding: '14px 16px' }}>
+              <div>
+                <div style={{ fontWeight: 'bold', fontSize: '15px', color: '#333' }}>シフト前日リマインダー</div>
+                <div style={{ fontSize: '12px', color: '#777', marginTop: '2px' }}>シフト前日にアルバイトへ通知を送る</div>
+              </div>
+              <button type="button" onClick={() => setSettings(s => ({ ...s, dayBeforeReminder: !s.dayBeforeReminder }))}
+                style={{ padding: '8px 18px', backgroundColor: settings.dayBeforeReminder ? '#FF9800' : '#9E9E9E', color: 'white', border: 'none', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', flexShrink: 0 }}>
+                {settings.dayBeforeReminder ? 'ON' : 'OFF'}
+              </button>
+            </div>
+            <div style={{ fontSize: '11px', color: '#999', marginTop: '6px', padding: '0 4px' }}>
+              ※ OFFにすると前日リマインダーは送信されません
+            </div>
+          </div>
+          {saveMsg && <div style={{ textAlign: 'center', color: saveMsg.startsWith('✅') ? '#388E3C' : '#D32F2F', fontWeight: 'bold', marginBottom: '10px' }}>{saveMsg}</div>}
+          <button onClick={handleSave} disabled={saving} style={{ width: '100%', padding: '12px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', marginBottom: '8px' }}>
+            {saving ? '保存中...' : '保存する'}
+          </button>
+          <button onClick={() => setShowNotifSettings(false)} style={{ width: '100%', padding: '10px', backgroundColor: '#eee', border: 'none', borderRadius: '10px', cursor: 'pointer' }}>閉じる</button>
+        </div>
+      </div>
+    );
+  };
+
   const ShiftDeadlineModal = () => {
     const [saving, setSaving] = useState(false);
     const [saveMsg, setSaveMsg] = useState('');
@@ -1782,15 +1845,22 @@ if (role === 'clockin') {
         {showDeadlineModal && <ShiftDeadlineModal />}
         {showHelpNotifModal && <HelpNotifModal />}
         {showNotifList && <NotifListModal />}
+        {showNotifSettings && <ManagerNotifSettingsModal />}
         <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
         <div className="login-card" style={{ position: 'relative' }}>
           <BackButton />
           <HelpButton page="managerMenu" />
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
-            <button type="button" onClick={() => { setNotifEnabled(v => { localStorage.setItem('notifEnabled', String(!v)); return !v; })}
-            } style={{ backgroundColor: notifEnabled ? '#FF9800' : '#9E9E9E', color: 'white', border: 'none', borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
-              {notifEnabled ? '🔔 通知ON' : '🔕 通知OFF'}
-            </button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem', flexWrap: 'wrap', gap: '4px' }}>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <button type="button" onClick={() => { setNotifEnabled(v => { localStorage.setItem('notifEnabled', String(!v)); return !v; })}
+              } style={{ backgroundColor: notifEnabled ? '#FF9800' : '#9E9E9E', color: 'white', border: 'none', borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
+                {notifEnabled ? '🔔 通知ON' : '🔕 通知OFF'}
+              </button>
+              <button type="button" onClick={() => setShowNotifSettings(true)}
+                style={{ backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
+                ⚙️ 通知設定
+              </button>
+            </div>
             <button type="button" onClick={() => setShowInstallBanner(true)}
               style={{ background: 'none', border: '1px solid #1a73e8', color: '#1a73e8', borderRadius: '20px', padding: '3px 12px', fontSize: '12px', cursor: 'pointer' }}>
               📲 ホーム画面に追加
