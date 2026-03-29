@@ -1217,27 +1217,36 @@ const handleSubmit = async () => {
 
               {/* iOS Safari */}
               {iosDetect && !isLineIOS && !/CriOS\//.test(ua) && !/FxiOS\//.test(ua) && !/OPiOS\//.test(ua) && (
-                <div style={{ backgroundColor: '#E3F2FD', borderRadius: '12px', padding: '1rem', marginBottom: '8px', textAlign: 'center' }}>
-                  <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#0D47A1', marginBottom: '12px' }}>🍎 ホーム画面に追加</div>
-                  {/* navigator.share() でシェアシートを開く（ユーザーが「ホーム画面に追加」を選ぶ） */}
-                  {typeof navigator.share === 'function' ? (
-                    <>
-                      <button type="button" onClick={async () => {
-                        try { await navigator.share({ title: 'オゾシフ', url: window.location.origin }); } catch(e) {}
-                      }}
-                        style={{ width: '100%', padding: '14px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '6px' }}>
-                        📤 ホーム画面に追加する
-                      </button>
-                      <div style={{ fontSize: '12px', color: '#555' }}>
-                        ↑ タップ後「ホーム画面に追加」を選んでください
+                <div style={{ backgroundColor: '#E3F2FD', borderRadius: '12px', padding: '1rem', marginBottom: '8px' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#0D47A1', marginBottom: '10px', textAlign: 'center' }}>🍎 ホーム画面に追加する手順</div>
+                  {/* 手順を常に表示 */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: 'white', borderRadius: '10px', padding: '10px 12px' }}>
+                      <div style={{ flexShrink: 0, width: '28px', height: '28px', backgroundColor: '#1565C0', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '14px' }}>1</div>
+                      <div style={{ fontSize: '13px', color: '#333' }}>
+                        画面下の <strong style={{ fontSize: '18px', color: '#1565C0' }}>□↑</strong> <strong>（共有ボタン）</strong> をタップ
                       </div>
-                    </>
-                  ) : (
-                    <div style={{ textAlign: 'left', fontSize: '13px', color: '#333', lineHeight: 2 }}>
-                      <div>① 画面下の共有 <strong style={{ fontSize: '16px' }}>□↑</strong> をタップ</div>
-                      <div>② <strong>「ホーム画面に追加」</strong> をタップ</div>
-                      <div>③ 右上 <strong>「追加」</strong> をタップ</div>
                     </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: 'white', borderRadius: '10px', padding: '10px 12px' }}>
+                      <div style={{ flexShrink: 0, width: '28px', height: '28px', backgroundColor: '#1565C0', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '14px' }}>2</div>
+                      <div style={{ fontSize: '13px', color: '#333' }}>
+                        下にスクロールして <strong style={{ color: '#E65100' }}>「ホーム画面に追加」</strong> をタップ
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: 'white', borderRadius: '10px', padding: '10px 12px' }}>
+                      <div style={{ flexShrink: 0, width: '28px', height: '28px', backgroundColor: '#1565C0', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '14px' }}>3</div>
+                      <div style={{ fontSize: '13px', color: '#333' }}>
+                        右上の <strong style={{ color: '#1565C0' }}>「追加」</strong> をタップ
+                      </div>
+                    </div>
+                  </div>
+                  {typeof navigator.share === 'function' && (
+                    <button type="button" onClick={async () => {
+                      try { await navigator.share({ title: 'オゾシフ', url: window.location.origin }); } catch(e) {}
+                    }}
+                      style={{ width: '100%', padding: '13px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>
+                      📤 共有ボタン（手順①）を開く
+                    </button>
                   )}
                 </div>
               )}
