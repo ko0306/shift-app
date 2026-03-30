@@ -22,36 +22,45 @@ Deno.serve(async (req) => {
 
   let query = supabase.from('push_subscriptions').select('manager_number, subscription');
 
-  // target_manager_numbers が指定されている場合は対象のみ
   if (target_manager_numbers && target_manager_numbers.length > 0) {
     query = query.in('manager_number', target_manager_numbers);
-  }
-  // exclude_manager_numbers が指定されている場合は除外
-  else if (exclude_manager_numbers && exclude_manager_numbers.length > 0) {
+  } else if (exclude_manager_numbers && exclude_manager_numbers.length > 0) {
     query = query.not('manager_number', 'in', `(${exclude_manager_numbers.join(',')})`);
   }
 
   const { data: subs, error } = await query;
-
   if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
 
   const payload = JSON.stringify({ title, body });
-  const results = await Promise.allSettled(
-    (subs ?? []).map((row: { subscription: string }) =>
-      webpush.sendNotification(JSON.parse(row.subscription), payload)
-    )
-  );
+  let sent = 0, failed = 0;
+  const errors: object[] = [];
+  const expiredManagerNumbers: string[] = [];
 
-  const failed = results.filter(r => r.status === 'rejected').length;
-  const sent = results.length - failed;
-  const errors = results
-    .filter(r => r.status === 'rejected')
-    .map(r => {
-      const e = (r as PromiseRejectedResult).reason;
-      return { message: e?.message, statusCode: e?.statusCode, body: e?.body };
-    });
+  for (const row of (subs ?? []) as { manager_number: string; subscription: string }[]) {
+    try {
+      await webpush.sendNotification(JSON.parse(row.subscription), payload);
+      sent++;
+    } catch (e: unknown) {
+      failed++;
+      const err = e as { message?: string; statusCode?: number; body?: string };
+      errors.push({ message: err?.message, statusCode: err?.statusCode, body: err?.body });
+      // 410 Gone または 404 Not Found → サブスクリプション期限切れ → DBから削除
+      if (err?.statusCode === 410 || err?.statusCode === 404) {
+        expiredManagerNumbers.push(row.manager_number);
+      }
+    }
+  }
+
+  // 期限切れサブスクリプションを削除
+  if (expiredManagerNumbers.length > 0) {
+    await supabase
+      .from('push_subscriptions')
+      .delete()
+      .in('manager_number', expiredManagerNumbers);
+  }
+
   return new Response(
-    JSON.stringify({ sent, failed, total: subs?.length ?? 0, errors }),
+    JSON.stringify({ sent, failed, total: subs?.length ?? 0, expired_removed: expiredManagerNumbers.length, errors }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
 });

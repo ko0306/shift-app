@@ -378,10 +378,9 @@ const [staffShiftSub, setStaffShiftSub] = useState(false);
 const [managerShiftSub, setManagerShiftSub] = useState(false);
 const [showHelpNotifModal, setShowHelpNotifModal] = useState(false);
 const [notifEnabled, setNotifEnabled] = useState(() => localStorage.getItem('notifEnabled') !== 'false');
+const [notifToast, setNotifToast] = useState('');
 const [notifHistory, setNotifHistory] = useState([]);
 const [showNotifList, setShowNotifList] = useState(false);
-const [showNotifSettings, setShowNotifSettings] = useState(false);
-const [managerNotifSettings, setManagerNotifSettings] = useState({ dayBeforeReminder: true });
   const fetchNotifHistory = async (managerNum) => {
     try {
       const { data } = await supabase
@@ -392,6 +391,11 @@ const [managerNotifSettings, setManagerNotifSettings] = useState({ dayBeforeRemi
         .limit(50);
       if (data) setNotifHistory(data);
     } catch (e) { console.error('通知履歴取得エラー:', e); }
+  };
+
+  const showNotifToast = (msg) => {
+    setNotifToast(msg);
+    setTimeout(() => setNotifToast(''), 3000);
   };
 
   const saveNotif = async (title, body, targetManagerNumber = null) => {
@@ -523,14 +527,6 @@ const [managerNotifSettings, setManagerNotifSettings] = useState({ dayBeforeRemi
     }
     if (role && loggedInManagerNumber) {
       fetchNotifHistory(loggedInManagerNumber);
-    }
-    if (role === 'manager') {
-      supabase.from('settings').select('value').eq('key', 'manager_notif_settings').single()
-        .then(({ data }) => {
-          if (data) {
-            try { setManagerNotifSettings(JSON.parse(data.value)); } catch (e) {}
-          }
-        });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role, loggedInManagerNumber]);
@@ -1698,77 +1694,6 @@ if (role === 'clockin') {
     );
   };
 
-  // ========== 店長通知設定モーダル ==========
-  const ManagerNotifSettingsModal = () => {
-    const [settings, setSettings] = React.useState({ ...managerNotifSettings });
-    const [localNotifEnabled, setLocalNotifEnabled] = React.useState(notifEnabled);
-    const [saving, setSaving] = React.useState(false);
-    const [saveMsg, setSaveMsg] = React.useState('');
-
-    const handleSave = async () => {
-      setSaving(true);
-      try {
-        await supabase.from('settings').upsert({ key: 'manager_notif_settings', value: JSON.stringify(settings) }, { onConflict: 'key' });
-        setManagerNotifSettings(settings);
-        setNotifEnabled(localNotifEnabled);
-        localStorage.setItem('notifEnabled', String(localNotifEnabled));
-        setSaveMsg('✅ 保存しました');
-        setTimeout(() => setShowNotifSettings(false), 1000);
-      } catch (e) {
-        setSaveMsg('❌ 保存に失敗しました');
-      }
-      setSaving(false);
-    };
-
-    const rows = [
-      { key: 'notifEnabled', label: '通知の受信', desc: 'アプリからの通知を受け取る', local: true },
-      { key: 'dayBeforeReminder', label: 'シフト前日リマインダー送信', desc: 'シフト前日にアルバイトへ通知を送る' },
-      { key: 'helpNotif', label: 'ヘルプ通知', desc: '人手不足時にアルバイトへ送る通知' },
-      { key: 'emergencyNotif', label: '緊急通知', desc: '緊急連絡をアルバイト全員に送る' },
-    ];
-
-    const getVal = (key, local) => local ? localNotifEnabled : (settings[key] !== false);
-    const toggle = (key, local) => {
-      if (local) { setLocalNotifEnabled(v => !v); }
-      else { setSettings(s => ({ ...s, [key]: s[key] === false ? true : false })); }
-    };
-    // initialize missing keys to true
-    React.useEffect(() => {
-      setSettings(s => {
-        const next = { ...s };
-        ['dayBeforeReminder','helpNotif','emergencyNotif'].forEach(k => { if (next[k] === undefined) next[k] = true; });
-        return next;
-      });
-    }, []);
-
-    return (
-      <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 5500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setShowNotifSettings(false)}>
-        <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', maxWidth: '380px', width: '100%' }} onClick={e => e.stopPropagation()}>
-          <h3 style={{ margin: '0 0 1.2rem', textAlign: 'center', color: '#1565C0' }}>⚙️ 通知設定</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '1.2rem' }}>
-            {rows.map(({ key, label, desc, local }) => (
-              <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F5F5F5', borderRadius: '12px', padding: '12px 14px' }}>
-                <div>
-                  <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#333' }}>{label}</div>
-                  <div style={{ fontSize: '11px', color: '#777', marginTop: '2px' }}>{desc}</div>
-                </div>
-                <button type="button" onClick={() => toggle(key, local)}
-                  style={{ padding: '7px 16px', backgroundColor: getVal(key, local) ? '#FF9800' : '#9E9E9E', color: 'white', border: 'none', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', flexShrink: 0, marginLeft: '10px' }}>
-                  {getVal(key, local) ? 'ON' : 'OFF'}
-                </button>
-              </div>
-            ))}
-          </div>
-          {saveMsg && <div style={{ textAlign: 'center', color: saveMsg.startsWith('✅') ? '#388E3C' : '#D32F2F', fontWeight: 'bold', marginBottom: '10px' }}>{saveMsg}</div>}
-          <button onClick={handleSave} disabled={saving} style={{ width: '100%', padding: '12px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', marginBottom: '8px' }}>
-            {saving ? '保存中...' : '保存する'}
-          </button>
-          <button onClick={() => setShowNotifSettings(false)} style={{ width: '100%', padding: '10px', backgroundColor: '#eee', border: 'none', borderRadius: '10px', cursor: 'pointer' }}>閉じる</button>
-        </div>
-      </div>
-    );
-  };
-
   const ShiftDeadlineModal = () => {
     const [saving, setSaving] = useState(false);
     const [saveMsg, setSaveMsg] = useState('');
@@ -1877,21 +1802,30 @@ if (role === 'clockin') {
         {showDeadlineModal && <ShiftDeadlineModal />}
         {showHelpNotifModal && <HelpNotifModal />}
         {showNotifList && <NotifListModal />}
-        {showNotifSettings && <ManagerNotifSettingsModal />}
         <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
         <div className="login-card" style={{ position: 'relative' }}>
           <BackButton />
           <HelpButton page="managerMenu" />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
-            <button type="button" onClick={() => setShowNotifSettings(true)}
-              style={{ backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
-              ⚙️ 通知設定
+            <button type="button" onClick={() => {
+              const next = !notifEnabled;
+              setNotifEnabled(next);
+              localStorage.setItem('notifEnabled', String(next));
+              showNotifToast(next ? '🔔 通知をオンにしました' : '🔕 通知をオフにしました');
+            }}
+              style={{ backgroundColor: notifEnabled ? '#FF9800' : '#9E9E9E', color: 'white', border: 'none', borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
+              {notifEnabled ? '🔔 通知ON' : '🔕 通知OFF'}
             </button>
             <button type="button" onClick={() => setShowInstallBanner(true)}
               style={{ background: 'none', border: '1px solid #1a73e8', color: '#1a73e8', borderRadius: '20px', padding: '3px 12px', fontSize: '12px', cursor: 'pointer' }}>
               📲 ホーム画面に追加
             </button>
           </div>
+          {notifToast && (
+            <div style={{ position: 'fixed', bottom: '2rem', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#333', color: 'white', padding: '12px 24px', borderRadius: '24px', fontSize: '14px', fontWeight: 'bold', zIndex: 9999, whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+              {notifToast}
+            </div>
+          )}
           {loggedInName && <div style={{ textAlign: 'center', color: '#1976D2', fontWeight: 'bold', marginBottom: '0.3rem' }}>{loggedInName}さん</div>}
           <h2 style={{ marginTop: '0.3rem' }}>店長メニュー</h2>
           {notifEnabled && notifHistory.length > 0 && (
@@ -2640,53 +2574,35 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
   }
 
   if (role === 'staff') {
-    const StaffNotifSettingsModal = () => {
-      const [localNotif, setLocalNotif] = React.useState(notifEnabled);
-      const handleSave = () => {
-        setNotifEnabled(localNotif);
-        localStorage.setItem('notifEnabled', String(localNotif));
-        setShowNotifSettings(false);
-      };
-      return (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 5500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={() => setShowNotifSettings(false)}>
-          <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', maxWidth: '360px', width: '100%' }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 1.2rem', textAlign: 'center', color: '#1565C0' }}>⚙️ 通知設定</h3>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F5F5F5', borderRadius: '12px', padding: '12px 14px', marginBottom: '1.2rem' }}>
-              <div>
-                <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#333' }}>通知の受信</div>
-                <div style={{ fontSize: '11px', color: '#777', marginTop: '2px' }}>シフトや連絡の通知を受け取る</div>
-              </div>
-              <button type="button" onClick={() => setLocalNotif(v => !v)}
-                style={{ padding: '7px 16px', backgroundColor: localNotif ? '#FF9800' : '#9E9E9E', color: 'white', border: 'none', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', flexShrink: 0, marginLeft: '10px' }}>
-                {localNotif ? 'ON' : 'OFF'}
-              </button>
-            </div>
-            <button onClick={handleSave} style={{ width: '100%', padding: '12px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', marginBottom: '8px' }}>保存する</button>
-            <button onClick={() => setShowNotifSettings(false)} style={{ width: '100%', padding: '10px', backgroundColor: '#eee', border: 'none', borderRadius: '10px', cursor: 'pointer' }}>閉じる</button>
-          </div>
-        </div>
-      );
-    };
     return (
       <div className="login-wrapper">
         {showInstallBanner && <InstallBanner />}
         {showNotifModal && <NotifModal />}
         {showNotifList && <NotifListModal />}
-        {showNotifSettings && <StaffNotifSettingsModal />}
         <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
         <div className="login-card" style={{ position: 'relative' }}>
           <BackButton />
           <HelpButton page="staffMenu" />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
-            <button type="button" onClick={() => setShowNotifSettings(true)}
-              style={{ backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
-              ⚙️ 通知設定
+            <button type="button" onClick={() => {
+              const next = !notifEnabled;
+              setNotifEnabled(next);
+              localStorage.setItem('notifEnabled', String(next));
+              showNotifToast(next ? '🔔 通知をオンにしました' : '🔕 通知をオフにしました');
+            }}
+              style={{ backgroundColor: notifEnabled ? '#FF9800' : '#9E9E9E', color: 'white', border: 'none', borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
+              {notifEnabled ? '🔔 通知ON' : '🔕 通知OFF'}
             </button>
             <button type="button" onClick={() => setShowInstallBanner(true)}
               style={{ background: 'none', border: '1px solid #1a73e8', color: '#1a73e8', borderRadius: '20px', padding: '3px 12px', fontSize: '12px', cursor: 'pointer' }}>
               📲 ホーム画面に追加
             </button>
           </div>
+          {notifToast && (
+            <div style={{ position: 'fixed', bottom: '2rem', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#333', color: 'white', padding: '12px 24px', borderRadius: '24px', fontSize: '14px', fontWeight: 'bold', zIndex: 9999, whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+              {notifToast}
+            </div>
+          )}
           {loggedInName && <div style={{ textAlign: 'center', color: '#1976D2', fontWeight: 'bold', marginBottom: '0.3rem' }}>{loggedInName}さん</div>}
           <h2 style={{ marginTop: '0.3rem' }}>アルバイトメニュー</h2>
           {notifEnabled && notifHistory.length > 0 && (

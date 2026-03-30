@@ -106,6 +106,52 @@ Deno.serve(async (req) => {
     }
   }
 
+  // === 3. 前日の打刻不完全警告 ===
+  const yesterdayJST = new Date(nowJST);
+  yesterdayJST.setDate(yesterdayJST.getDate() - 1);
+  const yesterdayStr = `${yesterdayJST.getFullYear()}-${pad(yesterdayJST.getMonth()+1)}-${pad(yesterdayJST.getDate())}`;
+
+  const { data: yesterdayLogs } = await supabase
+    .from('attendance_logs')
+    .select('manager_number, action_type')
+    .eq('action_date', yesterdayStr)
+    .eq('is_modified', false);
+
+  if (yesterdayLogs && yesterdayLogs.length > 0) {
+    const byStaff: Record<string, string[]> = {};
+    for (const log of (yesterdayLogs as { manager_number: string; action_type: string }[])) {
+      const mn = String(log.manager_number);
+      if (!byStaff[mn]) byStaff[mn] = [];
+      byStaff[mn].push(log.action_type);
+    }
+
+    for (const [mn, types] of Object.entries(byStaff)) {
+      const missing: string[] = [];
+      if (types.includes('clock_in') && !types.includes('clock_out')) missing.push('退勤打刻');
+      if (!types.includes('clock_in') && types.includes('clock_out')) missing.push('出勤打刻');
+      if (types.includes('break_start') && !types.includes('break_end')) missing.push('休憩終了打刻');
+      if (!types.includes('break_start') && types.includes('break_end')) missing.push('休憩開始打刻');
+      if (missing.length === 0) continue;
+
+      const warnTitle = '⚠️ 昨日の打刻に不備があります';
+      const warnBody = `${yesterdayStr} 不足している打刻：${missing.join('、')}`;
+      const { data: staffSubs } = await supabase
+        .from('push_subscriptions').select('subscription').eq('manager_number', mn);
+      for (const sub of (staffSubs ?? [])) {
+        try {
+          await webpush.sendNotification(JSON.parse((sub as { subscription: string }).subscription), JSON.stringify({ title: warnTitle, body: warnBody }));
+          results.push({ type: 'punch_warning', manager_number: mn, status: 'sent' });
+        } catch (e: unknown) {
+          const err = e as { message?: string };
+          results.push({ type: 'punch_warning', manager_number: mn, status: 'failed', error: err.message });
+        }
+      }
+      try {
+        await supabase.from('notifications').insert([{ title: warnTitle, body: warnBody, target_manager_number: mn }]);
+      } catch(e) {}
+    }
+  }
+
   return new Response(
     JSON.stringify({ today: todayStr, tomorrow: tomorrowStr, results }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

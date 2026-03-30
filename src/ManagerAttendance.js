@@ -1905,16 +1905,21 @@ const changeDate = (delta) => {
                   setSelectedModification(null);
                   setModificationComment('');
                   await fetchPendingModifications();
-                  // 申請したスタッフのみに通知
+                  try {
+                    await supabase.from('attendance_logs')
+                      .update({ is_employee_notified: false })
+                      .eq('manager_number', staffNumber).eq('action_date', staffDate).eq('approval_status', 'approved');
+                  } catch(e) {}
+                  const approveTitle = '勤怠修正が承認されました';
+                  const approveBody = `${staffDate} の勤怠修正申請が承認されました`;
                   try {
                     await supabase.functions.invoke('send-push-notification', {
-                      body: {
-                        title: '勤怠修正が承認されました',
-                        body: `${staffDate} の勤怠修正申請が承認されました`,
-                        target_manager_numbers: [String(staffNumber)]
-                      }
+                      body: { title: approveTitle, body: approveBody, target_manager_numbers: [String(staffNumber)] }
                     });
                   } catch (e) { console.error('通知エラー:', e); }
+                  try {
+                    await supabase.from('notifications').insert([{ title: approveTitle, body: approveBody, target_manager_number: String(staffNumber) }]);
+                  } catch(e) {}
                   alert('承認しました');
                 } catch (error) {
                   console.error('承認エラー:', error);
@@ -1953,16 +1958,21 @@ const changeDate = (delta) => {
                   setSelectedModification(null);
                   setModificationComment('');
                   await fetchPendingModifications();
-                  // 申請したスタッフのみに通知
+                  try {
+                    await supabase.from('attendance_logs')
+                      .update({ is_employee_notified: false })
+                      .eq('manager_number', staffNumber).eq('action_date', staffDate).eq('approval_status', 'rejected');
+                  } catch(e) {}
+                  const rejectTitle = '勤怠修正が拒否されました';
+                  const rejectBody = `${staffDate} の勤怠修正申請が拒否されました`;
                   try {
                     await supabase.functions.invoke('send-push-notification', {
-                      body: {
-                        title: '勤怠修正が拒否されました',
-                        body: `${staffDate} の勤怠修正申請が拒否されました`,
-                        target_manager_numbers: [String(staffNumber)]
-                      }
+                      body: { title: rejectTitle, body: rejectBody, target_manager_numbers: [String(staffNumber)] }
                     });
                   } catch (e) { console.error('通知エラー:', e); }
+                  try {
+                    await supabase.from('notifications').insert([{ title: rejectTitle, body: rejectBody, target_manager_number: String(staffNumber) }]);
+                  } catch(e) {}
                   alert('拒否しました');
                 } catch (error) {
                   console.error('拒否エラー:', error);
