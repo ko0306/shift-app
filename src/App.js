@@ -1082,6 +1082,7 @@ const handleSubmit = async () => {
     const isLineIOS = isLine && iosDetect;
     const isDesktop = !isAndroid && !iosDetect;
     const [copied, setCopied] = React.useState(false);
+    const [showChromeSteps, setShowChromeSteps] = React.useState(false);
     // Android Chrome かどうか（LINE除外：LINEのUAにはChromeが含まれるが別ブラウザ）
     const isChromeMobile = isAndroid && !isLine && /Chrome\//.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua);
     // 他のAndroidブラウザ（Chrome以外）
@@ -1096,6 +1097,7 @@ const handleSubmit = async () => {
       if (installPromptEvent) {
         installPromptEvent.prompt();
         const { outcome } = await installPromptEvent.userChoice;
+        setInstallPromptEvent(null); // 使用済みイベントをクリア
         if (outcome === 'accepted') setShowInstallBanner(false);
       }
     };
@@ -1116,17 +1118,43 @@ const handleSubmit = async () => {
             アイコンから直接開けるようになります。<br />シフト通知もすぐ確認できます！
           </p>
 
-          {/* Chrome/Edge (PC・Android): installPromptEventがあればボタン1つ */}
-          {installPromptEvent && (
-            <>
-              <button type="button" onClick={handleInstall}
-                style={{ width: '100%', padding: '16px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '14px', fontSize: '17px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '6px', boxShadow: '0 4px 12px rgba(21,101,192,0.4)' }}>
+          {/* Android Chrome: 常にボタン1つ（installPromptEvent有無に関わらず） */}
+          {isChromeMobile && (
+            <div style={{ marginBottom: '8px' }}>
+              <button type="button" onClick={async () => {
+                if (installPromptEvent) {
+                  await handleInstall();
+                } else {
+                  setShowChromeSteps(v => !v);
+                }
+              }}
+                style={{ width: '100%', padding: '16px', backgroundColor: '#34A853', color: 'white', border: 'none', borderRadius: '14px', fontSize: '17px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '8px', boxShadow: '0 4px 12px rgba(52,168,83,0.4)' }}>
                 ＋ ホーム画面に追加する
               </button>
-              <div style={{ fontSize: '11px', color: '#888', marginBottom: '8px', textAlign: 'center' }}>
-                タップするとインストール確認画面が表示されます
-              </div>
-            </>
+              {!installPromptEvent && showChromeSteps && (
+                <div style={{ backgroundColor: '#E8F5E9', borderRadius: '12px', padding: '1rem', textAlign: 'left' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#1B5E20', marginBottom: '10px' }}>Chromeのメニューから追加：</div>
+                  {[
+                    ['1', '右上の ⋮ をタップ'],
+                    ['2', '「ホーム画面に追加」または「アプリをインストール」をタップ'],
+                    ['3', '「追加」をタップして完了'],
+                  ].map(([n, txt]) => (
+                    <div key={n} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', backgroundColor: 'white', borderRadius: '8px', padding: '8px 12px', marginBottom: '6px' }}>
+                      <div style={{ flexShrink: 0, width: '24px', height: '24px', backgroundColor: '#34A853', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '13px' }}>{n}</div>
+                      <div style={{ fontSize: '13px', color: '#333', lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: txt.replace('⋮', '<strong style="font-size:18px">⋮</strong>').replace(/「(.+?)」/g, '「<strong>$1</strong>」') }} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Chrome/Edge (PC): installPromptEventがあればボタン1つ */}
+          {installPromptEvent && !isChromeMobile && (
+            <button type="button" onClick={handleInstall}
+              style={{ width: '100%', padding: '16px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '14px', fontSize: '17px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '8px', boxShadow: '0 4px 12px rgba(21,101,192,0.4)' }}>
+              ＋ ホーム画面に追加する
+            </button>
           )}
 
           {/* installPromptEventなし */}
@@ -1193,31 +1221,6 @@ const handleSubmit = async () => {
                 );
               })()}
 
-              {/* Android Chrome: installPromptEvent未発火 → メニューから手順案内 */}
-              {isChromeMobile && !installPromptEvent && (
-                <div style={{ backgroundColor: '#E8F5E9', borderRadius: '12px', padding: '1rem', marginBottom: '8px', textAlign: 'left' }}>
-                  <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#1B5E20', marginBottom: '10px' }}>🤖 Chromeメニューからインストール：</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                    {[
-                      ['1', '右上の ⋮ をタップ'],
-                      ['2', '「ホーム画面に追加」または「アプリをインストール」をタップ'],
-                      ['3', '「追加」をタップして完了'],
-                    ].map(([n, txt]) => (
-                      <div key={n} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', backgroundColor: 'white', borderRadius: '8px', padding: '8px 12px' }}>
-                        <div style={{ flexShrink: 0, width: '24px', height: '24px', backgroundColor: '#34A853', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '13px' }}>{n}</div>
-                        <div style={{ fontSize: '13px', color: '#333', lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: txt.replace('⋮', '<strong style="font-size:18px">⋮</strong>').replace(/「(.+?)」/g, '「<strong>$1</strong>」') }} />
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ fontSize: '11px', color: '#777', backgroundColor: '#f5f5f5', borderRadius: '6px', padding: '6px 8px', marginBottom: '10px' }}>
-                    メニューに項目が出ない場合：すでにインストール済みか、一度キャンセルした可能性があります。Chromeの設定からサイト情報をリセットしてお試しください。
-                  </div>
-                  <button type="button" onClick={() => { window.location.href = window.location.origin + '/?install=1'; }}
-                    style={{ width: '100%', padding: '10px', backgroundColor: '#388E3C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}>
-                    🔄 再読み込み
-                  </button>
-                </div>
-              )}
 
               {/* Android Chrome以外 → Chromeを開くよう誘導 */}
               {isAndroidNonChrome && (
