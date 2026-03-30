@@ -528,13 +528,18 @@ const [showNotifList, setShowNotifList] = useState(false);
     if (role && loggedInManagerNumber) {
       fetchNotifHistory(loggedInManagerNumber);
     }
-    // push_subscriptions未登録かつ通知ONの場合、自動登録を試みる
+    // push_subscriptions未登録かつ通知ONの場合 → トーストで登録を促す
+    // ※ AndroidではuseEffectからNotification.requestPermission()を呼べない（user gesture必須）ため
+    //    ボタン押下時のregisterPushSilentに任せる
     if (role && loggedInManagerNumber && notifEnabled) {
       supabase.from('push_subscriptions').select('manager_number')
         .eq('manager_number', loggedInManagerNumber).limit(1)
         .then(({ data }) => {
           if (!data || data.length === 0) {
-            registerPushSilent(loggedInManagerNumber);
+            // PCなど自動登録できる環境では試みる
+            if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+              registerPushSilent(loggedInManagerNumber);
+            }
           }
         });
     }
@@ -568,11 +573,15 @@ const [showNotifList, setShowNotifList] = useState(false);
     }
   };
 
-  // プッシュ通知を静かに登録（ボタンON時・ログイン時に呼び出す）
+  // プッシュ通知を登録（ボタンON時に呼び出す）
   const registerPushSilent = async (managerNum) => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
     try {
       const permission = await Notification.requestPermission();
+      if (permission === 'denied') {
+        showNotifToast('⚠️ ブラウザの設定で通知を許可してください');
+        return;
+      }
       if (permission !== 'granted') return;
       const reg = await navigator.serviceWorker.ready;
       const existing = await reg.pushManager.getSubscription();
@@ -585,7 +594,10 @@ const [showNotifList, setShowNotifList] = useState(false);
         { manager_number: managerNum, subscription: JSON.stringify(sub.toJSON()) },
         { onConflict: 'manager_number' }
       );
-    } catch (e) { console.error('プッシュ登録エラー:', e); }
+      showNotifToast('✅ プッシュ通知の登録が完了しました');
+    } catch (e) {
+      console.error('プッシュ登録エラー:', e);
+    }
   };
 
   const pushToHistory = (state) => {
@@ -1071,8 +1083,13 @@ const handleSubmit = async () => {
     const isDesktop = !isAndroid && !iosDetect;
     const [copied, setCopied] = React.useState(false);
     const [waitingForPrompt, setWaitingForPrompt] = React.useState(true);
+    // Android Chrome かどうか
+    const isChromeMobile = isAndroid && /Chrome\//.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua);
+    // 他のAndroidブラウザ（Chrome以外）
+    const isAndroidNonChrome = isAndroid && !isChromeMobile;
     React.useEffect(() => {
-      const t = setTimeout(() => setWaitingForPrompt(false), 4000);
+      // Android Chromeは時間がかかることがあるので6秒待つ
+      const t = setTimeout(() => setWaitingForPrompt(false), isChromeMobile ? 6000 : 4000);
       return () => clearTimeout(t);
     }, []);
 
@@ -1186,15 +1203,48 @@ const handleSubmit = async () => {
                 );
               })()}
 
-              {/* Android（Chromeでない場合） */}
-              {isAndroid && (
+              {/* Android Chrome: installPromptEvent未発火 */}
+              {isChromeMobile && (
+                <div style={{ backgroundColor: '#E8F5E9', borderRadius: '12px', padding: '1rem', marginBottom: '8px', textAlign: 'left' }}>
+                  {waitingForPrompt ? (
+                    <div style={{ textAlign: 'center', padding: '0.5rem 0' }}>
+                      <div style={{ fontSize: '26px', marginBottom: '6px' }}>⏳</div>
+                      <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#1B5E20', marginBottom: '4px' }}>インストールボタンを準備中...</div>
+                      <div style={{ fontSize: '12px', color: '#555' }}>このままお待ちください（数秒）</div>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#1B5E20', marginBottom: '10px' }}>🤖 Chromeのメニューから追加：</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', marginBottom: '10px' }}>
+                        {[
+                          ['1', '右上の ⋮ をタップ'],
+                          ['2', '「ホーム画面に追加」をタップ'],
+                          ['3', '「追加」をタップして完了'],
+                        ].map(([n, txt]) => (
+                          <div key={n} style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: 'white', borderRadius: '8px', padding: '8px 12px' }}>
+                            <div style={{ flexShrink: 0, width: '24px', height: '24px', backgroundColor: '#34A853', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '13px' }}>{n}</div>
+                            <div style={{ fontSize: '13px', color: '#333' }} dangerouslySetInnerHTML={{ __html: txt.replace('⋮', '<strong style="font-size:18px">⋮</strong>').replace(/「(.+?)」/g, '「<strong>$1</strong>」') }} />
+                          </div>
+                        ))}
+                      </div>
+                      <button type="button" onClick={() => window.location.reload()}
+                        style={{ width: '100%', padding: '10px', backgroundColor: '#388E3C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}>
+                        🔄 再読み込みしてもう一度試す
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Android Chrome以外 → Chromeを開くよう誘導 */}
+              {isAndroidNonChrome && (
                 <div style={{ backgroundColor: '#E8F5E9', borderRadius: '12px', padding: '1rem', marginBottom: '8px', textAlign: 'left' }}>
                   <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#1B5E20', marginBottom: '8px' }}>🤖 Androidの方</div>
                   <button type="button" onClick={openInChrome}
-                    style={{ width: '100%', padding: '14px', backgroundColor: '#34A853', color: 'white', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '4px' }}>
-                    🌐 Chromeで開いてインストール
+                    style={{ width: '100%', padding: '14px', backgroundColor: '#34A853', color: 'white', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '6px' }}>
+                    🌐 Chromeで開く
                   </button>
-                  <div style={{ fontSize: '11px', color: '#555', textAlign: 'center' }}>↑ Chromeが開いたら「＋ ホーム画面に追加する」が表示されます</div>
+                  <div style={{ fontSize: '11px', color: '#555', textAlign: 'center' }}>Chromeで開くとホーム画面への追加ができます</div>
                 </div>
               )}
 
