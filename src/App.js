@@ -528,6 +528,16 @@ const [showNotifList, setShowNotifList] = useState(false);
     if (role && loggedInManagerNumber) {
       fetchNotifHistory(loggedInManagerNumber);
     }
+    // push_subscriptions未登録かつ通知ONの場合、自動登録を試みる
+    if (role && loggedInManagerNumber && notifEnabled) {
+      supabase.from('push_subscriptions').select('manager_number')
+        .eq('manager_number', loggedInManagerNumber).limit(1)
+        .then(({ data }) => {
+          if (!data || data.length === 0) {
+            registerPushSilent(loggedInManagerNumber);
+          }
+        });
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role, loggedInManagerNumber]);
 
@@ -556,6 +566,26 @@ const [showNotifList, setShowNotifList] = useState(false);
     } catch (e) {
       alert('設定に失敗しました: ' + e.message);
     }
+  };
+
+  // プッシュ通知を静かに登録（ボタンON時・ログイン時に呼び出す）
+  const registerPushSilent = async (managerNum) => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') return;
+      const reg = await navigator.serviceWorker.ready;
+      const existing = await reg.pushManager.getSubscription();
+      if (existing) await existing.unsubscribe();
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+      await supabase.from('push_subscriptions').upsert(
+        { manager_number: managerNum, subscription: JSON.stringify(sub.toJSON()) },
+        { onConflict: 'manager_number' }
+      );
+    } catch (e) { console.error('プッシュ登録エラー:', e); }
   };
 
   const pushToHistory = (state) => {
@@ -1811,10 +1841,15 @@ if (role === 'clockin') {
               const next = !notifEnabled;
               setNotifEnabled(next);
               localStorage.setItem('notifEnabled', String(next));
-              showNotifToast(next ? '🔔 通知をオンにしました' : '🔕 通知をオフにしました');
+              if (next) {
+                registerPushSilent(loggedInManagerNumber);
+                showNotifToast('🔔 通知をオンにしました');
+              } else {
+                showNotifToast('🔕 通知をオフにしました');
+              }
             }}
               style={{ backgroundColor: notifEnabled ? '#FF9800' : '#9E9E9E', color: 'white', border: 'none', borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
-              {notifEnabled ? '🔔 通知ON' : '🔕 通知OFF'}
+              {notifEnabled ? '🔔 通知ON（タップでOFF）' : '🔕 通知OFF（タップでON）'}
             </button>
             <button type="button" onClick={() => setShowInstallBanner(true)}
               style={{ background: 'none', border: '1px solid #1a73e8', color: '#1a73e8', borderRadius: '20px', padding: '3px 12px', fontSize: '12px', cursor: 'pointer' }}>
@@ -2588,10 +2623,15 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
               const next = !notifEnabled;
               setNotifEnabled(next);
               localStorage.setItem('notifEnabled', String(next));
-              showNotifToast(next ? '🔔 通知をオンにしました' : '🔕 通知をオフにしました');
+              if (next) {
+                registerPushSilent(loggedInManagerNumber);
+                showNotifToast('🔔 通知をオンにしました');
+              } else {
+                showNotifToast('🔕 通知をオフにしました');
+              }
             }}
               style={{ backgroundColor: notifEnabled ? '#FF9800' : '#9E9E9E', color: 'white', border: 'none', borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
-              {notifEnabled ? '🔔 通知ON' : '🔕 通知OFF'}
+              {notifEnabled ? '🔔 通知ON（タップでOFF）' : '🔕 通知OFF（タップでON）'}
             </button>
             <button type="button" onClick={() => setShowInstallBanner(true)}
               style={{ background: 'none', border: '1px solid #1a73e8', color: '#1a73e8', borderRadius: '20px', padding: '3px 12px', fontSize: '12px', cursor: 'pointer' }}>
