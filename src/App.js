@@ -1083,8 +1083,8 @@ const handleSubmit = async () => {
     const isDesktop = !isAndroid && !iosDetect;
     const [copied, setCopied] = React.useState(false);
     const [waitingForPrompt, setWaitingForPrompt] = React.useState(true);
-    // Android Chrome かどうか
-    const isChromeMobile = isAndroid && /Chrome\//.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua);
+    // Android Chrome かどうか（LINE除外：LINEのUAにはChromeが含まれるが別ブラウザ）
+    const isChromeMobile = isAndroid && !isLine && /Chrome\//.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua);
     // 他のAndroidブラウザ（Chrome以外）
     const isAndroidNonChrome = isAndroid && !isChromeMobile;
     React.useEffect(() => {
