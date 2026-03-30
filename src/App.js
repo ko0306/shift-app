@@ -484,15 +484,19 @@ const [showNotifList, setShowNotifList] = useState(false);
     setShowInstallBanner(true);
   }, [installPromptEvent]);
 
-  // ?install=1 パラメータがあればログイン前でも即バナー表示
+  // ?install=1 パラメータがあればバナー表示
+  // Chrome Androidの場合：beforeinstallpromptが先に発火した場合は即座に（installPromptEvent付き）
+  // 2秒待っても発火しない場合はフォールバック表示
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('install') === '1') {
       const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
       setIsIOS(ios);
-      setShowInstallBanner(true);
-      // URLからパラメータを除去（履歴を汚さない）
+      // URLからパラメータを除去
       window.history.replaceState({}, '', window.location.pathname);
+      // 2秒後にバナー表示（beforeinstallpromptが先に発火した場合はそちらで表示済み）
+      const t = setTimeout(() => setShowInstallBanner(true), 2000);
+      return () => clearTimeout(t);
     }
   }, []);
 

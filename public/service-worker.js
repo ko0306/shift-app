@@ -9,8 +9,14 @@ self.addEventListener('activate', (event) => {
 
 // PWAインストール要件：fetchハンドラー必須
 self.addEventListener('fetch', (event) => {
+  // GETリクエストのみキャッシュ対象
+  if (event.request.method !== 'GET') return;
   event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
+    fetch(event.request).catch(() =>
+      caches.match(event.request).then(cached =>
+        cached || new Response('Network error', { status: 503, headers: { 'Content-Type': 'text/plain' } })
+      )
+    )
   );
 });
 
