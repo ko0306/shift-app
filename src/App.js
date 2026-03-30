@@ -1082,16 +1082,10 @@ const handleSubmit = async () => {
     const isLineIOS = isLine && iosDetect;
     const isDesktop = !isAndroid && !iosDetect;
     const [copied, setCopied] = React.useState(false);
-    const [waitingForPrompt, setWaitingForPrompt] = React.useState(true);
     // Android Chrome かどうか（LINE除外：LINEのUAにはChromeが含まれるが別ブラウザ）
     const isChromeMobile = isAndroid && !isLine && /Chrome\//.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua);
     // 他のAndroidブラウザ（Chrome以外）
     const isAndroidNonChrome = isAndroid && !isChromeMobile;
-    React.useEffect(() => {
-      // Android Chromeはservice worker起動後に発火するので10秒待つ
-      const t = setTimeout(() => setWaitingForPrompt(false), isChromeMobile ? 10000 : 4000);
-      return () => clearTimeout(t);
-    }, []);
 
     const dismiss = () => {
       localStorage.setItem('installBannerDismissedAt', String(Date.now()));
@@ -1145,15 +1139,6 @@ const handleSubmit = async () => {
                 const isChromiumBased = isChromeBrowser || isEdgeBrowser;
 
                 if (isChromiumBased) {
-                  if (waitingForPrompt) {
-                    return (
-                      <div style={{ backgroundColor: '#E8EAF6', borderRadius: '12px', padding: '1.2rem', marginBottom: '8px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '28px', marginBottom: '8px' }}>⏳</div>
-                        <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#283593', marginBottom: '4px' }}>インストールボタンを準備中...</div>
-                        <div style={{ fontSize: '12px', color: '#555' }}>しばらくお待ちください</div>
-                      </div>
-                    );
-                  }
                   return (
                     <div style={{ backgroundColor: '#E8EAF6', borderRadius: '12px', padding: '1rem', marginBottom: '8px', textAlign: 'left' }}>
                       <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#283593', marginBottom: '8px' }}>
@@ -1208,52 +1193,29 @@ const handleSubmit = async () => {
                 );
               })()}
 
-              {/* Android Chrome: installPromptEvent未発火 */}
-              {isChromeMobile && (
+              {/* Android Chrome: installPromptEvent未発火 → メニューから手順案内 */}
+              {isChromeMobile && !installPromptEvent && (
                 <div style={{ backgroundColor: '#E8F5E9', borderRadius: '12px', padding: '1rem', marginBottom: '8px', textAlign: 'left' }}>
-                  {waitingForPrompt ? (
-                    <div style={{ textAlign: 'center', padding: '0.5rem 0' }}>
-                      <div style={{ fontSize: '26px', marginBottom: '6px' }}>⏳</div>
-                      <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#1B5E20', marginBottom: '4px' }}>インストールボタンを準備中...</div>
-                      <div style={{ fontSize: '12px', color: '#555' }}>このままお待ちください（数秒）</div>
-                    </div>
-                  ) : (
-                    <>
-                      <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#1B5E20', marginBottom: '10px' }}>🤖 Chromeからインストールする方法：</div>
-
-                      {/* 方法①：アドレスバー */}
-                      <div style={{ backgroundColor: 'white', borderRadius: '10px', padding: '10px 12px', marginBottom: '8px', border: '2px solid #34A853' }}>
-                        <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#1B5E20', marginBottom: '6px' }}>方法① アドレスバーから（おすすめ）</div>
-                        <div style={{ fontSize: '13px', color: '#333', lineHeight: 1.8 }}>
-                          画面上部のアドレスバーの右端に<br />
-                          <strong style={{ fontSize: '16px' }}>⊕</strong> または <strong>「インストール」</strong> アイコンが<br />
-                          表示されている場合 → <strong>タップしてインストール</strong>
-                        </div>
+                  <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#1B5E20', marginBottom: '10px' }}>🤖 Chromeメニューからインストール：</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
+                    {[
+                      ['1', '右上の ⋮ をタップ'],
+                      ['2', '「ホーム画面に追加」または「アプリをインストール」をタップ'],
+                      ['3', '「追加」をタップして完了'],
+                    ].map(([n, txt]) => (
+                      <div key={n} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', backgroundColor: 'white', borderRadius: '8px', padding: '8px 12px' }}>
+                        <div style={{ flexShrink: 0, width: '24px', height: '24px', backgroundColor: '#34A853', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '13px' }}>{n}</div>
+                        <div style={{ fontSize: '13px', color: '#333', lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: txt.replace('⋮', '<strong style="font-size:18px">⋮</strong>').replace(/「(.+?)」/g, '「<strong>$1</strong>」') }} />
                       </div>
-
-                      {/* 方法②：メニュー */}
-                      <div style={{ backgroundColor: 'white', borderRadius: '10px', padding: '10px 12px', marginBottom: '10px' }}>
-                        <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#1B5E20', marginBottom: '6px' }}>方法② メニューから</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          {[
-                            ['1', '右上の ⋮ をタップ'],
-                            ['2', '「ホーム画面に追加」または「アプリをインストール」をタップ'],
-                            ['3', '「追加」をタップして完了'],
-                          ].map(([n, txt]) => (
-                            <div key={n} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                              <div style={{ flexShrink: 0, width: '22px', height: '22px', backgroundColor: '#34A853', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '12px', marginTop: '1px' }}>{n}</div>
-                              <div style={{ fontSize: '13px', color: '#333', lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: txt.replace('⋮', '<strong style="font-size:18px">⋮</strong>').replace(/「(.+?)」/g, '「<strong>$1</strong>」') }} />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <button type="button" onClick={() => { window.location.href = window.location.origin + '/?install=1'; }}
-                        style={{ width: '100%', padding: '10px', backgroundColor: '#388E3C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}>
-                        🔄 再読み込みしてもう一度試す
-                      </button>
-                    </>
-                  )}
+                    ))}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#777', backgroundColor: '#f5f5f5', borderRadius: '6px', padding: '6px 8px', marginBottom: '10px' }}>
+                    メニューに項目が出ない場合：すでにインストール済みか、一度キャンセルした可能性があります。Chromeの設定からサイト情報をリセットしてお試しください。
+                  </div>
+                  <button type="button" onClick={() => { window.location.href = window.location.origin + '/?install=1'; }}
+                    style={{ width: '100%', padding: '10px', backgroundColor: '#388E3C', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}>
+                    🔄 再読み込み
+                  </button>
                 </div>
               )}
 
