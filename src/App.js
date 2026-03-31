@@ -1105,15 +1105,18 @@ const handleSubmit = async () => {
 
     const handleInstall = async () => {
       const event = installPromptEvent || window.__pwaInstallEvent;
-      if (!event) return;
+      if (!event) {
+        // イベント未取得の場合はリロードして再取得を試みる
+        window.location.href = window.location.origin + '/?install=1';
+        return;
+      }
       try {
         setShowInstallBanner(false); // バナーを先に閉じてChromeのダイアログを前面に出す
-        event.prompt();
+        await event.prompt();
         const { outcome } = await event.userChoice;
         setInstallPromptEvent(null);
         window.__pwaInstallEvent = null;
         if (outcome !== 'accepted') {
-          // キャンセルした場合はバナーを再表示
           setShowInstallBanner(true);
         }
       } catch (err) {
