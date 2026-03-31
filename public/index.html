@@ -31,23 +31,11 @@
     <div id="root"></div>
     <script>
       // beforeinstallpromptをReactより先にキャプチャ
+      // 全ブラウザでpreventDefaultを呼び、Chromeの自動バナーを抑制する
+      // → アプリのボタンからprompt()を呼ぶことで確実にインストールダイアログを出す
       window.__pwaInstallEvent = null;
       window.addEventListener('beforeinstallprompt', function(e) {
-        var ua = navigator.userAgent;
-        // Android Chrome（Samsung/UC/LINE等を除く）はChromeのネイティブバナーを使う
-        var isAndroidChrome = /Android/i.test(ua) &&
-          /Chrome\//.test(ua) &&
-          !/SamsungBrowser\//.test(ua) &&
-          !/UCBrowser\//.test(ua) &&
-          !/HuaweiBrowser\//.test(ua) &&
-          !/Edg\//.test(ua) &&
-          !/OPR\//.test(ua) &&
-          !/Line\//i.test(ua);
-        if (!isAndroidChrome) {
-          // PC・Edge：独自UIを使うため標準バナーを抑制
-          e.preventDefault();
-        }
-        // 常にキャプチャ（独自ボタンでも使用可能にする）
+        e.preventDefault();
         window.__pwaInstallEvent = e;
       });
     </script>

@@ -472,8 +472,7 @@ const [showNotifList, setShowNotifList] = useState(false);
       setInstallPromptEvent(window.__pwaInstallEvent);
     }
     const handler = (e) => {
-      // Android ChromeはChromeのネイティブmini-barに任せる（preventDefault不要）
-      if (!_isAndroidChrome) e.preventDefault();
+      e.preventDefault();
       setInstallPromptEvent(e);
       window.__pwaInstallEvent = e;
     };
@@ -482,10 +481,9 @@ const [showNotifList, setShowNotifList] = useState(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // beforeinstallpromptが発火したらバナー表示（Android ChromeはChromeネイティブに任せるため除外）
+  // beforeinstallpromptが発火したらバナー表示
   useEffect(() => {
     if (!installPromptEvent) return;
-    if (_isAndroidChrome) return; // Android ChromeはChromeのmini-barで対応
     try {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
       if (isStandalone) return;
@@ -508,10 +506,9 @@ const [showNotifList, setShowNotifList] = useState(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ログイン後にホーム画面追加バナーを表示（Android Chrome除外）
+  // ログイン後にホーム画面追加バナーを表示
   useEffect(() => {
     if (!isLoggedIn) return;
-    if (_isAndroidChrome) return; // Android ChromeはChromeのmini-barで対応
     try {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches
         || window.navigator.standalone;
@@ -1107,11 +1104,20 @@ const handleSubmit = async () => {
     };
 
     const handleInstall = async () => {
-      if (installPromptEvent) {
-        installPromptEvent.prompt();
-        const { outcome } = await installPromptEvent.userChoice;
-        setInstallPromptEvent(null); // 使用済みイベントをクリア
-        if (outcome === 'accepted') setShowInstallBanner(false);
+      const event = installPromptEvent || window.__pwaInstallEvent;
+      if (!event) return;
+      try {
+        setShowInstallBanner(false); // バナーを先に閉じてChromeのダイアログを前面に出す
+        event.prompt();
+        const { outcome } = await event.userChoice;
+        setInstallPromptEvent(null);
+        window.__pwaInstallEvent = null;
+        if (outcome !== 'accepted') {
+          // キャンセルした場合はバナーを再表示
+          setShowInstallBanner(true);
+        }
+      } catch (err) {
+        setShowInstallBanner(true);
       }
     };
 
@@ -1135,11 +1141,7 @@ const handleSubmit = async () => {
           {isChromeMobile && (
             <div style={{ marginBottom: '8px' }}>
               <button type="button" onClick={async () => {
-                if (installPromptEvent) {
-                  await handleInstall();
-                } else {
-                  window.location.href = window.location.origin + '/?install=1';
-                }
+                await handleInstall();
               }}
                 style={{ width: '100%', padding: '16px', backgroundColor: '#34A853', color: 'white', border: 'none', borderRadius: '14px', fontSize: '17px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '8px', boxShadow: '0 4px 12px rgba(52,168,83,0.4)' }}>
                 ＋ ホーム画面に追加する
