@@ -377,7 +377,8 @@ const [loggedInName, setLoggedInName] = useState('');
 const [staffShiftSub, setStaffShiftSub] = useState(false);
 const [managerShiftSub, setManagerShiftSub] = useState(false);
 const [showHelpNotifModal, setShowHelpNotifModal] = useState(false);
-const [notifEnabled, setNotifEnabled] = useState(() => localStorage.getItem('notifEnabled') !== 'false');
+const [notifEnabled, setNotifEnabled] = useState(() => localStorage.getItem('notifEnabled') === 'true');
+const [showNotifPrompt, setShowNotifPrompt] = useState(false);
 const [notifToast, setNotifToast] = useState('');
 const [notifHistory, setNotifHistory] = useState([]);
 const [showNotifList, setShowNotifList] = useState(false);
@@ -505,6 +506,15 @@ const [showNotifList, setShowNotifList] = useState(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // スタッフログイン後：通知未設定なら促すプロンプトを表示
+  useEffect(() => {
+    if (!isLoggedIn || role !== 'staff') return;
+    if (localStorage.getItem('notifEnabled') === null) {
+      setShowNotifPrompt(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn, role]);
 
   // ログイン後にホーム画面追加バナーを表示
   useEffect(() => {
@@ -1079,6 +1089,36 @@ const handleSubmit = async () => {
       </button>
     );
   };
+
+  // ========== 通知オン促進プロンプト（スタッフ初回ログイン時） ==========
+  const NotifPromptModal = () => (
+    <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.65)', zIndex: 6000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+      <div style={{ backgroundColor: 'white', borderRadius: '20px', padding: '1.8rem 1.6rem', maxWidth: '340px', width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
+        <div style={{ fontSize: '2.8rem', marginBottom: '0.4rem' }}>🔔</div>
+        <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.15rem', color: '#1565C0' }}>シフト通知を受け取りますか？</h3>
+        <p style={{ color: '#555', fontSize: '13px', lineHeight: 1.7, margin: '0 0 1.2rem' }}>
+          シフトの締め切りやお知らせを<br />プッシュ通知でお届けします。
+        </p>
+        <button type="button" onClick={async () => {
+          setShowNotifPrompt(false);
+          setNotifEnabled(true);
+          localStorage.setItem('notifEnabled', 'true');
+          await registerPushSilent(loggedInManagerNumber);
+        }}
+          style={{ width: '100%', padding: '14px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '14px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '10px' }}>
+          はい、受け取る
+        </button>
+        <button type="button" onClick={() => {
+          setShowNotifPrompt(false);
+          setNotifEnabled(false);
+          localStorage.setItem('notifEnabled', 'false');
+        }}
+          style={{ width: '100%', padding: '11px', backgroundColor: '#f5f5f5', color: '#777', border: 'none', borderRadius: '14px', fontSize: '14px', cursor: 'pointer' }}>
+          後で
+        </button>
+      </div>
+    </div>
+  );
 
   // ========== ホーム画面追加モーダル ==========
   const InstallBanner = () => {
@@ -2676,6 +2716,7 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
   if (role === 'staff') {
     return (
       <div className="login-wrapper">
+        {showNotifPrompt && <NotifPromptModal />}
         {showInstallBanner && <InstallBanner />}
         {showNotifModal && <NotifModal />}
         {showNotifList && <NotifListModal />}
