@@ -1106,21 +1106,15 @@ const handleSubmit = async () => {
 
     const handleInstall = async () => {
       const event = installPromptEvent || window.__pwaInstallEvent;
-      if (!event) {
-        // イベント未取得：リロードして再取得を試みる
-        window.location.href = window.location.origin + '/?install=1';
-        return;
-      }
+      if (!event) return; // イベント未取得：バナーはそのまま残す（リロードしない）
       try {
-        // バナーは閉じずにpromptを呼ぶ（Chromeのダイアログはバナーの上に表示される）
         await event.prompt();
         const { outcome } = await event.userChoice;
         setInstallPromptEvent(null);
         window.__pwaInstallEvent = null;
         if (outcome === 'accepted') {
-          setInstallDone(true); // 成功画面を表示
+          setInstallDone(true);
         }
-        // dismissedの場合はバナーを残す（ユーザーが再度試せる）
       } catch (err) {
         // prompt失敗時もバナーは残す
       }
@@ -1161,17 +1155,23 @@ const handleSubmit = async () => {
             アイコンから直接開けるようになります。<br />シフト通知もすぐ確認できます！
           </p>
 
-          {/* Android Chrome: 常にボタン1つ（installPromptEvent有無に関わらず） */}
-          {isChromeMobile && (
-            <div style={{ marginBottom: '8px' }}>
-              <button type="button" onClick={async () => {
-                await handleInstall();
-              }}
-                style={{ width: '100%', padding: '16px', backgroundColor: '#34A853', color: 'white', border: 'none', borderRadius: '14px', fontSize: '17px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '8px', boxShadow: '0 4px 12px rgba(52,168,83,0.4)' }}>
-                ＋ ホーム画面に追加する
-              </button>
-            </div>
-          )}
+          {/* Android Chrome */}
+          {isChromeMobile && (() => {
+            const ready = !!(installPromptEvent || window.__pwaInstallEvent);
+            return (
+              <div style={{ marginBottom: '8px' }}>
+                <button type="button" onClick={async () => { await handleInstall(); }}
+                  style={{ width: '100%', padding: '16px', backgroundColor: ready ? '#34A853' : '#F57C00', color: 'white', border: 'none', borderRadius: '14px', fontSize: '17px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '4px', boxShadow: ready ? '0 4px 12px rgba(52,168,83,0.4)' : '0 4px 12px rgba(245,124,0,0.4)' }}>
+                  {ready ? '＋ ホーム画面に追加する' : '⏳ 準備中...'}
+                </button>
+                {!ready && (
+                  <p style={{ fontSize: '12px', color: '#F57C00', margin: '4px 0 0', textAlign: 'center' }}>
+                    Chromeがインストール準備をしています。少し待ってから再度タップしてください。
+                  </p>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Chrome/Edge (PC): installPromptEventがあればボタン1つ */}
           {installPromptEvent && !isChromeMobile && (
