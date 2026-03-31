@@ -457,24 +457,35 @@ const [showNotifList, setShowNotifList] = useState(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Android Chrome判定（Samsung/UC/LINE等を除く本物のChrome）
+  const _isAndroidChrome = (() => {
+    const ua = navigator.userAgent;
+    return /Android/i.test(ua) && /Chrome\//.test(ua) &&
+      !/SamsungBrowser\//.test(ua) && !/UCBrowser\//.test(ua) &&
+      !/HuaweiBrowser\//.test(ua) && !/Edg\//.test(ua) &&
+      !/OPR\//.test(ua) && !/Line\//i.test(ua);
+  })();
+
   // ホーム画面追加プロンプト（Chrome/Edge）
   useEffect(() => {
-    // index.htmlで早期キャプチャしたイベントを取得
     if (window.__pwaInstallEvent) {
       setInstallPromptEvent(window.__pwaInstallEvent);
     }
     const handler = (e) => {
-      e.preventDefault();
+      // Android ChromeはChromeのネイティブmini-barに任せる（preventDefault不要）
+      if (!_isAndroidChrome) e.preventDefault();
       setInstallPromptEvent(e);
       window.__pwaInstallEvent = e;
     };
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // beforeinstallpromptが発火したら自動でバナー表示（ログイン前でも）
+  // beforeinstallpromptが発火したらバナー表示（Android ChromeはChromeネイティブに任せるため除外）
   useEffect(() => {
     if (!installPromptEvent) return;
+    if (_isAndroidChrome) return; // Android ChromeはChromeのmini-barで対応
     try {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
       if (isStandalone) return;
@@ -482,37 +493,37 @@ const [showNotifList, setShowNotifList] = useState(false);
     const dismissedAt = localStorage.getItem('installBannerDismissedAt');
     if (dismissedAt && Date.now() - parseInt(dismissedAt) < 7 * 24 * 60 * 60 * 1000) return;
     setShowInstallBanner(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [installPromptEvent]);
 
-  // ?install=1 パラメータがあればバナー表示
-  // Chrome Androidの場合：beforeinstallpromptが先に発火した場合は即座に（installPromptEvent付き）
-  // 2秒待っても発火しない場合はフォールバック表示
+  // ?install=1 パラメータがあればバナー表示（Android Chrome除外）
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('install') === '1') {
       const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
       setIsIOS(ios);
-      // URLからパラメータを除去
       window.history.replaceState({}, '', window.location.pathname);
-      // 2秒後にバナー表示（beforeinstallpromptが先に発火した場合はそちらで表示済み）
-      const t = setTimeout(() => setShowInstallBanner(true), 2000);
-      return () => clearTimeout(t);
+      // Android ChromeはChromeのmini-barで対応するためバナー不要
+      if (!_isAndroidChrome) setShowInstallBanner(true);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ログイン後にホーム画面追加バナーを表示（全ブラウザ対応）
+  // ログイン後にホーム画面追加バナーを表示（Android Chrome除外）
   useEffect(() => {
     if (!isLoggedIn) return;
+    if (_isAndroidChrome) return; // Android ChromeはChromeのmini-barで対応
     try {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches
         || window.navigator.standalone;
-      if (isStandalone) return; // すでにホーム画面から起動中
-    } catch (e) { /* 一部WebViewではmatchMedia非対応 */ }
+      if (isStandalone) return;
+    } catch (e) {}
     const dismissedAt = localStorage.getItem('installBannerDismissedAt');
     if (dismissedAt && Date.now() - parseInt(dismissedAt) < 7 * 24 * 60 * 60 * 1000) return;
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
     setIsIOS(ios);
     setShowInstallBanner(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn]);
 
   useEffect(() => {
