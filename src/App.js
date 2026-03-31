@@ -1158,17 +1158,22 @@ const handleSubmit = async () => {
           {/* Android Chrome */}
           {isChromeMobile && (() => {
             const ready = !!(installPromptEvent || window.__pwaInstallEvent);
+            if (ready) {
+              return (
+                <button type="button" onClick={async () => { await handleInstall(); }}
+                  style={{ width: '100%', padding: '16px', backgroundColor: '#34A853', color: 'white', border: 'none', borderRadius: '14px', fontSize: '17px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '8px', boxShadow: '0 4px 12px rgba(52,168,83,0.4)' }}>
+                  ＋ ホーム画面に追加する
+                </button>
+              );
+            }
+            // beforeinstallpromptが発火しない場合（インストール済み等）→ Chromeメニューから直接追加
             return (
               <div style={{ marginBottom: '8px' }}>
-                <button type="button" onClick={async () => { await handleInstall(); }}
-                  style={{ width: '100%', padding: '16px', backgroundColor: ready ? '#34A853' : '#F57C00', color: 'white', border: 'none', borderRadius: '14px', fontSize: '17px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '4px', boxShadow: ready ? '0 4px 12px rgba(52,168,83,0.4)' : '0 4px 12px rgba(245,124,0,0.4)' }}>
-                  {ready ? '＋ ホーム画面に追加する' : '⏳ 準備中...'}
-                </button>
-                {!ready && (
-                  <p style={{ fontSize: '12px', color: '#F57C00', margin: '4px 0 0', textAlign: 'center' }}>
-                    Chromeがインストール準備をしています。少し待ってから再度タップしてください。
-                  </p>
-                )}
+                <div style={{ backgroundColor: '#E8F5E9', borderRadius: '12px', padding: '1rem', textAlign: 'left' }}>
+                  <p style={{ margin: '0 0 10px', fontSize: '14px', color: '#1B5E20', fontWeight: 'bold' }}>Chromeのメニューから追加してください</p>
+                  <p style={{ margin: '0 0 10px', fontSize: '13px', color: '#333' }}>① 右上の <strong style={{ fontSize: '18px' }}>⋮</strong> をタップ</p>
+                  <p style={{ margin: '0', fontSize: '13px', color: '#333' }}>②「<strong>ホーム画面に追加</strong>」をタップ</p>
+                </div>
               </div>
             );
           })()}
