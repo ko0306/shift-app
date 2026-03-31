@@ -1093,6 +1093,7 @@ const handleSubmit = async () => {
     const isLineIOS = isLine && iosDetect;
     const isDesktop = !isAndroid && !iosDetect;
     const [copied, setCopied] = React.useState(false);
+    const [installDone, setInstallDone] = React.useState(false);
     // Android Chrome かどうか（Samsung/UC/Huawei/LINE等はChromeのUAを含むが別ブラウザのため除外）
     const isChromeMobile = isAndroid && !isLine && /Chrome\//.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua) && !/SamsungBrowser\//.test(ua) && !/UCBrowser\//.test(ua) && !/HuaweiBrowser\//.test(ua);
     // 他のAndroidブラウザ（Chrome以外）
@@ -1106,21 +1107,22 @@ const handleSubmit = async () => {
     const handleInstall = async () => {
       const event = installPromptEvent || window.__pwaInstallEvent;
       if (!event) {
-        // イベント未取得の場合はリロードして再取得を試みる
+        // イベント未取得：リロードして再取得を試みる
         window.location.href = window.location.origin + '/?install=1';
         return;
       }
       try {
-        setShowInstallBanner(false); // バナーを先に閉じてChromeのダイアログを前面に出す
+        // バナーは閉じずにpromptを呼ぶ（Chromeのダイアログはバナーの上に表示される）
         await event.prompt();
         const { outcome } = await event.userChoice;
         setInstallPromptEvent(null);
         window.__pwaInstallEvent = null;
-        if (outcome !== 'accepted') {
-          setShowInstallBanner(true);
+        if (outcome === 'accepted') {
+          setInstallDone(true); // 成功画面を表示
         }
+        // dismissedの場合はバナーを残す（ユーザーが再度試せる）
       } catch (err) {
-        setShowInstallBanner(true);
+        // prompt失敗時もバナーは残す
       }
     };
 
@@ -1130,6 +1132,25 @@ const handleSubmit = async () => {
     };
 
     const installUrl = window.location.origin + '/?install=1';
+
+    if (installDone) {
+      return (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.65)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '20px', padding: '2rem 1.6rem', maxWidth: '380px', width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
+            <div style={{ fontSize: '3.5rem', marginBottom: '0.5rem' }}>✅</div>
+            <h3 style={{ margin: '0 0 0.6rem', fontSize: '1.2rem', color: '#2E7D32' }}>ホーム画面に追加しました！</h3>
+            <p style={{ color: '#555', fontSize: '13px', lineHeight: 1.7, margin: '0 0 1.2rem' }}>
+              ホーム画面にアイコンが追加されました。<br />
+              アイコンからアプリを開いてください。
+            </p>
+            <button type="button" onClick={() => setShowInstallBanner(false)}
+              style={{ width: '100%', padding: '14px', backgroundColor: '#2E7D32', color: 'white', border: 'none', borderRadius: '14px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>
+              閉じる
+            </button>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.65)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
