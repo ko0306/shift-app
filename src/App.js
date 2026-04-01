@@ -524,8 +524,12 @@ const [showNotifList, setShowNotifList] = useState(false);
         || window.navigator.standalone;
       if (isStandalone) return;
     } catch (e) {}
-    const dismissedAt = localStorage.getItem('installBannerDismissedAt');
-    if (dismissedAt && Date.now() - parseInt(dismissedAt) < 7 * 24 * 60 * 60 * 1000) return;
+    // 初回ログイン（notifEnabled未設定）はdismissedAtを無視して必ず表示
+    const isFirstTime = localStorage.getItem('notifEnabled') === null;
+    if (!isFirstTime) {
+      const dismissedAt = localStorage.getItem('installBannerDismissedAt');
+      if (dismissedAt && Date.now() - parseInt(dismissedAt) < 7 * 24 * 60 * 60 * 1000) return;
+    }
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
     setIsIOS(ios);
     setShowInstallBanner(true);
@@ -1190,10 +1194,17 @@ const handleSubmit = async () => {
       <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.65)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
         <div style={{ backgroundColor: 'white', borderRadius: '20px', padding: '1.8rem 1.6rem', maxWidth: '380px', width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
           <div style={{ fontSize: '3rem', marginBottom: '0.3rem' }}>📲</div>
-          <h3 style={{ margin: '0 0 0.4rem', fontSize: '1.2rem', color: '#1565C0' }}>ホーム画面に追加</h3>
-          <p style={{ color: '#555', fontSize: '13px', lineHeight: 1.6, margin: '0 0 1rem' }}>
-            アイコンから直接開けるようになります。<br />シフト通知もすぐ確認できます！
-          </p>
+          <h3 style={{ margin: '0 0 0.6rem', fontSize: '1.2rem', color: '#1565C0' }}>ホーム画面に追加しよう</h3>
+          <div style={{ backgroundColor: '#F0F4FF', borderRadius: '12px', padding: '0.8rem 1rem', marginBottom: '1rem', textAlign: 'left' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '8px' }}>
+              <span style={{ fontSize: '18px' }}>🔔</span>
+              <span style={{ fontSize: '13px', color: '#333', lineHeight: 1.5 }}>シフトのお知らせを<strong>プッシュ通知</strong>で受け取れる</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+              <span style={{ fontSize: '18px' }}>🚀</span>
+              <span style={{ fontSize: '13px', color: '#333', lineHeight: 1.5 }}>リンクを開かずアイコンから<strong>すぐ起動</strong>できる</span>
+            </div>
+          </div>
 
           {/* Android Chrome */}
           {isChromeMobile && (() => {
