@@ -100,6 +100,22 @@ Deno.serve(async (req) => {
             : shift.start_time;
           const title = '⏰ まもなくシフト開始';
           const body = `1時間後にシフトが始まります（${timeInfo}）`;
+
+          // 重複送信防止：同じシフト開始時刻の通知が過去3時間以内に送済みならスキップ
+          const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+          const { data: already } = await supabase
+            .from('notifications')
+            .select('id')
+            .eq('target_manager_number', String(sub.manager_number))
+            .eq('title', title)
+            .ilike('body', `%${shift.start_time}%`)
+            .gte('created_at', threeHoursAgo)
+            .limit(1);
+          if (already && already.length > 0) {
+            results.push({ type: '1hour_reminder', manager_number: sub.manager_number, status: 'skipped_duplicate' });
+            continue;
+          }
+
           const payload = JSON.stringify({ title, body });
           try {
             await webpush.sendNotification(JSON.parse(sub.subscription), payload);
