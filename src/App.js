@@ -1104,21 +1104,35 @@ const handleSubmit = async () => {
   };
 
   // ========== 通知オン促進プロンプト（スタッフ初回ログイン時） ==========
-  const maybeShowHomeScreenPrompt = () => {
+  // ホーム画面追加ボタン共通ハンドラ（"📲 ホーム画面に追加"ボタンおよびNotifPromptModal後に使用）
+  const showInstallFlow = () => {
     try {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
       if (isStandalone) return;
     } catch(e) {}
     const ua = navigator.userAgent;
-    if (!/Android/i.test(ua)) return;
+    const isAndroid = /Android/i.test(ua);
+    if (!isAndroid) {
+      // iOS・PC: InstallBannerで対応
+      setShowInstallBanner(true);
+      return;
+    }
     const isChrome = /Chrome\//.test(ua) && !/SamsungBrowser\//.test(ua) && !/UCBrowser\//.test(ua) && !/HuaweiBrowser\//.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua) && !/Line\//i.test(ua);
     if (isChrome) {
-      // Chrome: install eventが取得済みの場合のみモーダル表示。未取得なら何もしない
       const ready = !!(installPromptEvent || window.__pwaInstallEvent);
-      if (!ready) return;
+      if (ready) {
+        // Chrome + インストールイベントあり: HomeScreenPromptModalでワンタップ追加
+        setShowHomeScreenPrompt(true);
+      } else {
+        // Chrome + インストールイベントなし（インストール済み等）: InstallBannerでメニュー案内
+        setShowInstallBanner(true);
+      }
+      return;
     }
+    // 非Chrome Android（Samsung/LINE等）: Chromeへ誘導モーダル
     setShowHomeScreenPrompt(true);
   };
+  const maybeShowHomeScreenPrompt = () => showInstallFlow();
 
   const NotifPromptModal = () => (
     <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.65)', zIndex: 6000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
@@ -2055,7 +2069,7 @@ if (role === 'clockin') {
               style={{ backgroundColor: notifEnabled ? '#FF9800' : '#9E9E9E', color: 'white', border: 'none', borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
               {notifEnabled ? '🔔 通知ON（タップでOFF）' : '🔕 通知OFF（タップでON）'}
             </button>
-            <button type="button" onClick={() => setShowInstallBanner(true)}
+            <button type="button" onClick={() => showInstallFlow()}
               style={{ background: 'none', border: '1px solid #1a73e8', color: '#1a73e8', borderRadius: '20px', padding: '3px 12px', fontSize: '12px', cursor: 'pointer' }}>
               📲 ホーム画面に追加
             </button>
@@ -2839,7 +2853,7 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
               style={{ backgroundColor: notifEnabled ? '#FF9800' : '#9E9E9E', color: 'white', border: 'none', borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
               {notifEnabled ? '🔔 通知ON（タップでOFF）' : '🔕 通知OFF（タップでON）'}
             </button>
-            <button type="button" onClick={() => setShowInstallBanner(true)}
+            <button type="button" onClick={() => showInstallFlow()}
               style={{ background: 'none', border: '1px solid #1a73e8', color: '#1a73e8', borderRadius: '20px', padding: '3px 12px', fontSize: '12px', cursor: 'pointer' }}>
               📲 ホーム画面に追加
             </button>
