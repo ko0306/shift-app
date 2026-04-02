@@ -553,20 +553,25 @@ const [showNotifList, setShowNotifList] = useState(false);
     if (role && loggedInManagerNumber) {
       fetchNotifHistory(loggedInManagerNumber);
     }
-    // push_subscriptions未登録かつ通知ONの場合 → トーストで登録を促す
+    // push_subscriptions未登録かつ通知ONの場合 → 自動登録を試みる
     // ※ AndroidではuseEffectからNotification.requestPermission()を呼べない（user gesture必須）ため
     //    ボタン押下時のregisterPushSilentに任せる
     if (role && loggedInManagerNumber && notifEnabled) {
-      supabase.from('push_subscriptions').select('manager_number')
-        .eq('manager_number', loggedInManagerNumber).limit(1)
-        .then(({ data }) => {
-          if (!data || data.length === 0) {
-            // PCなど自動登録できる環境では試みる
-            if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-              registerPushSilent(loggedInManagerNumber);
-            }
-          }
-        });
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+        if (isStandalone) {
+          // PWAとして起動中：サブスクリプションが変わっている可能性があるため常に再登録
+          registerPushSilent(loggedInManagerNumber);
+        } else {
+          supabase.from('push_subscriptions').select('manager_number')
+            .eq('manager_number', loggedInManagerNumber).limit(1)
+            .then(({ data }) => {
+              if (!data || data.length === 0) {
+                registerPushSilent(loggedInManagerNumber);
+              }
+            });
+        }
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role, loggedInManagerNumber]);
@@ -1194,17 +1199,10 @@ const handleSubmit = async () => {
       <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.65)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
         <div style={{ backgroundColor: 'white', borderRadius: '20px', padding: '1.8rem 1.6rem', maxWidth: '380px', width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
           <div style={{ fontSize: '3rem', marginBottom: '0.3rem' }}>📲</div>
-          <h3 style={{ margin: '0 0 0.6rem', fontSize: '1.2rem', color: '#1565C0' }}>ホーム画面に追加しよう</h3>
-          <div style={{ backgroundColor: '#F0F4FF', borderRadius: '12px', padding: '0.8rem 1rem', marginBottom: '1rem', textAlign: 'left' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '8px' }}>
-              <span style={{ fontSize: '18px' }}>🔔</span>
-              <span style={{ fontSize: '13px', color: '#333', lineHeight: 1.5 }}>シフトのお知らせを<strong>プッシュ通知</strong>で受け取れる</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-              <span style={{ fontSize: '18px' }}>🚀</span>
-              <span style={{ fontSize: '13px', color: '#333', lineHeight: 1.5 }}>リンクを開かずアイコンから<strong>すぐ起動</strong>できる</span>
-            </div>
-          </div>
+          <h3 style={{ margin: '0 0 0.4rem', fontSize: '1.2rem', color: '#1565C0' }}>ホーム画面に追加しよう</h3>
+          <p style={{ margin: '0 0 1rem', fontSize: '13px', color: '#555', lineHeight: 1.6 }}>
+            プッシュ通知が届くようになります。<br />アイコンからいつでも起動できます。
+          </p>
 
           {/* Android Chrome */}
           {isChromeMobile && (() => {
@@ -1220,9 +1218,13 @@ const handleSubmit = async () => {
             // beforeinstallpromptが発火しない場合（インストール済み等）→ Chromeメニューから直接追加
             return (
               <div style={{ marginBottom: '8px' }}>
+                <button type="button" onClick={() => window.location.reload()}
+                  style={{ width: '100%', padding: '16px', backgroundColor: '#E65100', color: 'white', border: 'none', borderRadius: '14px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '10px' }}>
+                  🔄 再読み込みして追加する
+                </button>
                 <div style={{ backgroundColor: '#E8F5E9', borderRadius: '12px', padding: '1rem', textAlign: 'left' }}>
-                  <p style={{ margin: '0 0 10px', fontSize: '14px', color: '#1B5E20', fontWeight: 'bold' }}>Chromeのメニューから追加してください</p>
-                  <p style={{ margin: '0 0 10px', fontSize: '13px', color: '#333' }}>① 右上の <strong style={{ fontSize: '18px' }}>⋮</strong> をタップ</p>
+                  <p style={{ margin: '0 0 10px', fontSize: '13px', color: '#1B5E20', fontWeight: 'bold' }}>うまくいかない場合：</p>
+                  <p style={{ margin: '0 0 6px', fontSize: '13px', color: '#333' }}>① 右上の <strong style={{ fontSize: '18px' }}>⋮</strong> をタップ</p>
                   <p style={{ margin: '0', fontSize: '13px', color: '#333' }}>②「<strong>ホーム画面に追加</strong>」をタップ</p>
                 </div>
               </div>
