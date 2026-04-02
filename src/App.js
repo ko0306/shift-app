@@ -1109,7 +1109,14 @@ const handleSubmit = async () => {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
       if (isStandalone) return;
     } catch(e) {}
-    if (!/Android/i.test(navigator.userAgent)) return;
+    const ua = navigator.userAgent;
+    if (!/Android/i.test(ua)) return;
+    const isChrome = /Chrome\//.test(ua) && !/SamsungBrowser\//.test(ua) && !/UCBrowser\//.test(ua) && !/HuaweiBrowser\//.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua) && !/Line\//i.test(ua);
+    if (isChrome) {
+      // Chrome: install eventが取得済みの場合のみモーダル表示。未取得なら何もしない
+      const ready = !!(installPromptEvent || window.__pwaInstallEvent);
+      if (!ready) return;
+    }
     setShowHomeScreenPrompt(true);
   };
 
@@ -1149,7 +1156,6 @@ const handleSubmit = async () => {
     const ua = navigator.userAgent;
     const isAndroid = /Android/i.test(ua);
     const isChromeMobile = isAndroid && /Chrome\//.test(ua) && !/SamsungBrowser\//.test(ua) && !/UCBrowser\//.test(ua) && !/HuaweiBrowser\//.test(ua) && !/Edg\//.test(ua) && !/OPR\//.test(ua) && !/Line\//i.test(ua);
-    const ready = !!(installPromptEvent || window.__pwaInstallEvent);
     const [done, setDone] = React.useState(false);
 
     const doInstall = async () => {
@@ -1186,27 +1192,6 @@ const handleSubmit = async () => {
             <button type="button" onClick={() => setShowHomeScreenPrompt(false)}
               style={{ width: '100%', padding: '14px', backgroundColor: '#2E7D32', color: 'white', border: 'none', borderRadius: '14px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>
               閉じる
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    // Chrome + beforeinstallprompt未発火（インストール済みなど）
-    if (isChromeMobile && !ready) {
-      return (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.65)', zIndex: 5500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '20px', padding: '1.8rem 1.6rem', maxWidth: '340px', width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '0.3rem' }}>📲</div>
-            <h3 style={{ margin: '0 0 0.6rem', fontSize: '1.15rem', color: '#1565C0' }}>ホーム画面に追加しよう</h3>
-            <div style={{ backgroundColor: '#E8F5E9', borderRadius: '12px', padding: '1rem', marginBottom: '1rem', textAlign: 'left' }}>
-              <p style={{ margin: '0 0 8px', fontSize: '14px', color: '#1B5E20', fontWeight: 'bold' }}>Chromeのメニューから追加してください</p>
-              <p style={{ margin: '0 0 6px', fontSize: '13px', color: '#333' }}>① 右上の <strong style={{ fontSize: '18px' }}>⋮</strong> をタップ</p>
-              <p style={{ margin: '0', fontSize: '13px', color: '#333' }}>②「<strong>ホーム画面に追加</strong>」をタップ</p>
-            </div>
-            <button type="button" onClick={dismiss}
-              style={{ width: '100%', padding: '11px', backgroundColor: '#f5f5f5', color: '#777', border: 'none', borderRadius: '14px', fontSize: '14px', cursor: 'pointer' }}>
-              後で
             </button>
           </div>
         </div>
