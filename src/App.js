@@ -213,10 +213,14 @@ const getHelpContent = (page, managerNumber = '') => {
 
         <h3 style={{ color: '#1976D2', marginTop: '1rem' }}>各ボタンの説明：</h3>
         <ul style={{ lineHeight: '2' }}>
-          <li><strong>新規提出</strong>：希望シフトを新しく提出します。開始日・終了日を選んで、日ごとに時間を入力します</li>
-          <li><strong>シフト変更</strong>：提出済みのシフトを修正します</li>
-          <li><strong>シフト確認</strong>：店長が作成した確定シフトを確認します</li>
-          <li><strong>就労時間</strong>：自分の勤務時間の実績を確認します</li>
+          <li><strong>📅 シフト関連</strong>：シフトに関するメニューを開きます
+            <ul style={{ paddingLeft: '1.2rem', lineHeight: '1.8' }}>
+              <li><strong>シフト提出</strong>：希望シフトを新しく提出します</li>
+              <li><strong>シフト変更</strong>：提出済みのシフトを修正します</li>
+              <li><strong>シフト確認</strong>：店長が作成した確定シフトを確認します</li>
+            </ul>
+          </li>
+          <li><strong>就労時間確認</strong>：自分の勤務時間の実績を確認します</li>
           <li><strong>お問い合わせ</strong>：問題や質問をフォームで送ることができます</li>
         </ul>
 
@@ -243,6 +247,7 @@ const getHelpContent = (page, managerNumber = '') => {
           <li><strong>開始日</strong>：シフト提出を始めたい日付を選択します</li>
           <li><strong>終了日</strong>：シフト提出を終わらせたい日付を選択します</li>
           <li><strong>次へ</strong>ボタンをクリックすると、日ごとの時間入力画面に進みます</li>
+          <li>または<strong>候補</strong>ボタンを押すと、店長が設定した提出期間の候補から選べます</li>
         </ol>
 
         <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
@@ -276,6 +281,39 @@ managerAuth: (
             <li>パスワードは店長のみが知っている番号です</li>
             <li>パスワードを忘れた場合はシステム管理者に連絡してください</li>
             <li>誤ったパスワードを入力するとエラーが表示されます</li>
+          </ul>
+        </div>
+      </div>
+    ),
+
+    managerMenu: (
+      <div>
+        <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>店長メニューの使い方</h2>
+        <div style={{ marginBottom: '1.5rem', backgroundColor: '#f5f5f5', padding: '1rem', borderRadius: '8px' }}>
+          <p style={{ fontSize: '14px', margin: 0 }}>🏪 シフト管理・勤怠管理・スタッフ登録などが行えます。</p>
+        </div>
+
+        <h3 style={{ color: '#1976D2', marginTop: '1rem' }}>各ボタンの説明：</h3>
+        <ul style={{ lineHeight: '2' }}>
+          <li><strong>📅 シフト関連</strong>：シフトに関するメニューを開きます
+            <ul style={{ paddingLeft: '1.2rem', lineHeight: '1.8' }}>
+              <li><strong>シフト期限設定</strong>：スタッフへのシフト提出期限を設定・通知します</li>
+              <li><strong>シフト作成</strong>：スタッフの希望をもとにシフトを作成します</li>
+              <li><strong>シフト確認</strong>：作成済みのシフトを確認します</li>
+              <li><strong>🆘 ヘルプ通知</strong>：緊急連絡やシフト提出のお願いを全員に送信します</li>
+            </ul>
+          </li>
+          <li><strong>勤怠管理</strong>：スタッフの打刻記録の確認・承認・修正ができます</li>
+          <li><strong>新人登録</strong>：新しいスタッフの管理番号とパスワードを登録します</li>
+          <li><strong>お問い合わせ</strong>：問題や質問をフォームで送ることができます</li>
+        </ul>
+
+        <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
+          <strong>💡 ポイント：</strong>
+          <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem', marginBottom: 0 }}>
+            <li>シフト作成はスタッフが希望を提出した後に行ってください</li>
+            <li>勤怠管理では修正申請の承認・拒否ができます</li>
+            <li>新人登録後はスタッフに管理番号とパスワードを伝えてください</li>
           </ul>
         </div>
       </div>

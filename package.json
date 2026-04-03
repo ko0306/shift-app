@@ -43,6 +43,8 @@
     ]
   },
   "devDependencies": {
+    "jimp": "^1.6.0",
+    "playwright": "^1.59.1",
     "pptxgenjs": "^4.0.1"
   }
 }
