@@ -546,10 +546,17 @@ const [showNotifList, setShowNotifList] = useState(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // スタッフログイン後：通知未設定なら促すプロンプトを表示
+  // スタッフログイン後：通知未設定 or PWA初回起動で未許可の場合にプロンプトを表示
   useEffect(() => {
     if (!isLoggedIn || role !== 'staff') return;
-    if (localStorage.getItem('notifEnabled') === null) {
+    const neverSet = localStorage.getItem('notifEnabled') === null;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+      || window.navigator.standalone;
+    const enabledButNotGranted = isStandalone
+      && localStorage.getItem('notifEnabled') === 'true'
+      && 'Notification' in window
+      && Notification.permission !== 'granted';
+    if (neverSet || enabledButNotGranted) {
       setShowNotifPrompt(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2155,16 +2162,16 @@ if (role === 'clockin') {
           ) : (
             <div className="button-row" style={{ flexDirection: 'column', gap: '1rem' }}>
               <button onClick={() => setManagerShiftSub(false)} style={{ backgroundColor: '#78909C', marginBottom: '0.5rem' }}>← 戻る</button>
-              <button onClick={() => setShowDeadlineModal(true)} style={{ backgroundColor: '#43A047' }}>シフト期限設定</button>
+              <button onClick={() => setShowDeadlineModal(true)} style={{ backgroundColor: '#0D47A1' }}>シフト期限設定</button>
               <button onClick={() => {
                 pushToHistory({ role, currentStep, managerAuth, managerStep: '', isLoggedIn: true });
                 setManagerStep('create');
-              }} style={{ backgroundColor: '#1E88E5' }}>シフト作成</button>
+              }} style={{ backgroundColor: '#1565C0' }}>シフト作成</button>
               <button onClick={() => {
                 pushToHistory({ role, currentStep, managerAuth, managerStep: '', isLoggedIn: true });
                 setManagerStep('view');
-              }} style={{ backgroundColor: '#1976D2' }}>シフト確認</button>
-              <button onClick={() => setShowHelpNotifModal(true)} style={{ backgroundColor: '#E53935' }}>🆘 ヘルプ通知</button>
+              }} style={{ backgroundColor: '#1E88E5' }}>シフト確認</button>
+              <button onClick={() => setShowHelpNotifModal(true)} style={{ backgroundColor: '#0277BD' }}>🆘 ヘルプ通知</button>
             </div>
           )}
 

@@ -1623,7 +1623,7 @@ if (!showTable) {
         <label>終了日:</label>
         <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={{ width: '100%', boxSizing: 'border-box' }} />
         <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <button onClick={fetchShiftData}>次へ</button>
+          <button onClick={() => fetchShiftData()}>次へ</button>
           <button onClick={handleOpenCandidateModal} style={{ padding: '0.6rem 1.2rem', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.95rem', fontWeight: 'bold', whiteSpace: 'nowrap', width: 'auto' }}>📋 候補</button>
         </div>
       </div>
