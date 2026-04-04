@@ -1369,6 +1369,17 @@ const handleNextDay = async () => {
     } catch (e) {
       console.error('保存に失敗しました:', e);
     }
+    // シフト確定通知を全スタッフに送信
+    try {
+      const notifTitle = 'シフトが確定しました';
+      const notifBody = `${startDate}〜${endDate} のシフトが確定しました。シフト確認からご確認ください。`;
+      await supabase.functions.invoke('send-push-notification', {
+        body: { title: notifTitle, body: notifBody },
+      });
+      await supabase.from('notifications').insert([{ title: notifTitle, body: notifBody }]);
+    } catch (e) {
+      console.error('シフト確定通知エラー:', e);
+    }
     alert('保存しました');
     setIsEditing(false);
     fetchShiftData();
