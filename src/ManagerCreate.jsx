@@ -750,7 +750,7 @@ const SettingsModal = ({ isOpen, onClose, settings, onSave }) => {
     </div>
   );
 };
-const CandidateModal = ({ isOpen, onClose, candidates, loading, error, onSelectAndCreate }) => {
+const CandidateModal = ({ isOpen, onClose, candidates, loading, error, onSelectAndCreate, drafts = [], onSelectDraft }) => {
   const [selected, setSelected] = useState(null);
   const [submissions, setSubmissions] = useState({});
   const [totalUsers, setTotalUsers] = useState(0);
@@ -818,6 +818,24 @@ const CandidateModal = ({ isOpen, onClose, candidates, loading, error, onSelectA
           <>
             {loading && <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>⏳ 読み込み中...</div>}
             {error && <div style={{ backgroundColor: '#ffebee', padding: '1rem', borderRadius: '8px', color: '#c62828' }}>⚠️ {error}</div>}
+            {drafts.length > 0 && (
+              <>
+                <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#E65100', marginBottom: '0.5rem' }}>🔄 途中まで作成</div>
+                {drafts.map((draft, i) => (
+                  <div key={i} onClick={() => onSelectDraft && onSelectDraft(draft)}
+                    style={{ border: '2px solid #FFE0B2', borderRadius: '8px', padding: '1rem', marginBottom: '0.75rem', cursor: 'pointer', backgroundColor: '#FFF8E1' }}
+                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#FFE0B2'}
+                    onMouseLeave={e => e.currentTarget.style.backgroundColor = '#FFF8E1'}
+                  >
+                    <div style={{ fontWeight: 'bold', color: '#E65100' }}>{draft.startDate} 〜 {draft.endDate}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.3rem' }}>
+                      📝 {draft.currentIndex + 1}日目まで作成済み → タップして続きから
+                    </div>
+                  </div>
+                ))}
+                <div style={{ borderTop: '1px solid #eee', marginBottom: '0.75rem' }} />
+              </>
+            )}
             {!loading && !error && (() => {
               const pending = candidates.filter(c => !c.isDone);
               const history = candidates.filter(c => c.isDone);
@@ -951,6 +969,18 @@ const [showSettingsModal, setShowSettingsModal] = useState(false);
 const [showSettingsTypeModal, setShowSettingsTypeModal] = useState(false);
 const [showRecruitmentModal, setShowRecruitmentModal] = useState(false);
 
+// ── 新規モーダル用 state ──
+const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+const [pendingNavTarget, setPendingNavTarget] = useState(null);
+const [showNotifyModal, setShowNotifyModal] = useState(false);
+const [notifyComment, setNotifyComment] = useState('');
+const [showDeleteDateConfirm, setShowDeleteDateConfirm] = useState(false);
+const [deleteDateIdx, setDeleteDateIdx] = useState(null);
+const [showOverwriteWarn, setShowOverwriteWarn] = useState(false);
+const [overwriteDates, setOverwriteDates] = useState([]);
+const [pendingFetchArgs, setPendingFetchArgs] = useState(null);
+const [localDraft, setLocalDraft] = useState(null);
+
 const [shiftSettings, setShiftSettings] = useState(() => {
   const saved = localStorage.getItem('shiftSettings');
   if (saved) {
@@ -965,6 +995,25 @@ const [shiftSettings, setShiftSettings] = useState(() => {
     defaultRole: '社員'
   };
 });
+// ── ドラフト管理 ──
+const DRAFT_KEY = 'shiftCreationDraft';
+const saveDraft = (idx) => {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({
+      startDate, endDate,
+      currentIndex: idx !== undefined ? idx : currentDateIndex,
+      savedAt: Date.now()
+    }));
+  } catch {}
+};
+const clearDraft = () => { try { localStorage.removeItem(DRAFT_KEY); } catch {} };
+const loadDraft = () => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch { return null; } };
+
+useEffect(() => {
+  if (isEditing && startDate && endDate) saveDraft(currentDateIndex);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [isEditing, currentDateIndex]);
+
 const fetchCandidates = async () => {
   setCandidateLoading(true);
   setCandidateError('');
@@ -986,8 +1035,8 @@ const fetchCandidates = async () => {
 };
 
 const handleOpenCandidateModal = () => {
+  setLocalDraft(loadDraft());
   setShowCandidateModal(true);
-  // すでにデータあれば再取得しない（プリフェッチ済みの場合）
   if (candidates.length === 0 && !candidateLoading) fetchCandidates();
 };
 const handleSelectAndCreate = async (candidate) => {
@@ -1053,7 +1102,7 @@ useEffect(() => {
     };
   };
 
-  const fetchShiftData = async (overrideStart, overrideEnd) => {
+  const fetchShiftData = async (overrideStart, overrideEnd, resumeIndex) => {
     const sd = overrideStart || startDate;
     const ed = overrideEnd || endDate;
     if (!sd || !ed || sd > ed) {
@@ -1132,11 +1181,37 @@ useEffect(() => {
       setUserMap(userMapTemp);
       setShiftData(filteredShifts);
       setShowTable(true);
+      if (resumeIndex !== undefined) {
+        const safeIdx = Math.min(resumeIndex, allDates.length - 1);
+        setTimeout(() => handleEditStart(safeIdx, allDates), 0);
+      }
 
     } catch (error) {
       console.error('データ処理エラー:', error);
       alert('データ処理中にエラーが発生しました');
     }
+  };
+
+  // 上書き確認付き fetchShiftData
+  const checkOverwriteAndFetch = async (overrideStart, overrideEnd, resumeIndex) => {
+    const sd = overrideStart || startDate;
+    const ed = overrideEnd || endDate;
+    if (!sd || !ed || sd > ed) { alert('開始日と終了日を正しく入力してください'); return; }
+    const { data: existing } = await supabase.from('final_shifts').select('date').gte('date', sd).lte('date', ed);
+    const existingDts = [...new Set((existing || []).map(r => r.date))].sort();
+    if (existingDts.length > 0) {
+      setOverwriteDates(existingDts);
+      setPendingFetchArgs({ overrideStart: sd, overrideEnd: ed, resumeIndex });
+      setShowOverwriteWarn(true);
+      return;
+    }
+    await fetchShiftData(sd, ed, resumeIndex);
+  };
+
+  // ドラフトから続きを開始
+  const handleSelectDraft = async (draft) => {
+    setShowCandidateModal(false);
+    await fetchShiftData(draft.startDate, draft.endDate, draft.currentIndex);
   };
 
   const groupedByUser = {};
@@ -1166,8 +1241,9 @@ shiftData.forEach(shift => {
     return slots;
   };
 
-const handleEditStart = async (dateIndex = 0) => {
-  const date = dates[dateIndex];
+const handleEditStart = async (dateIndex = 0, datesOverride) => {
+  const datesArr = datesOverride || dates;
+  const date = datesArr[dateIndex];
   setSelectedDate(date);
   setCurrentDateIndex(dateIndex);
 
@@ -1214,9 +1290,27 @@ role: shift.role || shiftSettings.defaultRole,
 };
 
   const handleDateSelect = (dateIndex) => {
-    setCurrentDateIndex(dateIndex);
-    handleEditStart(dateIndex);
+    if (dateIndex === currentDateIndex) { setShowDateDropdown(false); return; }
     setShowDateDropdown(false);
+    setPendingNavTarget({ index: dateIndex });
+    setShowSaveConfirm(true);
+  };
+
+  const handleDeleteDate = (idx) => {
+    setDeleteDateIdx(idx);
+    setShowDeleteDateConfirm(true);
+    setShowDateDropdown(false);
+  };
+
+  const confirmDeleteDate = () => {
+    const newDates = dates.slice(0, deleteDateIdx);
+    setDates(newDates);
+    if (newDates.length > 0) setEndDate(newDates[newDates.length - 1]);
+    const newIdx = Math.min(currentDateIndex, newDates.length - 1);
+    setCurrentDateIndex(newIdx);
+    if (newDates.length > 0) handleEditStart(newIdx, newDates);
+    setShowDeleteDateConfirm(false);
+    setDeleteDateIdx(null);
   };
 
   const handleCheckboxChange = (index, checked) => {
@@ -1335,56 +1429,59 @@ const handleStoreSelect = (index, value) => {
   }
 };
 
-  const handlePreviousDay = async () => {
-  if (currentDateIndex > 0) {
-    const saveSuccess = await handleSave();
-    if (saveSuccess) {
-      await handleEditStart(currentDateIndex - 1);  // ← await追加
+  const executePendingNav = async (shouldSave) => {
+    const target = pendingNavTarget;
+    setShowSaveConfirm(false);
+    setPendingNavTarget(null);
+    if (!target) return;
+    if (shouldSave) {
+      const ok = await handleSave();
+      if (!ok) return;
     }
-  }
-};
+    saveDraft(target.index);
+    await handleEditStart(target.index);
+  };
 
-const handleNextDay = async () => {
-  if (currentDateIndex < dates.length - 1) {
-    const saveSuccess = await handleSave();
-    if (saveSuccess) {
-      await handleEditStart(currentDateIndex + 1);  // ← await追加
+  const handlePreviousDay = () => {
+    if (currentDateIndex > 0) {
+      setPendingNavTarget({ index: currentDateIndex - 1 });
+      setShowSaveConfirm(true);
     }
-  }
-};
+  };
+
+  const handleNextDay = () => {
+    if (currentDateIndex < dates.length - 1) {
+      setPendingNavTarget({ index: currentDateIndex + 1 });
+      setShowSaveConfirm(true);
+    }
+  };
 
   const handleSaveAndExit = async () => {
-  const saveSuccess = await handleSave();
-  if (saveSuccess) {
-    // 済をGASに書き込む
-    try {
-      await fetch(GAS_URL, {
-        method: 'POST',
-        body: JSON.stringify({
-          managerNumber: MANAGER_NUMBER,
-          start: startDate,
-          end: endDate
-        })
-      });
-    } catch (e) {
-      console.error('保存に失敗しました:', e);
+    const saveSuccess = await handleSave();
+    if (saveSuccess) {
+      setNotifyComment('');
+      setShowNotifyModal(true);
     }
-    // シフト確定通知を全スタッフに送信
+  };
+
+  const finishShiftCreation = async (sendNotif) => {
+    setShowNotifyModal(false);
     try {
-      const notifTitle = 'シフトが確定しました';
-      const notifBody = `${startDate}〜${endDate} のシフトが確定しました。シフト確認からご確認ください。`;
-      await supabase.functions.invoke('send-push-notification', {
-        body: { title: notifTitle, body: notifBody },
-      });
-      await supabase.from('notifications').insert([{ title: notifTitle, body: notifBody }]);
-    } catch (e) {
-      console.error('シフト確定通知エラー:', e);
+      await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ managerNumber: MANAGER_NUMBER, start: startDate, end: endDate }) });
+    } catch {}
+    if (sendNotif) {
+      try {
+        const notifTitle = 'シフトが確定しました';
+        const notifBody = `${startDate}〜${endDate} のシフトが確定しました。${notifyComment ? notifyComment + ' ' : ''}シフト確認からご確認ください。`;
+        await supabase.functions.invoke('send-push-notification', { body: { title: notifTitle, body: notifBody } });
+        await supabase.from('notifications').insert([{ title: notifTitle, body: notifBody }]);
+      } catch (e) { console.error('通知エラー:', e); }
     }
-    alert('保存しました');
+    clearDraft();
+    alert(sendNotif ? '保存・通知しました' : '保存しました');
     setIsEditing(false);
     fetchShiftData();
-  }
-};
+  };
 
 
 
@@ -1527,7 +1624,7 @@ if (!showTable) {
   return (
     <div className="login-wrapper" style={{ padding: '1rem', boxSizing: 'border-box' }}>
       <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage)} />
-      <CandidateModal isOpen={showCandidateModal} onClose={() => setShowCandidateModal(false)} candidates={candidates} loading={candidateLoading} error={candidateError} onSelectAndCreate={handleSelectAndCreate} />
+      <CandidateModal isOpen={showCandidateModal} onClose={() => setShowCandidateModal(false)} candidates={candidates} loading={candidateLoading} error={candidateError} onSelectAndCreate={handleSelectAndCreate} drafts={localDraft ? [localDraft] : []} onSelectDraft={handleSelectDraft} />
 
 <SettingsModal
   isOpen={showSettingsModal}
@@ -1600,6 +1697,24 @@ if (!showTable) {
   </div>
 )}
 
+      {showOverwriteWarn && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.65)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', maxWidth: '360px', width: '100%' }}>
+            <h3 style={{ margin: '0 0 0.75rem', color: '#E65100' }}>⚠️ 上書き確認</h3>
+            <p style={{ fontSize: '0.9rem', color: '#555', marginBottom: '0.5rem' }}>以下の日付はすでにシフトが作成されています。新たに作成するとデータが上書きされます。よろしいですか？</p>
+            <div style={{ backgroundColor: '#FFF3E0', borderRadius: '8px', padding: '0.75rem', marginBottom: '1rem', maxHeight: '150px', overflowY: 'auto' }}>
+              {overwriteDates.map(d => <div key={d} style={{ fontSize: '0.85rem', color: '#E65100' }}>・{d}</div>)}
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button onClick={async () => { setShowOverwriteWarn(false); if (pendingFetchArgs) await fetchShiftData(pendingFetchArgs.overrideStart, pendingFetchArgs.overrideEnd, pendingFetchArgs.resumeIndex); setPendingFetchArgs(null); }}
+                style={{ flex: 1, padding: '0.75rem', backgroundColor: '#E65100', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>はい（上書き）</button>
+              <button onClick={() => { setShowOverwriteWarn(false); setPendingFetchArgs(null); }}
+                style={{ flex: 1, padding: '0.75rem', backgroundColor: '#eee', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>いいえ</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <HelpButton onClick={() => {
         setCurrentHelpPage('shiftCreate');
         setShowHelp(true);
@@ -1634,7 +1749,7 @@ if (!showTable) {
         <label>終了日:</label>
         <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={{ width: '100%', boxSizing: 'border-box' }} />
         <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <button onClick={() => fetchShiftData()}>次へ</button>
+          <button onClick={() => checkOverwriteAndFetch()}>次へ</button>
           <button onClick={handleOpenCandidateModal} style={{ padding: '0.6rem 1.2rem', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.95rem', fontWeight: 'bold', whiteSpace: 'nowrap', width: 'auto' }}>📋 候補</button>
         </div>
       </div>
@@ -1686,6 +1801,51 @@ if (!showTable) {
             `}</style>
           </div>
         )}
+        {/* 保存確認モーダル */}
+        {showSaveConfirm && (
+          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+            <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', maxWidth: '320px', width: '100%', textAlign: 'center' }}>
+              <div style={{ fontSize: '1.8rem', marginBottom: '0.5rem' }}>💾</div>
+              <h3 style={{ margin: '0 0 1rem', color: '#1565C0' }}>この日のシフトを保存しますか？</h3>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button onClick={() => executePendingNav(true)} style={{ flex: 1, padding: '0.75rem', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>はい</button>
+                <button onClick={() => executePendingNav(false)} style={{ flex: 1, padding: '0.75rem', backgroundColor: '#eee', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>いいえ</button>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* 通知確認モーダル */}
+        {showNotifyModal && (
+          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+            <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', maxWidth: '340px', width: '100%' }}>
+              <div style={{ fontSize: '1.8rem', textAlign: 'center', marginBottom: '0.5rem' }}>🔔</div>
+              <h3 style={{ margin: '0 0 0.5rem', textAlign: 'center', color: '#1565C0' }}>アルバイトに通知しますか？</h3>
+              <p style={{ fontSize: '0.85rem', color: '#666', margin: '0 0 1rem', textAlign: 'center' }}>{startDate}〜{endDate} のシフト確定を通知します</p>
+              <textarea value={notifyComment} onChange={e => setNotifyComment(e.target.value)}
+                placeholder="コメントを追加（任意）"
+                style={{ width: '100%', minHeight: '70px', padding: '0.6rem', borderRadius: '8px', border: '1px solid #ddd', fontSize: '0.9rem', marginBottom: '1rem', boxSizing: 'border-box', resize: 'vertical' }} />
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button onClick={() => finishShiftCreation(true)} style={{ flex: 1, padding: '0.75rem', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>はい（通知する）</button>
+                <button onClick={() => finishShiftCreation(false)} style={{ flex: 1, padding: '0.75rem', backgroundColor: '#eee', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>いいえ</button>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* 日付削除確認モーダル */}
+        {showDeleteDateConfirm && deleteDateIdx !== null && (
+          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+            <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', maxWidth: '320px', width: '100%', textAlign: 'center' }}>
+              <h3 style={{ margin: '0 0 0.75rem', color: '#E53935' }}>⚠️ 日付の削除</h3>
+              <p style={{ fontSize: '0.9rem', color: '#555', marginBottom: '1rem' }}>
+                <strong>{dates[deleteDateIdx]}</strong> 以降の日付がすべて削除されます。よろしいですか？
+              </p>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button onClick={confirmDeleteDate} style={{ flex: 1, padding: '0.75rem', backgroundColor: '#E53935', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>はい（削除）</button>
+                <button onClick={() => { setShowDeleteDateConfirm(false); setDeleteDateIdx(null); }} style={{ flex: 1, padding: '0.75rem', backgroundColor: '#eee', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>いいえ</button>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="login-card" style={{ position: 'relative', width: '100%', height: '100%', boxSizing: 'border-box', padding: '1rem' }}>
           <div style={{ position: 'absolute', top: '0.5rem', left: '0.5rem', right: '0.5rem', display: 'flex', justifyContent: 'space-between', zIndex: 10, gap: '0.5rem' }}>
             {currentDateIndex > 0 ? (
@@ -1727,17 +1887,21 @@ if (!showTable) {
                 {dates.map((date, index) => (
                   <div
                     key={date}
-                    onClick={() => handleDateSelect(index)}
                     style={{
-                      padding: '0.5rem 1rem',
+                      padding: '0.4rem 0.75rem',
                       cursor: 'pointer',
                       backgroundColor: index === currentDateIndex ? '#f0f0f0' : 'white',
-                      borderBottom: index < dates.length - 1 ? '1px solid #eee' : 'none'
+                      borderBottom: index < dates.length - 1 ? '1px solid #eee' : 'none',
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                     }}
-                    onMouseOver={(e) => e.target.style.backgroundColor = '#f5f5f5'}
-                    onMouseOut={(e) => e.target.style.backgroundColor = index === currentDateIndex ? '#f0f0f0' : 'white'}
                   >
-                    {formatDateWithDay(date)}
+                    <span onClick={() => handleDateSelect(index)} style={{ flex: 1, padding: '0.1rem 0' }}>
+                      {formatDateWithDay(date)}
+                    </span>
+                    <button
+                      onClick={e => { e.stopPropagation(); handleDeleteDate(index); }}
+                      style={{ background: 'none', border: 'none', color: '#999', fontSize: '1rem', cursor: 'pointer', padding: '0 0.25rem', lineHeight: 1 }}
+                    >×</button>
                   </div>
                 ))}
               </div>
@@ -1973,9 +2137,12 @@ const inRequest = isFreeDay ? true : (slot >= originalStartStr && slot < origina
           
         
 <div style={{ marginTop: '1rem', textAlign: 'center', paddingBottom: '1rem', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-  <button onClick={handleSaveAndExit} className="save-button-small" style={{ padding: '0.5rem 1.5rem', fontSize: '0.9rem' ,}}>
-    確定
-  </button>
+  {currentDateIndex === dates.length - 1 && dates.length > 0 && (
+    <button onClick={handleSaveAndExit} className="save-button-small"
+      style={{ padding: '0.5rem 1.5rem', fontSize: '0.9rem', backgroundColor: '#43A047', color: 'white' }}>
+      確定
+    </button>
+  )}
   <button 
     onClick={() => setShowStaffAddModal(true)} 
     className="save-button-small"
