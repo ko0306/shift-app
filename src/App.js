@@ -2296,33 +2296,45 @@ if (role === 'clockin') {
             </div>
           )}
           {!managerShiftSub ? (
-            <div className="button-row" style={{ flexDirection: 'column', gap: '1rem' }}>
-              <button onClick={() => setManagerShiftSub(true)} style={{ backgroundColor: '#43A047' }}>📅 シフト関連</button>
-              <button onClick={() => {
-                pushToHistory({ role, currentStep, managerAuth, managerStep: '', isLoggedIn: true });
-                setManagerStep('attendance');
-              }} style={{ backgroundColor: '#0D47A1' }}>勤怠管理</button>
-              <button onClick={() => {
-                pushToHistory({ role, currentStep, managerAuth, managerStep: '', isLoggedIn: true });
-                setManagerStep('register');
-              }} style={{ backgroundColor: '#1554A5' }}>新人登録</button>
-              <button onClick={() => {
-                window.open('https://docs.google.com/forms/d/e/1FAIpQLSci0UYQ7BKfXjhVj8x3WBR5ncFxxCo_lsV11kY5TaI15wlKSQ/viewform?usp=header', '_blank');
-              }} style={{ backgroundColor: '#1565C0' }}>お問い合わせ</button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
+              <button onClick={() => setManagerShiftSub(true)} style={{ backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '14px', padding: '0.9rem 1.1rem', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.8rem', width: '100%', marginTop: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+                <span style={{ fontSize: '1.7rem', minWidth: '2rem', textAlign: 'center' }}>📅</span>
+                <span><div style={{ fontSize: '1rem', fontWeight: 'bold' }}>シフト関連</div><div style={{ fontSize: '0.73rem', opacity: 0.9, marginTop: '2px' }}>作成・確認・期限設定・ヘルプ</div></span>
+              </button>
+              <button onClick={() => { pushToHistory({ role, currentStep, managerAuth, managerStep: '', isLoggedIn: true }); setManagerStep('attendance'); }} style={{ backgroundColor: '#00695C', color: 'white', border: 'none', borderRadius: '14px', padding: '0.9rem 1.1rem', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.8rem', width: '100%', marginTop: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+                <span style={{ fontSize: '1.7rem', minWidth: '2rem', textAlign: 'center' }}>📊</span>
+                <span><div style={{ fontSize: '1rem', fontWeight: 'bold' }}>勤怠管理</div><div style={{ fontSize: '0.73rem', opacity: 0.9, marginTop: '2px' }}>出勤・退勤・承認</div></span>
+              </button>
+              <button onClick={() => { pushToHistory({ role, currentStep, managerAuth, managerStep: '', isLoggedIn: true }); setManagerStep('register'); }} style={{ backgroundColor: '#6A1B9A', color: 'white', border: 'none', borderRadius: '14px', padding: '0.9rem 1.1rem', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.8rem', width: '100%', marginTop: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+                <span style={{ fontSize: '1.7rem', minWidth: '2rem', textAlign: 'center' }}>👤</span>
+                <span><div style={{ fontSize: '1rem', fontWeight: 'bold' }}>新人登録</div><div style={{ fontSize: '0.73rem', opacity: 0.9, marginTop: '2px' }}>スタッフの追加・パスワード設定</div></span>
+              </button>
+              <button onClick={() => { window.open('https://docs.google.com/forms/d/e/1FAIpQLSci0UYQ7BKfXjhVj8x3WBR5ncFxxCo_lsV11kY5TaI15wlKSQ/viewform?usp=header', '_blank'); }} style={{ backgroundColor: '#546E7A', color: 'white', border: 'none', borderRadius: '14px', padding: '0.9rem 1.1rem', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.8rem', width: '100%', marginTop: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+                <span style={{ fontSize: '1.7rem', minWidth: '2rem', textAlign: 'center' }}>💬</span>
+                <span><div style={{ fontSize: '1rem', fontWeight: 'bold' }}>お問い合わせ</div><div style={{ fontSize: '0.73rem', opacity: 0.9, marginTop: '2px' }}>不具合・ご要望はこちら</div></span>
+              </button>
             </div>
           ) : (
-            <div className="button-row" style={{ flexDirection: 'column', gap: '1rem' }}>
-              <button onClick={() => setManagerShiftSub(false)} style={{ backgroundColor: '#78909C', marginBottom: '0.5rem' }}>← 戻る</button>
-              <button onClick={() => setShowDeadlineModal(true)} style={{ backgroundColor: '#0D47A1' }}>シフト期限設定</button>
-              <button onClick={() => {
-                pushToHistory({ role, currentStep, managerAuth, managerStep: '', isLoggedIn: true });
-                setManagerStep('create');
-              }} style={{ backgroundColor: '#1565C0' }}>シフト作成</button>
-              <button onClick={() => {
-                pushToHistory({ role, currentStep, managerAuth, managerStep: '', isLoggedIn: true });
-                setManagerStep('view');
-              }} style={{ backgroundColor: '#1E88E5' }}>シフト確認</button>
-              <button onClick={() => setShowHelpNotifModal(true)} style={{ backgroundColor: '#0277BD' }}>🆘 ヘルプ通知</button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
+              <button onClick={() => setManagerShiftSub(false)} style={{ backgroundColor: '#78909C', color: 'white', border: 'none', borderRadius: '10px', padding: '0.6rem 1rem', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', marginTop: 0, fontSize: '0.9rem', fontWeight: 'bold' }}>
+                ← 戻る
+              </button>
+              <button onClick={() => setShowDeadlineModal(true)} style={{ backgroundColor: '#E65100', color: 'white', border: 'none', borderRadius: '14px', padding: '0.9rem 1.1rem', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.8rem', width: '100%', marginTop: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+                <span style={{ fontSize: '1.7rem', minWidth: '2rem', textAlign: 'center' }}>📢</span>
+                <span><div style={{ fontSize: '1rem', fontWeight: 'bold' }}>シフト期限設定</div><div style={{ fontSize: '0.73rem', opacity: 0.9, marginTop: '2px' }}>提出期限をスタッフへ通知</div></span>
+              </button>
+              <button onClick={() => { pushToHistory({ role, currentStep, managerAuth, managerStep: '', isLoggedIn: true }); setManagerStep('create'); }} style={{ backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '14px', padding: '0.9rem 1.1rem', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.8rem', width: '100%', marginTop: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+                <span style={{ fontSize: '1.7rem', minWidth: '2rem', textAlign: 'center' }}>✏️</span>
+                <span><div style={{ fontSize: '1rem', fontWeight: 'bold' }}>シフト作成</div><div style={{ fontSize: '0.73rem', opacity: 0.9, marginTop: '2px' }}>シフト表を作成・編集する</div></span>
+              </button>
+              <button onClick={() => { pushToHistory({ role, currentStep, managerAuth, managerStep: '', isLoggedIn: true }); setManagerStep('view'); }} style={{ backgroundColor: '#2E7D32', color: 'white', border: 'none', borderRadius: '14px', padding: '0.9rem 1.1rem', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.8rem', width: '100%', marginTop: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+                <span style={{ fontSize: '1.7rem', minWidth: '2rem', textAlign: 'center' }}>📋</span>
+                <span><div style={{ fontSize: '1rem', fontWeight: 'bold' }}>シフト確認</div><div style={{ fontSize: '0.73rem', opacity: 0.9, marginTop: '2px' }}>作成済みシフトを表示</div></span>
+              </button>
+              <button onClick={() => setShowHelpNotifModal(true)} style={{ backgroundColor: '#B71C1C', color: 'white', border: 'none', borderRadius: '14px', padding: '0.9rem 1.1rem', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.8rem', width: '100%', marginTop: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+                <span style={{ fontSize: '1.7rem', minWidth: '2rem', textAlign: 'center' }}>🆘</span>
+                <span><div style={{ fontSize: '1rem', fontWeight: 'bold' }}>ヘルプ通知</div><div style={{ fontSize: '0.73rem', opacity: 0.9, marginTop: '2px' }}>急な人手不足を全員へ通知</div></span>
+              </button>
             </div>
           )}
 
@@ -2335,7 +2347,7 @@ if (role === 'clockin') {
             setManagerShiftSub(false);
             resetAllInputs();
             setNavigationHistory([]);
-          }} style={{ backgroundColor: '#FF5722', marginTop: '1rem' }}>ログアウト</button>
+          }} style={{ backgroundColor: '#B0BEC5', color: '#37474F', border: 'none', borderRadius: '10px', padding: '0.6rem', width: '100%', marginTop: '1rem', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 'bold' }}>ログアウト</button>
         </div>
       </div>
     );
@@ -3092,32 +3104,52 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
             </div>
           )}
           {!staffShiftSub ? (
-            <div className="button-row" style={{ flexDirection: 'column', gap: '1rem' }}>
-              <button onClick={() => setStaffShiftSub(true)} style={{ backgroundColor: '#1E88E5' }}>📅 シフト関連</button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+              <button onClick={() => setStaffShiftSub(true)} style={{ backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '14px', padding: '1rem 1.2rem', fontSize: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.8rem', textAlign: 'left', width: '100%' }}>
+                <span style={{ fontSize: '1.6rem', lineHeight: 1 }}>📅</span>
+                <span><div style={{ fontWeight: 'bold', fontSize: '1rem' }}>シフト関連</div><div style={{ fontSize: '0.73rem', opacity: 0.85, marginTop: '2px' }}>提出・変更・確認</div></span>
+              </button>
               <button onClick={() => {
                 pushToHistory({ role, currentStep: '', managerAuth, managerStep, isLoggedIn: true });
                 setCurrentStep('workHours');
-              }} style={{ backgroundColor: '#0D47A1' }}>就労時間確認</button>
+              }} style={{ backgroundColor: '#00695C', color: 'white', border: 'none', borderRadius: '14px', padding: '1rem 1.2rem', fontSize: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.8rem', textAlign: 'left', width: '100%' }}>
+                <span style={{ fontSize: '1.6rem', lineHeight: 1 }}>⏱</span>
+                <span><div style={{ fontWeight: 'bold', fontSize: '1rem' }}>就労時間確認</div><div style={{ fontSize: '0.73rem', opacity: 0.85, marginTop: '2px' }}>今月の勤務時間を確認</div></span>
+              </button>
               <button onClick={() => {
                 window.open('https://docs.google.com/forms/d/e/1FAIpQLSci0UYQ7BKfXjhVj8x3WBR5ncFxxCo_lsV11kY5TaI15wlKSQ/viewform?usp=header', '_blank');
-              }} style={{ backgroundColor: '#1554A5' }}>お問い合わせ</button>
+              }} style={{ backgroundColor: '#546E7A', color: 'white', border: 'none', borderRadius: '14px', padding: '1rem 1.2rem', fontSize: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.8rem', textAlign: 'left', width: '100%' }}>
+                <span style={{ fontSize: '1.6rem', lineHeight: 1 }}>💬</span>
+                <span><div style={{ fontWeight: 'bold', fontSize: '1rem' }}>お問い合わせ</div><div style={{ fontSize: '0.73rem', opacity: 0.85, marginTop: '2px' }}>不具合・ご要望はこちら</div></span>
+              </button>
             </div>
           ) : (
-            <div className="button-row" style={{ flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
               <button onClick={() => setStaffShiftSub(false)}
-                style={{ backgroundColor: '#78909C', marginBottom: '0.5rem' }}>← 戻る</button>
+                style={{ backgroundColor: '#78909C', color: 'white', border: 'none', borderRadius: '14px', padding: '0.8rem 1.2rem', fontSize: '0.95rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.6rem', width: '100%' }}>
+                <span>←</span><span style={{ fontWeight: 'bold' }}>戻る</span>
+              </button>
               <button onClick={() => {
                 pushToHistory({ role, currentStep: '', managerAuth, managerStep, isLoggedIn: true });
                 setCurrentStep('shiftPeriod');
-              }} style={{ backgroundColor: '#1E88E5' }}>シフト提出</button>
+              }} style={{ backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '14px', padding: '1rem 1.2rem', fontSize: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.8rem', textAlign: 'left', width: '100%' }}>
+                <span style={{ fontSize: '1.6rem', lineHeight: 1 }}>📝</span>
+                <span><div style={{ fontWeight: 'bold', fontSize: '1rem' }}>シフト提出</div><div style={{ fontSize: '0.73rem', opacity: 0.85, marginTop: '2px' }}>シフト希望を提出する</div></span>
+              </button>
               <button onClick={() => {
                 pushToHistory({ role, currentStep: '', managerAuth, managerStep, isLoggedIn: true });
                 setCurrentStep('shiftEdit');
-              }} style={{ backgroundColor: '#FF7043' }}>シフト変更</button>
+              }} style={{ backgroundColor: '#E65100', color: 'white', border: 'none', borderRadius: '14px', padding: '1rem 1.2rem', fontSize: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.8rem', textAlign: 'left', width: '100%' }}>
+                <span style={{ fontSize: '1.6rem', lineHeight: 1 }}>✏️</span>
+                <span><div style={{ fontWeight: 'bold', fontSize: '1rem' }}>シフト変更</div><div style={{ fontSize: '0.73rem', opacity: 0.85, marginTop: '2px' }}>提出済みのシフトを変更</div></span>
+              </button>
               <button onClick={() => {
                 pushToHistory({ role, currentStep: '', managerAuth, managerStep, isLoggedIn: true });
                 setCurrentStep('shiftView');
-              }} style={{ backgroundColor: '#43A047' }}>シフト確認</button>
+              }} style={{ backgroundColor: '#2E7D32', color: 'white', border: 'none', borderRadius: '14px', padding: '1rem 1.2rem', fontSize: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.8rem', textAlign: 'left', width: '100%' }}>
+                <span style={{ fontSize: '1.6rem', lineHeight: 1 }}>📋</span>
+                <span><div style={{ fontWeight: 'bold', fontSize: '1rem' }}>シフト確認</div><div style={{ fontSize: '0.73rem', opacity: 0.85, marginTop: '2px' }}>確定シフトを確認する</div></span>
+              </button>
             </div>
           )}
           <button onClick={() => {
@@ -3129,7 +3161,7 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
             setStaffShiftSub(false);
             resetAllInputs();
             setNavigationHistory([]);
-          }} style={{ backgroundColor: '#FF5722', marginTop: '1rem' }}>ログアウト</button>
+          }} style={{ backgroundColor: '#B0BEC5', color: '#37474F', border: 'none', borderRadius: '14px', padding: '0.75rem 1.2rem', fontSize: '0.9rem', cursor: 'pointer', marginTop: '1rem', width: '100%', fontWeight: 'bold' }}>ログアウト</button>
         </div>
       </div>
     );
