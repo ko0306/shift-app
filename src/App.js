@@ -417,6 +417,7 @@ const [managerShiftSub, setManagerShiftSub] = useState(false);
 const [showHelpNotifModal, setShowHelpNotifModal] = useState(false);
 const [notifEnabled, setNotifEnabled] = useState(() => localStorage.getItem('notifEnabled') === 'true');
 const [showNotifPrompt, setShowNotifPrompt] = useState(false);
+const [showPushDebug, setShowPushDebug] = useState(false);
 const [showHomeScreenPrompt, setShowHomeScreenPrompt] = useState(false);
 const [notifToast, setNotifToast] = useState('');
 const [notifHistory, setNotifHistory] = useState([]);
@@ -658,14 +659,17 @@ const [showNotifList, setShowNotifList] = useState(false);
 
   // プッシュ通知を登録（ボタンON時に呼び出す）
   const registerPushSilent = async (managerNum) => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      showNotifToast('⚠️ このブラウザはプッシュ通知に対応していません');
+      return false;
+    }
     try {
       const permission = await Notification.requestPermission();
       if (permission === 'denied') {
         showNotifToast('⚠️ ブラウザの設定で通知を許可してください');
-        return;
+        return false;
       }
-      if (permission !== 'granted') return;
+      if (permission !== 'granted') return false;
       const reg = await navigator.serviceWorker.ready;
       const existing = await reg.pushManager.getSubscription();
       if (existing) await existing.unsubscribe();
@@ -673,13 +677,20 @@ const [showNotifList, setShowNotifList] = useState(false);
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       });
-      await supabase.from('push_subscriptions').upsert(
+      const { error: dbErr } = await supabase.from('push_subscriptions').upsert(
         { manager_number: managerNum, subscription: JSON.stringify(sub.toJSON()) },
         { onConflict: 'manager_number' }
       );
+      if (dbErr) {
+        showNotifToast('❌ DB保存エラー: ' + dbErr.message);
+        return false;
+      }
       showNotifToast('✅ プッシュ通知の登録が完了しました');
+      return true;
     } catch (e) {
       console.error('プッシュ登録エラー:', e);
+      showNotifToast('❌ 登録エラー: ' + (e?.message || String(e)));
+      return false;
     }
   };
 
@@ -1192,10 +1203,10 @@ const handleSubmit = async () => {
           シフトの締め切りやお知らせを<br />プッシュ通知でお届けします。
         </p>
         <button type="button" onClick={async () => {
-          setShowNotifPrompt(false);
           setNotifEnabled(true);
           localStorage.setItem('notifEnabled', 'true');
-          await registerPushSilent(loggedInManagerNumber);
+          const ok = await registerPushSilent(loggedInManagerNumber);
+          if (ok) setShowNotifPrompt(false);
           maybeShowHomeScreenPrompt();
         }}
           style={{ width: '100%', padding: '14px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '14px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '10px' }}>
@@ -1991,6 +2002,111 @@ if (role === 'clockin') {
     );
   };
 
+  // ========== 通知診断モーダル ==========
+  const PushDebugModal = () => {
+    const [subs, setSubs] = React.useState(null);
+    const [loading, setLoading] = React.useState(false);
+    const [testMsg, setTestMsg] = React.useState('');
+    const [mySubStatus, setMySubStatus] = React.useState('');
+
+    React.useEffect(() => {
+      const load = async () => {
+        setLoading(true);
+        const { data, error } = await supabase.from('push_subscriptions').select('manager_number, created_at');
+        setSubs(error ? [] : (data || []));
+        setLoading(false);
+      };
+      load();
+      // 自分のSW購読状況確認
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        navigator.serviceWorker.ready.then(reg =>
+          reg.pushManager.getSubscription().then(sub => {
+            setMySubStatus(sub ? '✅ このデバイスはSW購読済み' : '❌ このデバイスはSW未購読');
+          })
+        ).catch(() => setMySubStatus('⚠️ SW確認エラー'));
+      } else {
+        setMySubStatus('⚠️ PushManager非対応ブラウザ');
+      }
+    }, []);
+
+    const sendTest = async () => {
+      setTestMsg('送信中...');
+      try {
+        const { data, error } = await supabase.functions.invoke('send-push-notification', {
+          body: { title: '📣 テスト通知', body: 'この通知が届いていれば設定成功です！' }
+        });
+        if (error) { setTestMsg('❌ Edge Functionエラー: ' + JSON.stringify(error)); return; }
+        setTestMsg(`✅ 送信完了: ${data?.sent ?? 0}台に送信 / ${data?.failed ?? 0}台失敗 / DB登録数${data?.total ?? 0}台`);
+      } catch (e) {
+        setTestMsg('❌ エラー: ' + (e?.message || String(e)));
+      }
+    };
+
+    const reRegister = async () => {
+      setTestMsg('再登録中...');
+      const ok = await registerPushSilent(loggedInManagerNumber);
+      setTestMsg(ok ? '✅ 再登録完了。テスト通知を送ってください' : '❌ 再登録失敗');
+      // 購読状況更新
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        navigator.serviceWorker.ready.then(reg =>
+          reg.pushManager.getSubscription().then(sub => {
+            setMySubStatus(sub ? '✅ このデバイスはSW購読済み' : '❌ このデバイスはSW未購読');
+          })
+        );
+      }
+    };
+
+    return (
+      <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 6000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', overflowY: 'auto' }}>
+        <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', maxWidth: '400px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+          <h3 style={{ margin: '0 0 1rem', color: '#1565C0', textAlign: 'center' }}>📊 通知診断</h3>
+
+          <div style={{ backgroundColor: '#f5f5f5', borderRadius: '10px', padding: '12px', marginBottom: '1rem', fontSize: '13px' }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>このデバイスのSW購読状態</div>
+            <div style={{ color: mySubStatus.startsWith('✅') ? '#2e7d32' : '#c62828' }}>{mySubStatus || '確認中...'}</div>
+          </div>
+
+          <div style={{ backgroundColor: '#e3f2fd', borderRadius: '10px', padding: '12px', marginBottom: '1rem' }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '6px', fontSize: '14px' }}>DB登録済み購読一覧</div>
+            {loading && <div style={{ color: '#666', fontSize: '13px' }}>読み込み中...</div>}
+            {!loading && subs !== null && (
+              <>
+                <div style={{ fontSize: '13px', marginBottom: '4px' }}>
+                  <strong>{subs.length}台</strong>が登録済み
+                </div>
+                {subs.map((s, i) => (
+                  <div key={i} style={{ fontSize: '12px', color: '#555', padding: '2px 0' }}>
+                    管理番号: {s.manager_number}
+                  </div>
+                ))}
+                {subs.length === 0 && <div style={{ fontSize: '13px', color: '#c62828' }}>⚠️ 登録なし。スタッフが通知を有効にしていません</div>}
+              </>
+            )}
+          </div>
+
+          <button onClick={reRegister} style={{ width: '100%', padding: '11px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', marginBottom: '8px' }}>
+            🔄 このデバイスで再登録
+          </button>
+          <button onClick={sendTest} style={{ width: '100%', padding: '11px', backgroundColor: '#43A047', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', marginBottom: '8px' }}>
+            📣 テスト通知を全員に送信
+          </button>
+          {testMsg && (
+            <div style={{ padding: '10px', backgroundColor: testMsg.startsWith('✅') ? '#e8f5e9' : '#ffebee', borderRadius: '8px', fontSize: '13px', color: '#333', marginBottom: '8px', wordBreak: 'break-all' }}>
+              {testMsg}
+            </div>
+          )}
+
+          <div style={{ backgroundColor: '#fff9c4', borderRadius: '8px', padding: '10px', marginBottom: '1rem', fontSize: '12px', color: '#555' }}>
+            <strong>スタッフへの案内：</strong><br/>
+            スタッフのスマホで「ホーム画面に追加」してPWAを開き、アルバイトメニューで「通知OFF（タップでON）」ボタンをタップして通知をオンにするよう伝えてください。
+          </div>
+
+          <button onClick={() => setShowPushDebug(false)} style={{ width: '100%', padding: '10px', backgroundColor: '#eee', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>閉じる</button>
+        </div>
+      </div>
+    );
+  };
+
   const ShiftDeadlineModal = () => {
     const [saving, setSaving] = useState(false);
     const [saveMsg, setSaveMsg] = useState('');
@@ -2099,6 +2215,7 @@ if (role === 'clockin') {
         {showDeadlineModal && <ShiftDeadlineModal />}
         {showHelpNotifModal && <HelpNotifModal />}
         {showNotifList && <NotifListModal />}
+        {showPushDebug && <PushDebugModal />}
         <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
         <div className="login-card" style={{ position: 'relative' }}>
           <BackButton />
@@ -2121,6 +2238,10 @@ if (role === 'clockin') {
             <button type="button" onClick={() => showInstallFlow()}
               style={{ background: 'none', border: '1px solid #1a73e8', color: '#1a73e8', borderRadius: '20px', padding: '3px 12px', fontSize: '12px', cursor: 'pointer' }}>
               📲 ホーム画面に追加
+            </button>
+            <button type="button" onClick={() => setShowPushDebug(true)}
+              style={{ background: 'none', border: '1px solid #555', color: '#555', borderRadius: '20px', padding: '3px 10px', fontSize: '11px', cursor: 'pointer' }}>
+              📊 通知診断
             </button>
           </div>
           {notifToast && (
