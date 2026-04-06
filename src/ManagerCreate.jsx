@@ -941,7 +941,7 @@ const CandidateModal = ({ isOpen, onClose, candidates, loading, error, onSelectA
 };
 
 
-function ManagerCreate() {
+function ManagerCreate({ onBack }) {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [shiftData, setShiftData] = useState([]);
@@ -980,6 +980,7 @@ const [showOverwriteWarn, setShowOverwriteWarn] = useState(false);
 const [overwriteDates, setOverwriteDates] = useState([]);
 const [pendingFetchArgs, setPendingFetchArgs] = useState(null);
 const [localDraft, setLocalDraft] = useState(null);
+const [showBackConfirm, setShowBackConfirm] = useState(false);
 
 const [shiftSettings, setShiftSettings] = useState(() => {
   const saved = localStorage.getItem('shiftSettings');
@@ -1013,6 +1014,31 @@ useEffect(() => {
   if (isEditing && startDate && endDate) saveDraft(currentDateIndex);
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [isEditing, currentDateIndex]);
+
+// アプリ終了時にドラフト保存
+useEffect(() => {
+  if (!isEditing) return;
+  const handler = () => { if (startDate && endDate) saveDraft(currentDateIndex); };
+  window.addEventListener('pagehide', handler);
+  window.addEventListener('visibilitychange', handler);
+  return () => {
+    window.removeEventListener('pagehide', handler);
+    window.removeEventListener('visibilitychange', handler);
+  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [isEditing, currentDateIndex, startDate, endDate]);
+
+const handleBackRequest = () => {
+  if (startDate && endDate) saveDraft(currentDateIndex);
+  setShowBackConfirm(true);
+};
+const confirmGoBack = () => {
+  setShowBackConfirm(false);
+  if (onBack) onBack();
+};
+const cancelGoBack = () => {
+  setShowBackConfirm(false);
+};
 
 const fetchCandidates = async () => {
   setCandidateLoading(true);
@@ -1771,6 +1797,31 @@ if (!showTable) {
           setCurrentHelpPage('shiftEdit');
           setShowHelp(true);
         }} />
+        {/* 作成中の戻るボタン（確認付き） */}
+        <button
+          onClick={handleBackRequest}
+          style={{
+            position: 'fixed',
+            top: '1rem',
+            left: '1rem',
+            backgroundColor: '#4CAF50',
+            color: 'white',
+            border: '2px solid #45a049',
+            borderRadius: '8px',
+            width: '80px',
+            height: '40px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+            boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+          }}
+        >
+          ← 戻る
+        </button>
         {isPortrait && (
           <div style={{
             position: 'fixed',
@@ -1827,6 +1878,20 @@ if (!showTable) {
               <div style={{ display: 'flex', gap: '0.75rem' }}>
                 <button onClick={() => finishShiftCreation(true)} style={{ flex: 1, padding: '0.75rem', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>はい（通知する）</button>
                 <button onClick={() => finishShiftCreation(false)} style={{ flex: 1, padding: '0.75rem', backgroundColor: '#eee', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>いいえ</button>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* 戻る確認モーダル */}
+        {showBackConfirm && (
+          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 11000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+            <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', maxWidth: '320px', width: '100%', textAlign: 'center' }}>
+              <div style={{ fontSize: '1.8rem', marginBottom: '0.5rem' }}>⚠️</div>
+              <h3 style={{ margin: '0 0 0.75rem', color: '#E65100' }}>作成途中で戻りますか？</h3>
+              <p style={{ fontSize: '0.85rem', color: '#666', margin: '0 0 1rem' }}>途中まで作成したデータはドラフトとして保存されます。📋 候補ボタンから続きを再開できます。</p>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button onClick={confirmGoBack} style={{ flex: 1, padding: '0.75rem', backgroundColor: '#E65100', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>はい（戻る）</button>
+                <button onClick={cancelGoBack} style={{ flex: 1, padding: '0.75rem', backgroundColor: '#eee', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>いいえ</button>
               </div>
             </div>
           </div>

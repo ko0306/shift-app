@@ -546,17 +546,21 @@ const [showNotifList, setShowNotifList] = useState(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // スタッフログイン後：通知未設定 or PWA初回起動で未許可の場合にプロンプトを表示
+  // スタッフログイン後：通知未設定 or PWAで未許可の場合にプロンプトを表示
   useEffect(() => {
     if (!isLoggedIn || role !== 'staff') return;
     const neverSet = localStorage.getItem('notifEnabled') === null;
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches
       || window.navigator.standalone;
-    const enabledButNotGranted = isStandalone
-      && localStorage.getItem('notifEnabled') === 'true'
+    const hasPushManager = 'serviceWorker' in navigator && 'PushManager' in window;
+    // PWAモード: ブラウザ権限がgrantedでもdeniedでもなければ（= default）プロンプトを表示
+    // これにより「後で」を押した人も次回PWA起動時に再表示される
+    const standaloneNotGranted = isStandalone
+      && hasPushManager
       && 'Notification' in window
-      && Notification.permission !== 'granted';
-    if (neverSet || enabledButNotGranted) {
+      && Notification.permission !== 'granted'
+      && Notification.permission !== 'denied';
+    if (neverSet || standaloneNotGranted) {
       setShowNotifPrompt(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2209,7 +2213,7 @@ if (role === 'clockin') {
           if (page === 'staff') {
             setManagerStep('');
           }
-        }} />
+        }} onBack={() => goBack()} />
       </div>
     );
   }
