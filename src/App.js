@@ -2012,7 +2012,7 @@ if (role === 'clockin') {
     React.useEffect(() => {
       const load = async () => {
         setLoading(true);
-        const { data, error } = await supabase.from('push_subscriptions').select('manager_number, created_at');
+        const { data, error } = await supabase.from('push_subscriptions').select('manager_number, subscription, created_at');
         setSubs(error ? [] : (data || []));
         setLoading(false);
       };
@@ -2021,11 +2021,19 @@ if (role === 'clockin') {
       if ('serviceWorker' in navigator && 'PushManager' in window) {
         navigator.serviceWorker.ready.then(reg =>
           reg.pushManager.getSubscription().then(sub => {
-            setMySubStatus(sub ? '✅ このデバイスはSW購読済み' : '❌ このデバイスはSW未購読');
+            if (sub) {
+              const ep = sub.endpoint || '';
+              const type = ep.includes('fcm.googleapis.com') ? 'Android(FCM)' :
+                           ep.includes('push.apple.com') ? 'iOS(Apple)' :
+                           ep.includes('mozilla') ? 'Firefox' : 'その他';
+              setMySubStatus(`✅ SW購読済み [${type}]`);
+            } else {
+              setMySubStatus('❌ SW未購読（通知ONボタンを押してください）');
+            }
           })
         ).catch(() => setMySubStatus('⚠️ SW確認エラー'));
       } else {
-        setMySubStatus('⚠️ PushManager非対応ブラウザ');
+        setMySubStatus('⚠️ PushManager非対応（PWAでない可能性あり）');
       }
     }, []);
 
@@ -2035,8 +2043,15 @@ if (role === 'clockin') {
         const { data, error } = await supabase.functions.invoke('send-push-notification', {
           body: { title: '📣 テスト通知', body: 'この通知が届いていれば設定成功です！' }
         });
-        if (error) { setTestMsg('❌ Edge Functionエラー: ' + JSON.stringify(error)); return; }
-        setTestMsg(`✅ 送信完了: ${data?.sent ?? 0}台に送信 / ${data?.failed ?? 0}台失敗 / DB登録数${data?.total ?? 0}台`);
+        if (error) { setTestMsg('❌ EFエラー: ' + JSON.stringify(error)); return; }
+        let msg = `成功:${data?.sent ?? 0}台 / 失敗:${data?.failed ?? 0}台 / 計:${data?.total ?? 0}台`;
+        if (data?.errors?.length > 0) {
+          msg += '\n--- エラー詳細 ---\n' + data.errors.map(e => `${e.statusCode}: ${e.body || e.message}`).join('\n');
+        }
+        if (data?.expired_removed > 0) {
+          msg += `\n(期限切れ${data.expired_removed}件を削除)`;
+        }
+        setTestMsg(msg);
       } catch (e) {
         setTestMsg('❌ エラー: ' + (e?.message || String(e)));
       }
@@ -2074,11 +2089,22 @@ if (role === 'clockin') {
                 <div style={{ fontSize: '13px', marginBottom: '4px' }}>
                   <strong>{subs.length}台</strong>が登録済み
                 </div>
-                {subs.map((s, i) => (
-                  <div key={i} style={{ fontSize: '12px', color: '#555', padding: '2px 0' }}>
-                    管理番号: {s.manager_number}
-                  </div>
-                ))}
+                {subs.map((s, i) => {
+                  let epType = '?';
+                  try {
+                    const sub = JSON.parse(s.subscription || '{}');
+                    const ep = sub.endpoint || '';
+                    epType = ep.includes('fcm.googleapis.com') ? 'Android' :
+                             ep.includes('push.apple.com') ? 'iOS' :
+                             ep.includes('mozilla') ? 'Firefox' : 'Other';
+                  } catch {}
+                  return (
+                    <div key={i} style={{ fontSize: '12px', color: '#555', padding: '2px 0', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>管理番号: {s.manager_number}</span>
+                      <span style={{ color: '#888' }}>[{epType}]</span>
+                    </div>
+                  );
+                })}
                 {subs.length === 0 && <div style={{ fontSize: '13px', color: '#c62828' }}>⚠️ 登録なし。スタッフが通知を有効にしていません</div>}
               </>
             )}
@@ -2088,7 +2114,7 @@ if (role === 'clockin') {
             🔄 このデバイスで再登録
           </button>
           <button onClick={sendTest} style={{ width: '100%', padding: '11px', backgroundColor: '#43A047', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', marginBottom: '8px' }}>
-            📣 テスト通知を全員に送信
+            📣 テスト通知を全員に送信（結果表示）
           </button>
           {testMsg && (
             <div style={{ padding: '10px', backgroundColor: testMsg.startsWith('✅') ? '#e8f5e9' : '#ffebee', borderRadius: '8px', fontSize: '13px', color: '#333', marginBottom: '8px', wordBreak: 'break-all' }}>
