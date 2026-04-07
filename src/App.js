@@ -434,9 +434,15 @@ const [newNotifCount, setNewNotifCount] = useState(0);
         .limit(50);
       if (data) {
         setNotifHistory(data);
-        const lastSeen = localStorage.getItem('lastSeenNotifAt') || '';
-        const unread = data.filter(n => (n.created_at || '') > lastSeen).length;
-        setNewNotifCount(unread);
+        const lastSeen = localStorage.getItem('lastSeenNotifAt');
+        if (!lastSeen) {
+          // 初回：既存通知を全て既読扱いにする
+          localStorage.setItem('lastSeenNotifAt', new Date().toISOString());
+          setNewNotifCount(0);
+        } else {
+          const unread = data.filter(n => (n.created_at || '') > lastSeen).length;
+          setNewNotifCount(unread);
+        }
       }
     } catch (e) { console.error('通知履歴取得エラー:', e); }
   };
@@ -446,11 +452,11 @@ const [newNotifCount, setNewNotifCount] = useState(0);
     const t = title;
     if (t.includes('緊急') || t.includes('⚠️'))
       return { bg: '#ffebee', border: '#ef9a9a', titleColor: '#c62828' };
-    if (t.includes('急募') || t.includes('🆘'))
+    if (t.includes('急募') || t.includes('🆘') || t.includes('ヘルプ'))
       return { bg: '#fce4ec', border: '#f48fb1', titleColor: '#ad1457' };
     if (t.includes('⏰') || t.includes('明日') || t.includes('シフト開始') || t.includes('リマインダー'))
       return { bg: '#e8f5e9', border: '#a5d6a7', titleColor: '#2e7d32' };
-    if (t.includes('シフト提出') || t.includes('提出のお願い') || t.includes('期限'))
+    if (t.includes('シフト提出') || t.includes('お願い') || t.includes('期限'))
       return { bg: '#fff3e0', border: '#ffcc80', titleColor: '#e65100' };
     if (t.includes('打刻'))
       return { bg: '#fff8e1', border: '#ffe082', titleColor: '#f57f17' };
