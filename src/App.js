@@ -418,6 +418,7 @@ const [showHelpNotifModal, setShowHelpNotifModal] = useState(false);
 const [notifEnabled, setNotifEnabled] = useState(() => localStorage.getItem('notifEnabled') === 'true');
 const [showNotifPrompt, setShowNotifPrompt] = useState(false);
 const [showPushDebug, setShowPushDebug] = useState(false);
+const [showBatteryGuide, setShowBatteryGuide] = useState(false);
 const [showHomeScreenPrompt, setShowHomeScreenPrompt] = useState(false);
 const [notifToast, setNotifToast] = useState('');
 const [notifHistory, setNotifHistory] = useState([]);
@@ -612,19 +613,8 @@ const [showNotifList, setShowNotifList] = useState(false);
     //    ボタン押下時のregisterPushSilentに任せる
     if (role && loggedInManagerNumber && notifEnabled) {
       if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-        if (isStandalone) {
-          // PWAとして起動中：サブスクリプションが変わっている可能性があるため常に再登録
-          registerPushSilent(loggedInManagerNumber);
-        } else {
-          supabase.from('push_subscriptions').select('manager_number')
-            .eq('manager_number', loggedInManagerNumber).limit(1)
-            .then(({ data }) => {
-              if (!data || data.length === 0) {
-                registerPushSilent(loggedInManagerNumber);
-              }
-            });
-        }
+        // registerPushSilent 内でDB照合を行い、エンドポイントが一致する場合は再登録しない
+        registerPushSilent(loggedInManagerNumber);
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -657,7 +647,21 @@ const [showNotifList, setShowNotifList] = useState(false);
     }
   };
 
+  // IndexedDB に管理番号を保存（SW の pushsubscriptionchange ハンドラで使用）
+  const saveManagerNumToIDB = (managerNum) => {
+    try {
+      const req = indexedDB.open('shift-app-sw', 1);
+      req.onupgradeneeded = e => e.target.result.createObjectStore('store');
+      req.onsuccess = e => {
+        const db = e.target.result;
+        const tx = db.transaction('store', 'readwrite');
+        tx.objectStore('store').put(managerNum, 'managerNumber');
+      };
+    } catch (_) {}
+  };
+
   // プッシュ通知を登録（ボタンON時に呼び出す）
+  // ★ 既存サブスクリプションがDBと一致する場合は再登録しない（不要な再登録がバックグラウンド通知を妨げていた）
   const registerPushSilent = async (managerNum) => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
       showNotifToast('⚠️ このブラウザはプッシュ通知に対応していません');
@@ -672,11 +676,28 @@ const [showNotifList, setShowNotifList] = useState(false);
       if (permission !== 'granted') return false;
       const reg = await navigator.serviceWorker.ready;
       const existing = await reg.pushManager.getSubscription();
-      if (existing) await existing.unsubscribe();
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-      });
+
+      // 既存サブスクリプションのエンドポイントとDB上のものを比較
+      let sub = existing;
+      if (existing) {
+        const { data: dbRow } = await supabase.from('push_subscriptions')
+          .select('subscription').eq('manager_number', managerNum).single();
+        const dbEndpoint = dbRow ? JSON.parse(dbRow.subscription)?.endpoint : null;
+        if (dbEndpoint === existing.endpoint) {
+          // DB と一致 → 再登録不要（既存のまま維持）
+          saveManagerNumToIDB(managerNum);
+          return true;
+        }
+        // エンドポイントが変わっている → 再登録
+        await existing.unsubscribe();
+        sub = null;
+      }
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        });
+      }
       const { error: dbErr } = await supabase.from('push_subscriptions').upsert(
         { manager_number: managerNum, subscription: JSON.stringify(sub.toJSON()) },
         { onConflict: 'manager_number' }
@@ -685,6 +706,7 @@ const [showNotifList, setShowNotifList] = useState(false);
         showNotifToast('❌ DB保存エラー: ' + dbErr.message);
         return false;
       }
+      saveManagerNumToIDB(managerNum);
       showNotifToast('✅ プッシュ通知の登録が完了しました');
       return true;
     } catch (e) {
@@ -1206,7 +1228,13 @@ const handleSubmit = async () => {
           setNotifEnabled(true);
           localStorage.setItem('notifEnabled', 'true');
           const ok = await registerPushSilent(loggedInManagerNumber);
-          if (ok) setShowNotifPrompt(false);
+          if (ok) {
+            setShowNotifPrompt(false);
+            // Android: バッテリー最適化ガイドを一度だけ表示
+            const isAndroid = /Android/i.test(navigator.userAgent);
+            const shown = localStorage.getItem('batteryGuideShown');
+            if (isAndroid && !shown) setShowBatteryGuide(true);
+          }
           maybeShowHomeScreenPrompt();
         }}
           style={{ width: '100%', padding: '14px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '14px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '10px' }}>
@@ -1859,15 +1887,41 @@ if (role === 'clockin') {
     </div>
   );
 
+  // ========== バッテリー最適化ガイド（Android初回通知登録時） ==========
+  const BatteryGuideModal = () => (
+    <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 7000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+      <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', maxWidth: '380px', width: '100%' }}>
+        <div style={{ textAlign: 'center', fontSize: '2rem', marginBottom: '0.5rem' }}>⚙️</div>
+        <h3 style={{ margin: '0 0 0.8rem', textAlign: 'center', color: '#E65100', fontSize: '1rem' }}>バックグラウンド通知を有効にする</h3>
+        <p style={{ fontSize: '13px', color: '#555', lineHeight: 1.7, marginBottom: '1rem' }}>
+          Androidでアプリを閉じていても通知を受け取るには、<strong>Chromeのバッテリー最適化を無効</strong>にしてください。
+        </p>
+        <div style={{ backgroundColor: '#FFF3E0', border: '1px solid #FFB300', borderRadius: '10px', padding: '12px', marginBottom: '1rem', fontSize: '13px', lineHeight: 1.8 }}>
+          <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>📱 設定手順（Android）</div>
+          <div>① 設定アプリを開く</div>
+          <div>② アプリ → Chrome を選択</div>
+          <div>③「バッテリー」をタップ</div>
+          <div>④「制限なし」または「最適化しない」を選択</div>
+        </div>
+        <div style={{ backgroundColor: '#E3F2FD', border: '1px solid #90CAF9', borderRadius: '10px', padding: '10px', marginBottom: '1rem', fontSize: '12px', color: '#1565C0', lineHeight: 1.6 }}>
+          ※ Samsung の場合：電池 → バックグラウンドでの使用制限 → 制限なし<br />
+          ※ この設定をしないとアプリを開いたときだけ通知が届きます
+        </div>
+        <button onClick={() => { localStorage.setItem('batteryGuideShown', '1'); setShowBatteryGuide(false); }}
+          style={{ width: '100%', padding: '12px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }}>
+          わかった
+        </button>
+      </div>
+    </div>
+  );
+
   // ========== ヘルプ通知モーダル ==========
   const HelpNotifModal = () => {
-    const [helpStart, setHelpStart] = React.useState('');
-    const [helpEnd, setHelpEnd] = React.useState('');
+    const [recruitDates, setRecruitDates] = React.useState([]);
+    const [dateInput, setDateInput] = React.useState('');
     const [helpMsg, setHelpMsg] = React.useState('');
-    const [recentDeadlines, setRecentDeadlines] = React.useState([]);
-    const [showCandidates, setShowCandidates] = React.useState(false);
     const [sending, setSending] = React.useState(false);
-    // 緊急通知
+    // 緊急通知モード
     const [emergencyMode, setEmergencyMode] = React.useState(false);
     const [emergencyDateType, setEmergencyDateType] = React.useState('today');
     const [emergencyCustomDate, setEmergencyCustomDate] = React.useState('');
@@ -1880,46 +1934,35 @@ if (role === 'clockin') {
     const tomorrowDate = new Date(today); tomorrowDate.setDate(tomorrowDate.getDate()+1);
     const tomorrowStr = `${tomorrowDate.getFullYear()}-${pad(tomorrowDate.getMonth()+1)}-${pad(tomorrowDate.getDate())}`;
 
-    React.useEffect(() => {
-      // 直近3つの期限設定を取得（settingsテーブルのshift_deadline_noticeから）
-      supabase.from('settings').select('value').eq('key', 'shift_deadline_notice').single().then(({ data }) => {
-        if (data) {
-          try {
-            const v = JSON.parse(data.value);
-            if (v.period_start && v.period_end) {
-              setRecentDeadlines([{ label: `${v.period_start}〜${v.period_end}（期限:${v.deadline}）`, start: v.period_start, end: v.period_end }]);
-            }
-          } catch (e) {}
-        }
-      });
-    }, []);
+    const DOW = ['日','月','火','水','木','金','土'];
+    const formatDate = (ds) => {
+      const d = new Date(ds);
+      return `${d.getMonth()+1}/${d.getDate()}（${DOW[d.getDay()]}）`;
+    };
 
-    const sendHelpNotif = async () => {
-      if (!helpStart || !helpEnd) { setHelpMsg('期間を入力してください'); return; }
+    const addDate = () => {
+      if (!dateInput) return;
+      if (recruitDates.includes(dateInput)) return;
+      setRecruitDates(prev => [...prev, dateInput].sort());
+      setDateInput('');
+    };
+
+    const removeDate = (ds) => setRecruitDates(prev => prev.filter(d => d !== ds));
+
+    const buildRecruitBody = () => {
+      const lines = recruitDates.map(d => `・${formatDate(d)}`).join('\n');
+      return `以下の日程でシフトに入れる方を急募しています：\n${lines}\nご都合がつく方はご連絡ください`;
+    };
+
+    const sendRecruitNotif = async () => {
+      if (recruitDates.length === 0) { setHelpMsg('募集日を追加してください'); return; }
       setSending(true);
-      // シフト期間の日ごとに提出人数を集計
-      const { data: shifts } = await supabase.from('shifts').select('date, manager_number').gte('date', helpStart).lte('date', helpEnd).not('start_time', 'is', null).neq('start_time', '');
-      const { data: recSetting } = await supabase.from('settings').select('value').eq('key', 'recruitment_settings').single();
-      let required = {};
-      try { if (recSetting) required = JSON.parse(recSetting.value); } catch (e) {}
-      // 日ごとカウント
-      const countMap = {};
-      (shifts || []).forEach(s => { countMap[s.date] = (countMap[s.date] || 0) + 1; });
-      // 不足日をまとめる
-      const shortages = [];
-      const d = new Date(helpStart);
-      while (d <= new Date(helpEnd)) {
-        const ds = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-        const req = required[ds] || required['default'] || 0;
-        const actual = countMap[ds] || 0;
-        if (req > 0 && actual < req) shortages.push(`${ds}(${actual}/${req}人)`);
-        d.setDate(d.getDate()+1);
-      }
-      const body = shortages.length > 0 ? `人手不足の日：${shortages.join('、')}` : '現在人手不足の日はありません';
+      const title = '🆘 急募！人手が必要です';
+      const body = buildRecruitBody();
       try {
-        await supabase.functions.invoke('send-push-notification', { body: { title: 'シフトヘルプのお願い', body } });
-        await saveNotif('シフトヘルプのお願い', body);
-        setHelpMsg('✅ 通知を送信しました');
+        await supabase.functions.invoke('send-push-notification', { body: { title, body } });
+        await saveNotif(title, body);
+        setHelpMsg('✅ 急募通知を送信しました');
       } catch (e) { setHelpMsg('❌ 送信エラー'); }
       setSending(false);
     };
@@ -1942,34 +1985,49 @@ if (role === 'clockin') {
         <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', maxWidth: '420px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
           {!emergencyMode ? (
             <>
-              <h3 style={{ margin: '0 0 1rem', textAlign: 'center', color: '#E53935' }}>🆘 ヘルプ通知</h3>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>期間（開始）</label>
-                <input type="date" value={helpStart} onChange={e => setHelpStart(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc', fontSize: '16px', boxSizing: 'border-box' }} />
+              <h3 style={{ margin: '0 0 0.3rem', textAlign: 'center', color: '#E53935' }}>🆘 急募通知</h3>
+              <p style={{ textAlign: 'center', fontSize: '12px', color: '#888', margin: '0 0 1rem' }}>人手が必要な日を選んで全員に通知</p>
+
+              {/* 日付追加 */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+                <input type="date" value={dateInput} onChange={e => setDateInput(e.target.value)}
+                  style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #ccc', fontSize: '15px', boxSizing: 'border-box' }} />
+                <button onClick={addDate} style={{ padding: '10px 16px', backgroundColor: '#E53935', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>追加</button>
               </div>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '4px' }}>期間（終了）</label>
-                <input type="date" value={helpEnd} onChange={e => setHelpEnd(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ccc', fontSize: '16px', boxSizing: 'border-box' }} />
-              </div>
-              <button onClick={() => setShowCandidates(v => !v)} style={{ width: '100%', padding: '10px', backgroundColor: '#FF9800', color: 'white', border: 'none', borderRadius: '8px', marginBottom: '8px', cursor: 'pointer' }}>
-                📋 候補から選ぶ
-              </button>
-              {showCandidates && (
-                <div style={{ backgroundColor: '#FFF8E1', border: '1px solid #FFB300', borderRadius: '8px', padding: '10px', marginBottom: '1rem' }}>
-                  {recentDeadlines.length === 0 ? <div style={{ color: '#999', fontSize: '13px' }}>候補がありません</div> : recentDeadlines.map((d, i) => (
-                    <button key={i} onClick={() => { setHelpStart(d.start); setHelpEnd(d.end); setShowCandidates(false); }}
-                      style={{ width: '100%', padding: '8px', marginBottom: '4px', backgroundColor: '#FFF', border: '1px solid #FFB300', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>
-                      {d.label}
-                    </button>
+
+              {/* 選択済み日程 */}
+              {recruitDates.length > 0 ? (
+                <div style={{ backgroundColor: '#FFF8F8', border: '1px solid #FFCDD2', borderRadius: '10px', padding: '10px', marginBottom: '1rem' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#C62828', marginBottom: '6px' }}>📅 募集日一覧</div>
+                  {recruitDates.map(ds => (
+                    <div key={ds} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', backgroundColor: 'white', borderRadius: '6px', marginBottom: '4px', border: '1px solid #FFCDD2' }}>
+                      <span style={{ fontWeight: 'bold', color: '#B71C1C', fontSize: '14px' }}>{formatDate(ds)}</span>
+                      <button onClick={() => removeDate(ds)} style={{ background: 'none', border: 'none', color: '#999', fontSize: '18px', cursor: 'pointer', lineHeight: 1 }}>×</button>
+                    </div>
                   ))}
                 </div>
+              ) : (
+                <div style={{ backgroundColor: '#f9f9f9', borderRadius: '10px', padding: '14px', textAlign: 'center', color: '#aaa', fontSize: '13px', marginBottom: '1rem' }}>
+                  日付を追加してください
+                </div>
               )}
+
+              {/* 通知プレビュー */}
+              {recruitDates.length > 0 && (
+                <div style={{ backgroundColor: '#F3F4F6', borderRadius: '10px', padding: '12px', marginBottom: '1rem', fontSize: '12px', color: '#555', lineHeight: 1.7 }}>
+                  <div style={{ fontWeight: 'bold', marginBottom: '4px', color: '#333' }}>📲 通知プレビュー</div>
+                  <div style={{ fontWeight: 'bold' }}>🆘 急募！人手が必要です</div>
+                  <div style={{ whiteSpace: 'pre-wrap' }}>{buildRecruitBody()}</div>
+                </div>
+              )}
+
               {helpMsg && <div style={{ textAlign: 'center', color: helpMsg.startsWith('✅') ? '#388E3C' : '#D32F2F', fontWeight: 'bold', marginBottom: '8px' }}>{helpMsg}</div>}
-              <button onClick={sendHelpNotif} disabled={sending} style={{ width: '100%', padding: '12px', backgroundColor: '#E53935', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', marginBottom: '8px' }}>
-                {sending ? '送信中...' : '🆘 ヘルプ通知を送る'}
+              <button onClick={sendRecruitNotif} disabled={sending || recruitDates.length === 0}
+                style={{ width: '100%', padding: '12px', backgroundColor: recruitDates.length === 0 ? '#ccc' : '#E53935', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '15px', cursor: recruitDates.length === 0 ? 'default' : 'pointer', marginBottom: '8px' }}>
+                {sending ? '送信中...' : '🆘 急募通知を全員に送る'}
               </button>
               <button onClick={() => setEmergencyMode(true)} style={{ width: '100%', padding: '12px', backgroundColor: '#B71C1C', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }}>
-                ⚡ 緊急通知
+                ⚡ 緊急通知（自由入力）
               </button>
             </>
           ) : (
@@ -1993,7 +2051,7 @@ if (role === 'clockin') {
               <button onClick={sendEmergency} disabled={sending} style={{ width: '100%', padding: '12px', backgroundColor: '#B71C1C', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', marginBottom: '8px' }}>
                 {sending ? '送信中...' : '⚡ 全員に送信'}
               </button>
-              <button onClick={() => setEmergencyMode(false)} style={{ width: '100%', padding: '10px', backgroundColor: '#eee', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>← ヘルプ通知に戻る</button>
+              <button onClick={() => setEmergencyMode(false)} style={{ width: '100%', padding: '10px', backgroundColor: '#eee', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>← 急募通知に戻る</button>
             </>
           )}
           <button onClick={() => { setShowHelpNotifModal(false); setEmergencyMode(false); }} style={{ marginTop: '12px', width: '100%', padding: '10px', backgroundColor: '#eee', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>閉じる</button>
@@ -2240,6 +2298,7 @@ if (role === 'clockin') {
         {showInstallBanner && <InstallBanner />}
         {showDeadlineModal && <ShiftDeadlineModal />}
         {showHelpNotifModal && <HelpNotifModal />}
+        {showBatteryGuide && <BatteryGuideModal />}
         {showNotifList && <NotifListModal />}
         {showPushDebug && <PushDebugModal />}
         <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
