@@ -1053,14 +1053,38 @@ const fetchCandidates = async () => {
   setCandidateError('');
   setCandidates([]);
   try {
-    const res = await fetch(`${GAS_URL}?managerNumber=${encodeURIComponent(MANAGER_NUMBER)}`);
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.error || '取得に失敗しました');
-    if (data.candidates.length === 0) {
-      setCandidateError('未処理の候補シフト期間が見つかりませんでした');
-    } else {
-      setCandidates(data.candidates);
+    const { data: periods, error } = await supabase
+      .from('shift_periods')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw new Error(error.message);
+    if (!periods || periods.length === 0) {
+      setCandidateError('候補がありません。「シフト期限設定」で期間を設定・通知してください。');
+      return;
     }
+
+    const todayStr = localDateStr(new Date());
+
+    const result = await Promise.all(periods.map(async (p) => {
+      // final_shifts にこの期間のデータがあれば「作成済み」
+      const { data: finals } = await supabase
+        .from('final_shifts')
+        .select('id')
+        .gte('date', p.period_start)
+        .lte('date', p.period_end)
+        .limit(1);
+      const hasFinal = finals && finals.length > 0;
+      return {
+        start: p.period_start,
+        end: p.period_end,
+        deadline: p.deadline || '未設定',
+        isDone: hasFinal || p.is_done,
+        isExpired: p.deadline && p.deadline < todayStr && !hasFinal,
+      };
+    }));
+
+    setCandidates(result);
   } catch (e) {
     setCandidateError(e.message || '取得中にエラーが発生しました');
   } finally {

@@ -2230,6 +2230,12 @@ if (role === 'clockin') {
       );
       if (error) { setSaving(false); setSaveMsg('保存に失敗しました: ' + error.message); return; }
 
+      // shift_periods テーブルに候補として保存（候補モーダルに表示される）
+      await supabase.from('shift_periods').upsert(
+        { period_start: deadlinePeriodStart, period_end: deadlinePeriodEnd, deadline: deadlineDate, is_done: false },
+        { onConflict: 'period_start,period_end' }
+      );
+
       if (sendNotice) {
         const notifBody = `期間：${deadlinePeriodStart}〜${deadlinePeriodEnd}　期限：${deadlineDate}`;
         try {
