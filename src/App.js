@@ -2174,8 +2174,23 @@ if (role === 'clockin') {
           <button onClick={sendTest} style={{ width: '100%', padding: '11px', backgroundColor: '#43A047', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', marginBottom: '8px' }}>
             📣 テスト通知を全員に送信（結果表示）
           </button>
+          <button onClick={async () => {
+            setTestMsg('シフトリマインダー関数を実行中...');
+            try {
+              const res = await fetch('https://csyjgivzvkypwhococfv.supabase.co/functions/v1/daily-notifications');
+              const data = await res.json();
+              const sentCount = (data.results || []).filter(r => r.status === 'sent').length;
+              const failCount = (data.results || []).filter(r => r.status === 'failed').length;
+              const skipCount = (data.results || []).filter(r => r.status === 'skipped_duplicate').length;
+              setTestMsg(`✅ 実行完了（現在 ${data.currentHour}時）\n送信:${sentCount} 失敗:${failCount} スキップ:${skipCount}\n※20時=前日通知 / 毎時=1時間前通知`);
+            } catch (e) {
+              setTestMsg('❌ エラー: ' + (e?.message || String(e)));
+            }
+          }} style={{ width: '100%', padding: '11px', backgroundColor: '#E65100', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', marginBottom: '8px' }}>
+            ⏰ シフトリマインダー手動実行
+          </button>
           {testMsg && (
-            <div style={{ padding: '10px', backgroundColor: testMsg.startsWith('✅') ? '#e8f5e9' : '#ffebee', borderRadius: '8px', fontSize: '13px', color: '#333', marginBottom: '8px', wordBreak: 'break-all' }}>
+            <div style={{ padding: '10px', backgroundColor: testMsg.startsWith('✅') ? '#e8f5e9' : '#ffebee', borderRadius: '8px', fontSize: '13px', color: '#333', marginBottom: '8px', wordBreak: 'break-all', whiteSpace: 'pre-wrap' }}>
               {testMsg}
             </div>
           )}
