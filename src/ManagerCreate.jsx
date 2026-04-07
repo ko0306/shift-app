@@ -757,11 +757,19 @@ const CandidateModal = ({ isOpen, onClose, candidates, loading, error, onSelectA
   const [subLoading, setSubLoading] = useState(false);
   const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
 
+  // ローカル日付文字列を返すヘルパー（toISOString()はUTC変換でズレるため使わない）
+  const localDateStr = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
   const getDateRange = (start, end) => {
     const dates = [];
     const d = new Date(start + 'T00:00:00');
     while (d <= new Date(end + 'T00:00:00')) {
-      dates.push(d.toISOString().split('T')[0]);
+      dates.push(localDateStr(d));
       d.setDate(d.getDate() + 1);
     }
     return dates;
@@ -1137,9 +1145,9 @@ useEffect(() => {
     }
 
     try {
-      const oneAndHalfYearsAgo = new Date(sd);
+      const oneAndHalfYearsAgo = new Date(sd + 'T00:00:00');
       oneAndHalfYearsAgo.setMonth(oneAndHalfYearsAgo.getMonth() - 18);
-      const oneAndHalfYearsAgoStr = oneAndHalfYearsAgo.toISOString().split('T')[0];
+      const oneAndHalfYearsAgoStr = localDateStr(oneAndHalfYearsAgo);
 
       const { error: deleteShiftsError } = await supabase
         .from('shifts')
@@ -1199,7 +1207,7 @@ useEffect(() => {
       const allDates = [];
       const d = new Date(sd + 'T00:00:00');
       while (d <= new Date(ed + 'T00:00:00')) {
-        allDates.push(d.toISOString().split('T')[0]);
+        allDates.push(localDateStr(d));
         d.setDate(d.getDate() + 1);
       }
 
