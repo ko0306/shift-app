@@ -1178,22 +1178,28 @@ useEffect(() => {
         .from('users')
         .select('*');
 
-      if (shiftError || userError) {
-        console.error(shiftError || userError);
-        alert('データ取得に失敗しました');
+      if (shiftError) {
+        alert('シフトデータ取得エラー: ' + (shiftError.message || JSON.stringify(shiftError)));
+        return;
+      }
+      if (userError) {
+        alert('スタッフデータ取得エラー: ' + (userError.message || JSON.stringify(userError)));
         return;
       }
 
-      setAllUsers(users);
+      const safeUsers = users || [];
+      const safeShifts = shifts || [];
 
-      const userManagerNumbers = new Set(users.map(user => String(user.manager_number)));
+      setAllUsers(safeUsers);
+
+      const userManagerNumbers = new Set(safeUsers.map(user => String(user.manager_number)));
       const userMapTemp = {};
-      users.forEach(user => {
+      safeUsers.forEach(user => {
         userMapTemp[String(user.manager_number)] = user.name;
       });
 
       const latestShiftsMap = {};
-      shifts.forEach(shift => {
+      safeShifts.forEach(shift => {
         const key = `${shift.date}_${shift.manager_number}`;
         if (!latestShiftsMap[key]) {
           latestShiftsMap[key] = shift;
@@ -1222,7 +1228,7 @@ useEffect(() => {
 
     } catch (error) {
       console.error('データ処理エラー:', error);
-      alert('データ処理中にエラーが発生しました');
+      alert('データ処理中にエラーが発生しました\n詳細: ' + (error?.message || String(error)));
     }
   };
 
