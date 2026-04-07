@@ -423,6 +423,7 @@ const [showHomeScreenPrompt, setShowHomeScreenPrompt] = useState(false);
 const [notifToast, setNotifToast] = useState('');
 const [notifHistory, setNotifHistory] = useState([]);
 const [showNotifList, setShowNotifList] = useState(false);
+const [newNotifCount, setNewNotifCount] = useState(0);
   const fetchNotifHistory = async (managerNum) => {
     try {
       const { data } = await supabase
@@ -431,8 +432,29 @@ const [showNotifList, setShowNotifList] = useState(false);
         .or(`target_manager_number.is.null,target_manager_number.eq.${managerNum}`)
         .order('created_at', { ascending: false })
         .limit(50);
-      if (data) setNotifHistory(data);
+      if (data) {
+        setNotifHistory(data);
+        const lastSeen = localStorage.getItem('lastSeenNotifAt') || '';
+        const unread = data.filter(n => (n.created_at || '') > lastSeen).length;
+        setNewNotifCount(unread);
+      }
     } catch (e) { console.error('通知履歴取得エラー:', e); }
+  };
+
+  // 通知タイトルの色分けヘルパー
+  const getNotifStyle = (title = '') => {
+    const t = title;
+    if (t.includes('緊急') || t.includes('⚠️'))
+      return { bg: '#ffebee', border: '#ef9a9a', titleColor: '#c62828' };
+    if (t.includes('急募') || t.includes('🆘'))
+      return { bg: '#fce4ec', border: '#f48fb1', titleColor: '#ad1457' };
+    if (t.includes('⏰') || t.includes('明日') || t.includes('シフト開始') || t.includes('リマインダー'))
+      return { bg: '#e8f5e9', border: '#a5d6a7', titleColor: '#2e7d32' };
+    if (t.includes('シフト提出') || t.includes('提出のお願い') || t.includes('期限'))
+      return { bg: '#fff3e0', border: '#ffcc80', titleColor: '#e65100' };
+    if (t.includes('打刻'))
+      return { bg: '#fff8e1', border: '#ffe082', titleColor: '#f57f17' };
+    return { bg: '#f5f5f5', border: '#e0e0e0', titleColor: '#555' };
   };
 
   const showNotifToast = (msg) => {
@@ -1874,13 +1896,23 @@ if (role === 'clockin') {
         <div style={{ overflowY: 'auto', flex: 1 }}>
           {notifHistory.length === 0 ? (
             <div style={{ textAlign: 'center', color: '#999', padding: '2rem' }}>通知はありません</div>
-          ) : notifHistory.map((n, i) => (
-            <div key={i} style={{ borderBottom: '1px solid #eee', padding: '10px', marginBottom: '4px', backgroundColor: '#fafafa', borderRadius: '8px' }}>
-              <div style={{ fontWeight: 'bold', color: '#E65100', fontSize: '14px' }}>{n.title}</div>
-              <div style={{ fontSize: '13px', color: '#333', marginTop: '2px' }}>{n.body}</div>
-              <div style={{ fontSize: '11px', color: '#999', marginTop: '4px' }}>{n.created_at?.slice(0,16).replace('T',' ')}</div>
-            </div>
-          ))}
+          ) : notifHistory.map((n, i) => {
+            const s = getNotifStyle(n.title);
+            const lastSeen = localStorage.getItem('lastSeenNotifAt') || '';
+            const isNew = (n.created_at || '') > lastSeen;
+            return (
+              <div key={i} style={{ border: `1px solid ${s.border}`, marginBottom: '8px', borderRadius: '10px', overflow: 'hidden' }}>
+                <div style={{ backgroundColor: s.bg, padding: '7px 10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {isNew && <span style={{ backgroundColor: '#f44336', color: 'white', fontSize: '10px', fontWeight: 'bold', borderRadius: '4px', padding: '1px 5px', flexShrink: 0 }}>NEW</span>}
+                  <span style={{ fontWeight: 'bold', color: s.titleColor, fontSize: '13px' }}>{n.title}</span>
+                </div>
+                <div style={{ padding: '8px 10px', backgroundColor: 'white' }}>
+                  <div style={{ fontSize: '13px', color: '#333' }}>{n.body}</div>
+                  <div style={{ fontSize: '11px', color: '#999', marginTop: '4px' }}>{n.created_at?.slice(0,16).replace('T',' ')}</div>
+                </div>
+              </div>
+            );
+          })}
         </div>
         <button onClick={() => setShowNotifList(false)} style={{ marginTop: '1rem', padding: '10px', backgroundColor: '#eee', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>閉じる</button>
       </div>
@@ -2361,17 +2393,27 @@ if (role === 'clockin') {
             <div style={{ position: 'relative', marginBottom: '1rem', backgroundColor: '#FFF8E1', borderRadius: '10px', padding: '8px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                 <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>📋 お知らせ</span>
-                <button type="button" onClick={() => setShowNotifList(true)}
-                  style={{ backgroundColor: '#FF9800', color: 'white', border: 'none', borderRadius: '8px', padding: '2px 7px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap', width: 'fit-content' }}>通知一覧</button>
+                <button type="button" onClick={() => { setShowNotifList(true); setNewNotifCount(0); localStorage.setItem('lastSeenNotifAt', new Date().toISOString()); }}
+                  style={{ position: 'relative', backgroundColor: '#FF9800', color: 'white', border: 'none', borderRadius: '8px', padding: '2px 7px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap', width: 'fit-content' }}>
+                  通知一覧
+                  {newNotifCount > 0 && <span style={{ position: 'absolute', top: '-6px', right: '-6px', backgroundColor: '#f44336', color: 'white', borderRadius: '50%', width: '16px', height: '16px', fontSize: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', lineHeight: 1 }}>{newNotifCount > 9 ? '9+' : newNotifCount}</span>}
+                </button>
               </div>
               <div style={{ maxHeight: '110px', overflowY: 'auto', border: '1px solid #eee', borderRadius: '8px' }}>
-                {notifHistory.slice(0, 5).map((n, i) => (
-                  <div key={i} style={{ backgroundColor: i === 0 ? '#FFF3E0' : '#f9f9f9', borderBottom: '1px solid #eee', padding: '8px 10px', fontSize: '13px' }}>
-                    <div style={{ fontWeight: 'bold', color: '#E65100' }}>{n.title}</div>
-                    <div style={{ color: '#333' }}>{n.body}</div>
-                    <div style={{ fontSize: '11px', color: '#999' }}>{n.created_at?.slice(0,10)}</div>
-                  </div>
-                ))}
+                {notifHistory.slice(0, 5).map((n, i) => {
+                  const lastSeen = localStorage.getItem('lastSeenNotifAt') || '';
+                  const isNew = (n.created_at || '') > lastSeen;
+                  return (
+                    <div key={i} style={{ backgroundColor: i === 0 ? '#FFF3E0' : '#f9f9f9', borderBottom: '1px solid #eee', padding: '8px 10px', fontSize: '13px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                        {isNew && <span style={{ backgroundColor: '#f44336', color: 'white', fontSize: '9px', fontWeight: 'bold', borderRadius: '3px', padding: '1px 4px', flexShrink: 0 }}>NEW</span>}
+                        <span style={{ fontWeight: 'bold', color: '#E65100' }}>{n.title}</span>
+                      </div>
+                      <div style={{ color: '#333', marginTop: '2px' }}>{n.body}</div>
+                      <div style={{ fontSize: '11px', color: '#999' }}>{n.created_at?.slice(0,10)}</div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -3157,17 +3199,27 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
             <div style={{ position: 'relative', marginBottom: '1rem', backgroundColor: '#FFF8E1', borderRadius: '10px', padding: '8px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                 <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>📋 お知らせ</span>
-                <button type="button" onClick={() => setShowNotifList(true)}
-                  style={{ backgroundColor: '#FF9800', color: 'white', border: 'none', borderRadius: '8px', padding: '2px 7px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap', width: 'fit-content' }}>通知一覧</button>
+                <button type="button" onClick={() => { setShowNotifList(true); setNewNotifCount(0); localStorage.setItem('lastSeenNotifAt', new Date().toISOString()); }}
+                  style={{ position: 'relative', backgroundColor: '#FF9800', color: 'white', border: 'none', borderRadius: '8px', padding: '2px 7px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap', width: 'fit-content' }}>
+                  通知一覧
+                  {newNotifCount > 0 && <span style={{ position: 'absolute', top: '-6px', right: '-6px', backgroundColor: '#f44336', color: 'white', borderRadius: '50%', width: '16px', height: '16px', fontSize: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', lineHeight: 1 }}>{newNotifCount > 9 ? '9+' : newNotifCount}</span>}
+                </button>
               </div>
               <div style={{ maxHeight: '110px', overflowY: 'auto', border: '1px solid #eee', borderRadius: '8px' }}>
-                {notifHistory.slice(0, 5).map((n, i) => (
-                  <div key={i} style={{ backgroundColor: i === 0 ? '#FFF3E0' : '#f9f9f9', borderBottom: '1px solid #eee', padding: '8px 10px', fontSize: '13px' }}>
-                    <div style={{ fontWeight: 'bold', color: '#E65100' }}>{n.title}</div>
-                    <div style={{ color: '#333' }}>{n.body}</div>
-                    <div style={{ fontSize: '11px', color: '#999' }}>{n.created_at?.slice(0,10)}</div>
-                  </div>
-                ))}
+                {notifHistory.slice(0, 5).map((n, i) => {
+                  const lastSeen = localStorage.getItem('lastSeenNotifAt') || '';
+                  const isNew = (n.created_at || '') > lastSeen;
+                  return (
+                    <div key={i} style={{ backgroundColor: i === 0 ? '#FFF3E0' : '#f9f9f9', borderBottom: '1px solid #eee', padding: '8px 10px', fontSize: '13px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                        {isNew && <span style={{ backgroundColor: '#f44336', color: 'white', fontSize: '9px', fontWeight: 'bold', borderRadius: '3px', padding: '1px 4px', flexShrink: 0 }}>NEW</span>}
+                        <span style={{ fontWeight: 'bold', color: '#E65100' }}>{n.title}</span>
+                      </div>
+                      <div style={{ color: '#333', marginTop: '2px' }}>{n.body}</div>
+                      <div style={{ fontSize: '11px', color: '#999' }}>{n.created_at?.slice(0,10)}</div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

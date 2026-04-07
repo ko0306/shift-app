@@ -51,8 +51,7 @@ self.addEventListener('push', event => {
     body: data.body || 'シフトを確認してください',
     icon: '/icon-192.png',
     badge: '/icon-192.png',
-    tag: data.tag || 'shift-notification',
-    renotify: true,
+    // tag を指定しないことで通知が積み重なって届く（前の通知が消えない）
     requireInteraction: false,
     data: { url: data.url || '/' },
   };
