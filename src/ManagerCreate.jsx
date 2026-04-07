@@ -4,6 +4,14 @@ import { supabase } from './supabaseClient';
 const MANAGER_NUMBER = '1234'; // ← 管理番号をここに入力
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbxRI2c6dCEa4wS8gCJZkNXXY9_4g1IR8mKJs8EYRLquf-yxFz9wZhB3HmfKJBGy-KCU/exec'; // ← デプロイしたURLに置き換え
 
+// ローカル日付文字列を返すヘルパー（toISOString()はUTC変換でJSTでは1日ずれるため使わない）
+const localDateStr = (d) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
 // ヘルプモーダルコンポーネント
 const HelpModal = ({ isOpen, onClose, content }) => {
   if (!isOpen) return null;
@@ -756,14 +764,6 @@ const CandidateModal = ({ isOpen, onClose, candidates, loading, error, onSelectA
   const [totalUsers, setTotalUsers] = useState(0);
   const [subLoading, setSubLoading] = useState(false);
   const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
-
-  // ローカル日付文字列を返すヘルパー（toISOString()はUTC変換でズレるため使わない）
-  const localDateStr = (d) => {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  };
 
   const getDateRange = (start, end) => {
     const dates = [];
