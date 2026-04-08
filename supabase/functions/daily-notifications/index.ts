@@ -34,9 +34,11 @@ Deno.serve(async (req) => {
   // === 1. 前日シフトリマインダー（毎日20時に実行） ===
   if (currentHour === 20) {
     const { data: shifts } = await supabase
-      .from('shifts')
+      .from('final_shifts')
       .select('manager_number, start_time, end_time')
       .eq('date', tomorrowStr)
+      .eq('is_off', false)
+      .eq('is_boshu', false)
       .not('start_time', 'is', null)
       .neq('start_time', '');
 
@@ -78,11 +80,13 @@ Deno.serve(async (req) => {
     if (nextHour < 24) {
       const nextHourStr = pad(nextHour);
       const { data: todayShifts } = await supabase
-        .from('shifts')
+        .from('final_shifts')
         .select('manager_number, start_time, end_time')
         .eq('date', todayStr)
-        .gte('start_time', `${nextHourStr}:00`)
-        .lte('start_time', `${nextHourStr}:59`)
+        .eq('is_off', false)
+        .eq('is_boshu', false)
+        .gte('start_time', `${nextHourStr}:00:00`)
+        .lte('start_time', `${nextHourStr}:59:59`)
         .not('start_time', 'is', null);
 
       if (todayShifts && todayShifts.length > 0) {
