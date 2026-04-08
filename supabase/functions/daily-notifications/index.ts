@@ -50,11 +50,12 @@ Deno.serve(async (req) => {
         .in('manager_number', managerNumbers);
 
       for (const sub of (subs ?? [])) {
-        const shift = shifts.find((s: { manager_number: string }) => s.manager_number === sub.manager_number);
+        const shift = shifts.find((s: { manager_number: string }) => String(s.manager_number) === String(sub.manager_number));
         if (!shift) continue;
+        const fmt = (t: string) => t ? t.slice(0, 5) : '';
         const timeInfo = shift.start_time && shift.end_time
-          ? `${shift.start_time}〜${shift.end_time}`
-          : shift.start_time || '時間未定';
+          ? `${fmt(shift.start_time)}〜${fmt(shift.end_time)}`
+          : fmt(shift.start_time) || '時間未定';
         const title = '📅 明日のシフトのお知らせ';
         const body = `明日（${tomorrowStr}）${timeInfo}のシフトが入っています`;
         const payload = JSON.stringify({ title, body });
@@ -97,11 +98,12 @@ Deno.serve(async (req) => {
           .in('manager_number', managerNumbers);
 
         for (const sub of (subs ?? [])) {
-          const shift = todayShifts.find((s: { manager_number: string }) => s.manager_number === sub.manager_number);
+          const shift = todayShifts.find((s: { manager_number: string }) => String(s.manager_number) === String(sub.manager_number));
           if (!shift) continue;
+          const fmt = (t: string) => t ? t.slice(0, 5) : '';
           const timeInfo = shift.start_time && shift.end_time
-            ? `${shift.start_time}〜${shift.end_time}`
-            : shift.start_time;
+            ? `${fmt(shift.start_time)}〜${fmt(shift.end_time)}`
+            : fmt(shift.start_time);
           const title = '⏰ まもなくシフト開始';
           const body = `1時間後にシフトが始まります（${timeInfo}）`;
 
