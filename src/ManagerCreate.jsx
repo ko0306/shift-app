@@ -985,6 +985,7 @@ const [notifyComment, setNotifyComment] = useState('');
 const [showDeleteDateConfirm, setShowDeleteDateConfirm] = useState(false);
 const [deleteDateIdx, setDeleteDateIdx] = useState(null);
 const [showOverwriteWarn, setShowOverwriteWarn] = useState(false);
+const [isSavingShift, setIsSavingShift] = useState(false);
 const [overwriteDates, setOverwriteDates] = useState([]);
 const [pendingFetchArgs, setPendingFetchArgs] = useState(null);
 const [localDraft, setLocalDraft] = useState(null);
@@ -1431,17 +1432,20 @@ const handleStoreSelect = (index, value) => {
 };
 
  const handleSave = async () => {
+  setIsSavingShift(true);
   try {
     for (const row of editRows) {
       const storeValue = row.store;
       const roleValue = row.role;
 
       if (!storeValue || storeValue.trim() === '') {
+        setIsSavingShift(false);
         alert(`${row.name}の店舗を選択または入力してください`);
         return false;
       }
 
       if (!roleValue || roleValue.trim() === '') {
+        setIsSavingShift(false);
         alert(`${row.name}の役割を選択してください`);
         return false;
       }
@@ -1485,9 +1489,11 @@ const handleStoreSelect = (index, value) => {
       }
     }
 
+    setIsSavingShift(false);
     return true;
 
   } catch (error) {
+    setIsSavingShift(false);
     console.error('予期しないエラー:', error);
     alert(`エラーが発生しました: ${error.message}`);
     return false;
@@ -1825,6 +1831,13 @@ if (!showTable) {
   if (isEditing) {
     return (
       <div className="fullscreen-table" style={{ padding: '0.5rem', boxSizing: 'border-box', overflow: 'hidden' }}>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        {isSavingShift && (
+          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
+            <div style={{ width: '48px', height: '48px', border: '5px solid rgba(255,255,255,0.3)', borderTop: '5px solid #43A047', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <div style={{ color: 'white', fontSize: '1.1rem', fontWeight: 'bold' }}>保存中...</div>
+          </div>
+        )}
         <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage)} />
          <StaffAddModal 
           isOpen={showStaffAddModal} 
@@ -2242,9 +2255,9 @@ const inRequest = isFreeDay ? true : (slot >= originalStartStr && slot < origina
         
 <div style={{ marginTop: '1rem', textAlign: 'center', paddingBottom: '1rem', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
   {currentDateIndex === dates.length - 1 && dates.length > 0 && (
-    <button onClick={handleSaveAndExit} className="save-button-small"
-      style={{ padding: '0.5rem 1.5rem', fontSize: '0.9rem', backgroundColor: '#43A047', color: 'white' }}>
-      確定
+    <button onClick={handleSaveAndExit} className="save-button-small" disabled={isSavingShift}
+      style={{ padding: '0.5rem 1.5rem', fontSize: '0.9rem', backgroundColor: isSavingShift ? '#aaa' : '#43A047', color: 'white' }}>
+      {isSavingShift ? '保存中...' : '確定'}
     </button>
   )}
   <button 
