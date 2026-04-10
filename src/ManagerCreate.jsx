@@ -1066,7 +1066,8 @@ const fetchCandidates = async () => {
 
     const todayStr = localDateStr(new Date());
 
-    const result = await Promise.all(periods.map(async (p) => {
+    const validPeriods = periods.filter(p => p.period_start && p.period_end && p.period_start <= p.period_end);
+    const result = await Promise.all(validPeriods.map(async (p) => {
       // final_shifts にこの期間のデータがあれば「作成済み」
       const { data: finals } = await supabase
         .from('final_shifts')

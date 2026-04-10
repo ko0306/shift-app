@@ -2253,6 +2253,10 @@ if (role === 'clockin') {
         setSaveMsg('すべての項目を入力してください');
         return;
       }
+      if (deadlinePeriodStart > deadlinePeriodEnd) {
+        setSaveMsg('シフト期間の開始日が終了日より後になっています');
+        return;
+      }
       setSaving(true);
       const noticeValue = {
         period_start: deadlinePeriodStart,
