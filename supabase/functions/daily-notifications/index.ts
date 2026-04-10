@@ -30,10 +30,18 @@ Deno.serve(async (req) => {
   const yesterdayStr = `${yesterdayJST.getFullYear()}-${pad(yesterdayJST.getMonth()+1)}-${pad(yesterdayJST.getDate())}`;
 
   const results: object[] = [];
+  const debug: object[] = [];
+
+  // SERVICE_ROLE_KEY の確認
+  debug.push({ check: 'env', hasServiceKey: SUPABASE_SERVICE_ROLE_KEY.length > 0, keyLen: SUPABASE_SERVICE_ROLE_KEY.length });
+
+  // push_subscriptions の全件確認
+  const { data: allSubs, error: subsError } = await supabase.from('push_subscriptions').select('manager_number').limit(20);
+  debug.push({ check: 'push_subscriptions', count: allSubs?.length ?? 0, error: subsError?.message, data: allSubs });
 
   // === 1. 前日シフトリマインダー（毎日20時に実行） ===
   if (currentHour === 20) {
-    const { data: shifts } = await supabase
+    const { data: shifts, error: shiftsErr } = await supabase
       .from('final_shifts')
       .select('manager_number, start_time, end_time')
       .eq('date', tomorrowStr)
@@ -42,15 +50,21 @@ Deno.serve(async (req) => {
       .not('start_time', 'is', null)
       .neq('start_time', '');
 
+    debug.push({ check: 'tomorrow_shifts', date: tomorrowStr, count: shifts?.length ?? 0, error: shiftsErr?.message, data: shifts });
+
     if (shifts && shifts.length > 0) {
-      const managerNumbers = [...new Set(shifts.map((s: { manager_number: string }) => s.manager_number))];
+      const managerNumbers = [...new Set(shifts.map((s: { manager_number: string | number }) => s.manager_number))];
+      // 数値/文字列の不一致を避けるため全件取得してコードでフィルタ
       const { data: subs } = await supabase
         .from('push_subscriptions')
-        .select('manager_number, subscription')
-        .in('manager_number', managerNumbers);
+        .select('manager_number, subscription');
 
-      for (const sub of (subs ?? [])) {
-        const shift = shifts.find((s: { manager_number: string }) => String(s.manager_number) === String(sub.manager_number));
+      const filteredSubs = (subs ?? []).filter(sub =>
+        managerNumbers.some(mn => Number(mn) === Number(sub.manager_number))
+      );
+
+      for (const sub of filteredSubs) {
+        const shift = shifts.find((s: { manager_number: string | number }) => Number(s.manager_number) === Number(sub.manager_number));
         if (!shift) continue;
         const fmt = (t: string) => t ? t.slice(0, 5) : '';
         const timeInfo = shift.start_time && shift.end_time
@@ -80,7 +94,7 @@ Deno.serve(async (req) => {
     const nextHour = currentHour + 1;
     if (nextHour < 24) {
       const nextHourStr = pad(nextHour);
-      const { data: todayShifts } = await supabase
+      const { data: todayShifts, error: todayErr } = await supabase
         .from('final_shifts')
         .select('manager_number, start_time, end_time')
         .eq('date', todayStr)
@@ -90,15 +104,21 @@ Deno.serve(async (req) => {
         .lte('start_time', `${nextHourStr}:59:59`)
         .not('start_time', 'is', null);
 
+      debug.push({ check: '1hour_shifts', date: todayStr, nextHour: nextHourStr, count: todayShifts?.length ?? 0, error: todayErr?.message, data: todayShifts });
+
       if (todayShifts && todayShifts.length > 0) {
-        const managerNumbers = [...new Set(todayShifts.map((s: { manager_number: string }) => s.manager_number))];
+        const managerNumbers = [...new Set(todayShifts.map((s: { manager_number: string | number }) => s.manager_number))];
+        // 数値/文字列の不一致を避けるため全件取得してコードでフィルタ
         const { data: subs } = await supabase
           .from('push_subscriptions')
-          .select('manager_number, subscription')
-          .in('manager_number', managerNumbers);
+          .select('manager_number, subscription');
 
-        for (const sub of (subs ?? [])) {
-          const shift = todayShifts.find((s: { manager_number: string }) => String(s.manager_number) === String(sub.manager_number));
+        const filteredSubs = (subs ?? []).filter(sub =>
+          managerNumbers.some(mn => Number(mn) === Number(sub.manager_number))
+        );
+
+        for (const sub of filteredSubs) {
+          const shift = todayShifts.find((s: { manager_number: string | number }) => Number(s.manager_number) === Number(sub.manager_number));
           if (!shift) continue;
           const fmt = (t: string) => t ? t.slice(0, 5) : '';
           const timeInfo = shift.start_time && shift.end_time
@@ -157,12 +177,12 @@ Deno.serve(async (req) => {
         const notifyDateStr = `${notifyDate.getFullYear()}-${pad(notifyDate.getMonth()+1)}-${pad(notifyDate.getDate())}`;
 
         if (todayStr === notifyDateStr) {
-          const { data: allSubs } = await supabase.from('push_subscriptions').select('subscription');
+          const { data: allSubsDeadline } = await supabase.from('push_subscriptions').select('subscription');
           const title = 'シフト提出のお願い';
           const body = `期間：${setting.period_start}〜${setting.period_end}　期限：${setting.deadline}`;
           const payload = JSON.stringify({ title, body });
           let sent = 0;
-          for (const row of (allSubs ?? [])) {
+          for (const row of (allSubsDeadline ?? [])) {
             try {
               await webpush.sendNotification(JSON.parse(row.subscription), payload);
               sent++;
@@ -225,7 +245,7 @@ Deno.serve(async (req) => {
   }
 
   return new Response(
-    JSON.stringify({ today: todayStr, tomorrow: tomorrowStr, currentHour, results }),
+    JSON.stringify({ today: todayStr, tomorrow: tomorrowStr, currentHour, results, debug }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
 });
