@@ -89,22 +89,31 @@ Deno.serve(async (req) => {
     }
   }
 
-  // === 2. 1時間前シフトリマインダー（毎時実行） ===
+  // === 2. 1時間前シフトリマインダー（30分おきに実行） ===
+  // 現在時刻の45〜75分後に開始するシフトを検索（精度±15分）
   {
-    const nextHour = currentHour + 1;
-    if (nextHour < 24) {
-      const nextHourStr = pad(nextHour);
+    const nowMinutes = nowJST.getHours() * 60 + nowJST.getMinutes();
+    const targetStartMin = nowMinutes + 45;
+    const targetEndMin   = nowMinutes + 75;
+
+    // 日をまたぐ場合（深夜）はスキップ
+    if (targetEndMin < 24 * 60) {
+      const toHHMM = (totalMin: number) =>
+        `${pad(Math.floor(totalMin / 60))}:${pad(totalMin % 60)}:00`;
+      const rangeStart = toHHMM(targetStartMin);
+      const rangeEnd   = toHHMM(targetEndMin);
+
       const { data: todayShifts, error: todayErr } = await supabase
         .from('final_shifts')
         .select('manager_number, start_time, end_time')
         .eq('date', todayStr)
         .eq('is_off', false)
         .eq('is_boshu', false)
-        .gte('start_time', `${nextHourStr}:00:00`)
-        .lte('start_time', `${nextHourStr}:59:59`)
+        .gte('start_time', rangeStart)
+        .lte('start_time', rangeEnd)
         .not('start_time', 'is', null);
 
-      debug.push({ check: '1hour_shifts', date: todayStr, nextHour: nextHourStr, count: todayShifts?.length ?? 0, error: todayErr?.message, data: todayShifts });
+      debug.push({ check: '1hour_shifts', date: todayStr, rangeStart, rangeEnd, count: todayShifts?.length ?? 0, error: todayErr?.message, data: todayShifts });
 
       if (todayShifts && todayShifts.length > 0) {
         const managerNumbers = [...new Set(todayShifts.map((s: { manager_number: string | number }) => s.manager_number))];
