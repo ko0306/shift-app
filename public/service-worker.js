@@ -26,6 +26,13 @@ function getFromDB(db, key) {
     req.onerror = () => reject(req.error);
   });
 }
+function putToDB(db, key, value) {
+  return new Promise((resolve, reject) => {
+    const req = db.transaction('store', 'readwrite').objectStore('store').put(value, key);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
 
 // ── ライフサイクル ──
 self.addEventListener('install', () => self.skipWaiting());
@@ -70,6 +77,52 @@ self.addEventListener('notificationclick', event => {
       if (clients.openWindow) return clients.openWindow(url);
     })
   );
+});
+
+// ── アプリ起動時のキャッチアップ（バッテリー最適化対策） ──
+// アプリ側から postMessage で呼ばれ、見逃したプッシュ通知をDBから取得して表示する
+self.addEventListener('message', event => {
+  if (event.data?.type !== 'CATCHUP') return;
+  const managerNum = event.data.managerNumber;
+  if (!managerNum) return;
+
+  event.waitUntil((async () => {
+    try {
+      const db = await openDB();
+      const shownIds = (await getFromDB(db, 'shownNotifIds')) || [];
+
+      // 過去2時間の自分宛て通知を取得
+      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+      const url = `${SUPABASE_URL}/rest/v1/notifications`
+        + `?select=id,title,body,created_at`
+        + `&or=(target_manager_number.is.null,target_manager_number.eq.${managerNum})`
+        + `&created_at=gte.${twoHoursAgo}`
+        + `&order=created_at.desc&limit=10`;
+
+      const res = await fetch(url, {
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+      });
+      if (!res.ok) return;
+      const notifications = await res.json();
+
+      const newShownIds = [...shownIds];
+      for (const notif of notifications) {
+        if (newShownIds.includes(notif.id)) continue; // 既に表示済み
+        await self.registration.showNotification(notif.title || 'シフトのお知らせ', {
+          body: notif.body || '',
+          icon: '/icon-192.png',
+          badge: '/icon-192.png',
+          data: { url: '/' },
+        });
+        newShownIds.push(notif.id);
+      }
+      // 最新50件だけ保持
+      await putToDB(db, 'shownNotifIds', newShownIds.slice(-50));
+    } catch (_) {}
+  })());
 });
 
 // ── サブスクリプション期限切れ時の自動更新 ──

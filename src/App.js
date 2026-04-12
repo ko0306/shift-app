@@ -643,6 +643,12 @@ const [newNotifCount, setNewNotifCount] = useState(0);
       if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
         // registerPushSilent 内でDB照合を行い、エンドポイントが一致する場合は再登録しない
         registerPushSilent(loggedInManagerNumber);
+        // バッテリー最適化で見逃した通知をSWに取得・表示させる（キャッチアップ）
+        navigator.serviceWorker.ready.then(reg => {
+          if (reg.active) {
+            reg.active.postMessage({ type: 'CATCHUP', managerNumber: String(loggedInManagerNumber) });
+          }
+        }).catch(() => {});
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
