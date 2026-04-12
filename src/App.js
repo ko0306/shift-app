@@ -419,6 +419,8 @@ const [notifEnabled, setNotifEnabled] = useState(() => localStorage.getItem('not
 const [showNotifPrompt, setShowNotifPrompt] = useState(false);
 const [showPushDebug, setShowPushDebug] = useState(false);
 const [showBatteryGuide, setShowBatteryGuide] = useState(false);
+const [showAndroidWarn, setShowAndroidWarn] = useState(false);
+const [androidWarnIsDelay, setAndroidWarnIsDelay] = useState(false);
 const [showHomeScreenPrompt, setShowHomeScreenPrompt] = useState(false);
 const [notifToast, setNotifToast] = useState('');
 const [notifHistory, setNotifHistory] = useState([]);
@@ -649,8 +651,25 @@ const [newNotifCount, setNewNotifCount] = useState(0);
             reg.active.postMessage({ type: 'CATCHUP', managerNumber: String(loggedInManagerNumber) });
           }
         }).catch(() => {});
+
+        // Android初回警告（1回だけ表示）
+        const isAndroid = /Android/i.test(navigator.userAgent);
+        if (isAndroid && !localStorage.getItem('androidNotifWarnShown')) {
+          setAndroidWarnIsDelay(false);
+          setShowAndroidWarn(true);
+        }
       }
     }
+
+    // SWからのキャッチアップ結果を受信（遅延検出時に警告再表示）
+    const onSWMessage = (event) => {
+      if (event.data?.type === 'CATCHUP_RESULT' && event.data.hasDelayed) {
+        setAndroidWarnIsDelay(true);
+        setShowAndroidWarn(true);
+      }
+    };
+    navigator.serviceWorker?.addEventListener('message', onSWMessage);
+    return () => navigator.serviceWorker?.removeEventListener('message', onSWMessage);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role, loggedInManagerNumber]);
 
@@ -1977,6 +1996,45 @@ if (role === 'clockin') {
     );
   };
 
+  // ========== Android通知遅延警告モーダル ==========
+  const AndroidWarnModal = () => (
+    <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 8000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+      <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', maxWidth: '360px', width: '100%' }}>
+        <div style={{ textAlign: 'center', fontSize: '2rem', marginBottom: '0.5rem' }}>⚠️</div>
+        {androidWarnIsDelay ? (
+          <>
+            <h3 style={{ margin: '0 0 0.75rem', textAlign: 'center', color: '#E65100', fontSize: '1rem' }}>通知が遅れて届きました</h3>
+            <p style={{ fontSize: '13px', color: '#555', lineHeight: 1.7, marginBottom: '1rem' }}>
+              この通知はアプリが閉じていたため、予定時刻より遅れて届きました。
+            </p>
+          </>
+        ) : (
+          <>
+            <h3 style={{ margin: '0 0 0.75rem', textAlign: 'center', color: '#E65100', fontSize: '1rem' }}>プッシュ通知に関するご注意</h3>
+          </>
+        )}
+        <div style={{ backgroundColor: '#FFF3E0', border: '1px solid #FFB300', borderRadius: '10px', padding: '12px', marginBottom: '1rem', fontSize: '13px', lineHeight: 1.8 }}>
+          <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>📱 Androidご利用の方へ</div>
+          <div>プッシュ通知が届かない場合があります。</div>
+          <div style={{ fontWeight: 'bold', color: '#E65100', marginTop: '4px' }}>アプリを1日1回は確認してください。</div>
+        </div>
+        <div style={{ backgroundColor: '#E3F2FD', border: '1px solid #90CAF9', borderRadius: '10px', padding: '10px', marginBottom: '1rem', fontSize: '12px', color: '#1565C0', lineHeight: 1.6 }}>
+          改善するには「⚙️ 通知が届かない」ボタンの手順を実施してください
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button onClick={() => { localStorage.setItem('androidNotifWarnShown', '1'); setShowAndroidWarn(false); }}
+            style={{ flex: 1, padding: '10px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>
+            わかった
+          </button>
+          <button onClick={() => { localStorage.setItem('androidNotifWarnShown', '1'); setShowAndroidWarn(false); setShowBatteryGuide(true); }}
+            style={{ flex: 1, padding: '10px', backgroundColor: '#E65100', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>
+            設定を見る
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   // ========== ヘルプ通知モーダル ==========
   const HelpNotifModal = () => {
     const [recruitDates, setRecruitDates] = React.useState([]);
@@ -2386,6 +2444,7 @@ if (role === 'clockin') {
         {showDeadlineModal && <ShiftDeadlineModal />}
         {showHelpNotifModal && <HelpNotifModal />}
         {showBatteryGuide && <BatteryGuideModal />}
+        {showAndroidWarn && <AndroidWarnModal />}
         {showNotifList && <NotifListModal />}
         {showPushDebug && <PushDebugModal />}
         <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />

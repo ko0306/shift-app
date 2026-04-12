@@ -109,6 +109,10 @@ self.addEventListener('message', event => {
       const notifications = await res.json();
 
       const newShownIds = [...shownIds];
+      let shownCount = 0;
+      let hasDelayed = false;
+      const now = Date.now();
+
       for (const notif of notifications) {
         if (newShownIds.includes(notif.id)) continue; // 既に表示済み
         await self.registration.showNotification(notif.title || 'シフトのお知らせ', {
@@ -118,9 +122,21 @@ self.addEventListener('message', event => {
           data: { url: '/' },
         });
         newShownIds.push(notif.id);
+        shownCount++;
+        // 送信から5分以上経過していたら「遅延あり」
+        const sentAt = new Date(notif.created_at).getTime();
+        if (now - sentAt > 5 * 60 * 1000) hasDelayed = true;
       }
       // 最新50件だけ保持
       await putToDB(db, 'shownNotifIds', newShownIds.slice(-50));
+
+      // アプリ側に結果を通知（遅延検出・件数）
+      if (shownCount > 0) {
+        const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+        for (const client of clientList) {
+          client.postMessage({ type: 'CATCHUP_RESULT', count: shownCount, hasDelayed });
+        }
+      }
     } catch (_) {}
   })());
 });
