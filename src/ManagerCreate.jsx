@@ -1922,7 +1922,7 @@ if (!showTable) {
           <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
             <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '1.5rem', maxWidth: '340px', width: '100%' }}>
               <div style={{ fontSize: '1.8rem', textAlign: 'center', marginBottom: '0.5rem' }}>🔔</div>
-              <h3 style={{ margin: '0 0 0.5rem', textAlign: 'center', color: '#1565C0' }}>アルバイトに通知しますか？</h3>
+              <h3 style={{ margin: '0 0 0.5rem', textAlign: 'center', color: '#1565C0' }}>スタッフに通知しますか？</h3>
               <p style={{ fontSize: '0.85rem', color: '#666', margin: '0 0 1rem', textAlign: 'center' }}>{startDate}〜{endDate} のシフト確定を通知します</p>
               <textarea value={notifyComment} onChange={e => setNotifyComment(e.target.value)}
                 placeholder="コメントを追加（任意）"

@@ -183,9 +183,9 @@ const getHelpContent = (page, managerNumber = '') => {
 
         <h3 style={{ color: '#1976D2', marginTop: '1rem' }}>各ボタンの説明：</h3>
         <ul style={{ lineHeight: '2' }}>
-          <li><strong>アルバイト</strong>：シフトの提出・確認・変更や就労時間の確認ができます</li>
+          <li><strong>スタッフ</strong>：シフトの提出・確認・変更や就労時間の確認ができます</li>
           {isManager && (
-            <li><strong>店長</strong>：シフト作成・確認・勤怠管理・新人登録ができます</li>
+            <li><strong>オーナー</strong>：シフト作成・確認・勤怠管理・新人登録ができます</li>
           )}
           <li><strong>勤怠入力</strong>：出勤・退勤・休憩の打刻ができます</li>
         </ul>
@@ -195,8 +195,8 @@ const getHelpContent = (page, managerNumber = '') => {
           <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem', marginBottom: 0 }}>
             <li>自分の役職に合ったボタンを選んでください</li>
             {isManager
-              ? <li>店長メニューではシフト作成・勤怠管理などが行えます</li>
-              : <li>アルバイトメニューからシフト提出・確認ができます</li>
+              ? <li>オーナーメニューではシフト作成・勤怠管理などが行えます</li>
+              : <li>スタッフメニューからシフト提出・確認ができます</li>
             }
             <li>勤怠入力は出退勤の打刻専用画面です</li>
           </ul>
@@ -206,7 +206,7 @@ const getHelpContent = (page, managerNumber = '') => {
 
     staffMenu: (
       <div>
-        <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>アルバイトメニューの使い方</h2>
+        <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>スタッフメニューの使い方</h2>
         <div style={{ marginBottom: '1.5rem', backgroundColor: '#f5f5f5', padding: '1rem', borderRadius: '8px' }}>
           <p style={{ fontSize: '14px', margin: 0 }}>📋 シフトの提出・確認・変更や、就労時間の確認ができます。</p>
         </div>
@@ -217,7 +217,7 @@ const getHelpContent = (page, managerNumber = '') => {
             <ul style={{ paddingLeft: '1.2rem', lineHeight: '1.8' }}>
               <li><strong>シフト提出</strong>：希望シフトを新しく提出します</li>
               <li><strong>シフト変更</strong>：提出済みのシフトを修正します</li>
-              <li><strong>シフト確認</strong>：店長が作成した確定シフトを確認します</li>
+              <li><strong>シフト確認</strong>：オーナーが作成した確定シフトを確認します</li>
             </ul>
           </li>
           <li><strong>就労時間確認</strong>：自分の勤務時間の実績を確認します</li>
@@ -228,7 +228,7 @@ const getHelpContent = (page, managerNumber = '') => {
           <strong>💡 ポイント：</strong>
           <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem', marginBottom: 0 }}>
             <li>シフト提出は期限までに行ってください</li>
-            <li>確定シフトは店長が作成後に「シフト確認」で見られます</li>
+            <li>確定シフトはオーナーが作成後に「シフト確認」で見られます</li>
             <li>就労時間は確定済みのデータのみ反映されます</li>
           </ul>
         </div>
@@ -247,14 +247,14 @@ const getHelpContent = (page, managerNumber = '') => {
           <li><strong>開始日</strong>：シフト提出を始めたい日付を選択します</li>
           <li><strong>終了日</strong>：シフト提出を終わらせたい日付を選択します</li>
           <li><strong>次へ</strong>ボタンをクリックすると、日ごとの時間入力画面に進みます</li>
-          <li>または<strong>候補</strong>ボタンを押すと、店長が設定した提出期間の候補から選べます</li>
+          <li>または<strong>候補</strong>ボタンを押すと、オーナーが設定した提出期間の候補から選べます</li>
         </ol>
 
         <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
           <strong>⚠️ 注意点：</strong>
           <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem', marginBottom: 0 }}>
             <li>終了日は開始日より後の日付にしてください</li>
-            <li>店長がすでにシフトを組んだ日付が含まれている場合は提出できません</li>
+            <li>オーナーがすでにシフトを組んだ日付が含まれている場合は提出できません</li>
             <li>提出済みの期間を変更したい場合は「シフト変更」から行ってください</li>
           </ul>
         </div>
@@ -263,22 +263,22 @@ const getHelpContent = (page, managerNumber = '') => {
 
 managerAuth: (
       <div>
-        <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>店長パスワード画面の使い方</h2>
+        <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>オーナーパスワード画面の使い方</h2>
         <div style={{ marginBottom: '1.5rem', backgroundColor: '#f5f5f5', padding: '1rem', borderRadius: '8px' }}>
-          <p style={{ fontSize: '14px', margin: 0 }}>🔐 店長メニューに入るためのパスワード認証画面です。</p>
+          <p style={{ fontSize: '14px', margin: 0 }}>🔐 オーナーメニューに入るためのパスワード認証画面です。</p>
         </div>
 
         <h3 style={{ color: '#1976D2', marginTop: '1rem' }}>手順：</h3>
         <ol style={{ lineHeight: '2' }}>
-          <li>パスワード入力欄に<strong>店長パスワード</strong>を入力します</li>
+          <li>パスワード入力欄に<strong>オーナーパスワード</strong>を入力します</li>
           <li><strong>認証</strong>ボタンをクリックします</li>
-          <li>認証が成功すると店長メニューに進みます</li>
+          <li>認証が成功するとオーナーメニューに進みます</li>
         </ol>
 
         <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
           <strong>⚠️ 注意点：</strong>
           <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem', marginBottom: 0 }}>
-            <li>パスワードは店長のみが知っている番号です</li>
+            <li>パスワードはオーナーのみが知っている番号です</li>
             <li>パスワードを忘れた場合はシステム管理者に連絡してください</li>
             <li>誤ったパスワードを入力するとエラーが表示されます</li>
           </ul>
@@ -288,7 +288,7 @@ managerAuth: (
 
     managerMenu: (
       <div>
-        <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>店長メニューの使い方</h2>
+        <h2 style={{ color: '#1976D2', marginBottom: '1rem' }}>オーナーメニューの使い方</h2>
         <div style={{ marginBottom: '1.5rem', backgroundColor: '#f5f5f5', padding: '1rem', borderRadius: '8px' }}>
           <p style={{ fontSize: '14px', margin: 0 }}>🏪 シフト管理・勤怠管理・スタッフ登録などが行えます。</p>
         </div>
@@ -346,7 +346,7 @@ managerAuth: (
           <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem', marginBottom: 0 }}>
             <li>備考欄に「遅刻予定」「早退希望」などのメモを残せます</li>
             <li>全ての日付を入力したら「送信」ボタンで提出してください</li>
-            <li>店長がすでにシフトを組んだ日付が含まれる場合は送信できません</li>
+            <li>オーナーがすでにシフトを組んだ日付が含まれる場合は送信できません</li>
           </ul>
         </div>
       </div>
@@ -651,13 +651,15 @@ const [newNotifCount, setNewNotifCount] = useState(0);
             reg.active.postMessage({ type: 'CATCHUP', managerNumber: String(loggedInManagerNumber) });
           }
         }).catch(() => {});
+      }
+    }
 
-        // Android初回警告（1回だけ表示）
-        const isAndroid = /Android/i.test(navigator.userAgent);
-        if (isAndroid && !localStorage.getItem('androidNotifWarnShown')) {
-          setAndroidWarnIsDelay(false);
-          setShowAndroidWarn(true);
-        }
+    // Android初回警告（通知設定に関係なく、初回ログイン時に1回だけ表示）
+    if (role && loggedInManagerNumber) {
+      const isAndroid = /Android/i.test(navigator.userAgent);
+      if (isAndroid && !localStorage.getItem('androidNotifWarnShown')) {
+        setAndroidWarnIsDelay(false);
+        setShowAndroidWarn(true);
       }
     }
 
@@ -818,11 +820,11 @@ const openHelp = (page, managerNumber = '') => {
     if (password === '0306') {
       setIsLoggedIn(true);
       setLoggedInManagerNumber('0000');
-      setLoggedInName('店長');
+      setLoggedInName('オーナー');
       setLoginMessage('');
       setNavigationHistory([]);
       if (rememberMe) {
-        localStorage.setItem('autoLoginData', JSON.stringify({ managerNumber: '0000', name: '店長', expiresAt: Date.now() + 30*24*60*60*1000 }));
+        localStorage.setItem('autoLoginData', JSON.stringify({ managerNumber: '0000', name: 'オーナー', expiresAt: Date.now() + 30*24*60*60*1000 }));
       }
     } else {
       setLoginMessage('パスワードが違います');
@@ -1105,7 +1107,7 @@ const handleSubmit = async () => {
         .join(', ');
       
       alert(
-        `❌ 提出できません\n\n以下の日付は既に店長がシフトを組んでいます:\n\n${existingDates}\n\n店長に確認するか、別の期間を選択してください。`
+        `❌ 提出できません\n\n以下の日付は既にオーナーがシフトを組んでいます:\n\n${existingDates}\n\nオーナーに確認するか、別の期間を選択してください。`
       );
       return;
     }
@@ -1767,9 +1769,9 @@ const handleSubmit = async () => {
           {loggedInName && <div style={{ textAlign: 'center', color: '#1976D2', fontWeight: 'bold', marginBottom: '0.5rem' }}>{loggedInName}さん</div>}
           <h2>メニューを選択してください</h2>
           <div className="button-row" style={{ flexDirection: 'column', gap: '1rem' }}>
-            <button onClick={() => selectRole('staff')} style={{ backgroundColor: '#1976D2' }}>アルバイト</button>
+            <button onClick={() => selectRole('staff')} style={{ backgroundColor: '#1976D2' }}>スタッフ</button>
             {loggedInManagerNumber === '0000' && (
-              <button onClick={() => selectRole('manager')} style={{ backgroundColor: '#1565C0' }}>店長</button>
+              <button onClick={() => selectRole('manager')} style={{ backgroundColor: '#1565C0' }}>オーナー</button>
             )}
             <button onClick={() => {
               pushToHistory({
@@ -2317,7 +2319,7 @@ if (role === 'clockin') {
 
           <div style={{ backgroundColor: '#fff9c4', borderRadius: '8px', padding: '10px', marginBottom: '1rem', fontSize: '12px', color: '#555' }}>
             <strong>スタッフへの案内：</strong><br/>
-            スタッフのスマホで「ホーム画面に追加」してPWAを開き、アルバイトメニューで「通知OFF（タップでON）」ボタンをタップして通知をオンにするよう伝えてください。
+            スタッフのスマホで「ホーム画面に追加」してPWAを開き、スタッフメニューで「通知OFF（タップでON）」ボタンをタップして通知をオンにするよう伝えてください。
           </div>
 
           <button onClick={() => setShowPushDebug(false)} style={{ width: '100%', padding: '10px', backgroundColor: '#eee', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>閉じる</button>
@@ -2496,7 +2498,7 @@ if (role === 'clockin') {
             </div>
           )}
           {loggedInName && <div style={{ textAlign: 'center', color: '#1976D2', fontWeight: 'bold', marginBottom: '0.3rem' }}>{loggedInName}さん</div>}
-          <h2 style={{ marginTop: '0.3rem' }}>店長メニュー</h2>
+          <h2 style={{ marginTop: '0.3rem' }}>オーナーメニュー</h2>
           {notifEnabled && notifHistory.length > 0 && (
             <div style={{ position: 'relative', marginBottom: '1rem', backgroundColor: '#FFF8E1', borderRadius: '10px', padding: '8px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
@@ -3296,28 +3298,13 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
               📲 ホーム画面に追加
             </button>
           </div>
-          {notifEnabled && (
-            <div style={{ display: 'flex', gap: '6px', marginBottom: '0.3rem' }}>
-              <button type="button" onClick={async () => {
-                showNotifToast('📤 送信中...');
-                const r = await supabase.functions.invoke('send-push-notification', { body: { title: '🔔 テスト通知', body: 'プッシュ通知が正常に届いています！', target_manager_numbers: [String(loggedInManagerNumber)] } });
-                showNotifToast(r.data?.sent > 0 ? '✅ テスト通知を送信しました' : '⚠️ 送信失敗（端末に届かない場合はガイドを確認）');
-              }} style={{ flex: 1, background: 'none', border: '1px solid #43A047', color: '#43A047', borderRadius: '20px', padding: '3px 8px', fontSize: '11px', cursor: 'pointer' }}>
-                📨 テスト送信
-              </button>
-              <button type="button" onClick={() => setShowBatteryGuide(true)}
-                style={{ flex: 1, background: 'none', border: '1px solid #E65100', color: '#E65100', borderRadius: '20px', padding: '3px 8px', fontSize: '11px', cursor: 'pointer' }}>
-                ⚙️ 通知が届かない
-              </button>
-            </div>
-          )}
           {notifToast && (
             <div style={{ position: 'fixed', bottom: '2rem', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#333', color: 'white', padding: '12px 24px', borderRadius: '24px', fontSize: '14px', fontWeight: 'bold', zIndex: 9999, whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
               {notifToast}
             </div>
           )}
           {loggedInName && <div style={{ textAlign: 'center', color: '#1976D2', fontWeight: 'bold', marginBottom: '0.3rem' }}>{loggedInName}さん</div>}
-          <h2 style={{ marginTop: '0.3rem' }}>アルバイトメニュー</h2>
+          <h2 style={{ marginTop: '0.3rem' }}>スタッフメニュー</h2>
           {notifEnabled && notifHistory.length > 0 && (
             <div style={{ position: 'relative', marginBottom: '1rem', backgroundColor: '#FFF8E1', borderRadius: '10px', padding: '8px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
