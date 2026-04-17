@@ -426,6 +426,8 @@ const [notifToast, setNotifToast] = useState('');
 const [notifHistory, setNotifHistory] = useState([]);
 const [showNotifList, setShowNotifList] = useState(false);
 const [newNotifCount, setNewNotifCount] = useState(0);
+const [isSaving, setIsSaving] = useState(false);
+const [completionMsg, setCompletionMsg] = useState('');
   const fetchNotifHistory = async (managerNum) => {
     try {
       const { data } = await supabase
@@ -545,7 +547,13 @@ const [newNotifCount, setNewNotifCount] = useState(0);
         const data = JSON.parse(saved);
         if (data.expiresAt > Date.now()) {
           setLoggedInManagerNumber(data.managerNumber);
-          setLoggedInName(data.name || '');
+          // 0000アカウントの名前が古い「店長」のままなら「オーナー」に移行
+          let savedName = data.name || '';
+          if (data.managerNumber === '0000' && savedName === '店長') {
+            savedName = 'オーナー';
+            localStorage.setItem('autoLoginData', JSON.stringify({ ...data, name: 'オーナー' }));
+          }
+          setLoggedInName(savedName);
           setIsLoggedIn(true);
         } else {
           localStorage.removeItem('autoLoginData');
@@ -1090,7 +1098,7 @@ const handleBulkApply = () => {
 
 const handleSubmit = async () => {
   const targetManagerNumber = loggedInManagerNumber || managerNumber;
-  
+  setIsSaving(true);
   try {
     const { data: existingFinalShifts, error: checkError } = await supabase
       .from('final_shifts')
@@ -1102,6 +1110,7 @@ const handleSubmit = async () => {
     if (checkError) {
       console.error('シフト確認エラー:', checkError);
       alert('シフトの確認中にエラーが発生しました');
+      setIsSaving(false);
       return;
     }
 
@@ -1115,10 +1124,11 @@ const handleSubmit = async () => {
         })
         .sort()
         .join(', ');
-      
+
       alert(
         `❌ 提出できません\n\n以下の日付は既にオーナーがシフトを組んでいます:\n\n${existingDates}\n\nオーナーに確認するか、別の期間を選択してください。`
       );
+      setIsSaving(false);
       return;
     }
 
@@ -1156,12 +1166,14 @@ const handleSubmit = async () => {
       if (error) throw error;
     }
 
-    alert('シフトを保存しました！');
+    setCompletionMsg('シフト提出が完了しました！');
     setCurrentStep('');
     setRole('staff');
     resetAllInputs();
   } catch (error) {
     alert(`保存中にエラーが発生しました: ${error.message}`);
+  } finally {
+    setIsSaving(false);
   }
 };
 
@@ -1973,7 +1985,7 @@ if (role === 'clockin') {
         <h3 style={{ margin: '0 0 0.8rem', textAlign: 'center', color: '#E65100', fontSize: '1rem' }}>バックグラウンド通知を有効にする</h3>
 
         {/* iOS */}
-        {(isIOS || !isAndroid) && (
+        {(isIOS || (!isIOS && !isAndroid)) && (
           <div style={{ backgroundColor: '#F3E5F5', border: '1px solid #CE93D8', borderRadius: '10px', padding: '12px', marginBottom: '1rem', fontSize: '13px', lineHeight: 1.8 }}>
             <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>🍎 iPhone / iPad の場合</div>
             <div>Safariでこのページを開き</div>
@@ -1985,7 +1997,7 @@ if (role === 'clockin') {
         )}
 
         {/* Android */}
-        {(isAndroid || !isIOS) && (
+        {(isAndroid || (!isIOS && !isAndroid)) && (
           <div style={{ backgroundColor: '#FFF3E0', border: '1px solid #FFB300', borderRadius: '10px', padding: '12px', marginBottom: '1rem', fontSize: '13px', lineHeight: 1.8 }}>
             <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>🤖 Android の場合</div>
             <div>【手順①】ホーム画面に追加する</div>
@@ -1996,6 +2008,17 @@ if (role === 'clockin') {
           </div>
         )}
 
+        {/* PC */}
+        {!isIOS && !isAndroid && (
+          <div style={{ backgroundColor: '#E8EAF6', border: '1px solid #9FA8DA', borderRadius: '10px', padding: '12px', marginBottom: '1rem', fontSize: '13px', lineHeight: 1.8 }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>💻 PC（Windows/Mac）の場合</div>
+            <div>【Chrome / Edge】</div>
+            <div style={{ paddingLeft: '8px', fontSize: '12px' }}>アドレスバー左の🔒アイコン → 通知 → 許可</div>
+            <div style={{ marginTop: '6px' }}>【スリープ中の注意】</div>
+            <div style={{ paddingLeft: '8px', fontSize: '12px', color: '#3949AB' }}>PCがスリープ・シャットダウン中は通知が届きません。</div>
+            <div style={{ paddingLeft: '8px', fontSize: '12px', color: '#3949AB' }}>定期的にアプリを確認してください。</div>
+          </div>
+        )}
         <div style={{ backgroundColor: '#E3F2FD', border: '1px solid #90CAF9', borderRadius: '10px', padding: '10px', marginBottom: '1rem', fontSize: '12px', color: '#1565C0', lineHeight: 1.6 }}>
           これらの設定をしないとアプリを開いたときだけ通知が届きます
         </div>
@@ -2482,26 +2505,11 @@ if (role === 'clockin') {
               style={{ background: 'none', border: '1px solid #1a73e8', color: '#1a73e8', borderRadius: '20px', padding: '3px 12px', fontSize: '12px', cursor: 'pointer' }}>
               📲 ホーム画面に追加
             </button>
-            <button type="button" onClick={() => setShowPushDebug(true)}
-              style={{ background: 'none', border: '1px solid #555', color: '#555', borderRadius: '20px', padding: '3px 10px', fontSize: '11px', cursor: 'pointer' }}>
-              📊 通知診断
+            <button type="button" onClick={() => setShowBatteryGuide(true)}
+              style={{ background: 'none', border: '1px solid #E65100', color: '#E65100', borderRadius: '20px', padding: '3px 10px', fontSize: '11px', cursor: 'pointer' }}>
+              ⚙️ 通知が届かない
             </button>
           </div>
-          {notifEnabled && (
-            <div style={{ display: 'flex', gap: '6px', marginBottom: '0.3rem' }}>
-              <button type="button" onClick={async () => {
-                showNotifToast('📤 送信中...');
-                const r = await supabase.functions.invoke('send-push-notification', { body: { title: '🔔 テスト通知', body: 'プッシュ通知が正常に届いています！', target_manager_numbers: [String(loggedInManagerNumber)] } });
-                showNotifToast(r.data?.sent > 0 ? '✅ テスト通知を送信しました' : '⚠️ 送信失敗（端末に届かない場合はガイドを確認）');
-              }} style={{ flex: 1, background: 'none', border: '1px solid #43A047', color: '#43A047', borderRadius: '20px', padding: '3px 8px', fontSize: '11px', cursor: 'pointer' }}>
-                📨 テスト送信
-              </button>
-              <button type="button" onClick={() => setShowBatteryGuide(true)}
-                style={{ flex: 1, background: 'none', border: '1px solid #E65100', color: '#E65100', borderRadius: '20px', padding: '3px 8px', fontSize: '11px', cursor: 'pointer' }}>
-                ⚙️ 通知が届かない
-              </button>
-            </div>
-          )}
           {notifToast && (
             <div style={{ position: 'fixed', bottom: '2rem', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#333', color: 'white', padding: '12px 24px', borderRadius: '24px', fontSize: '14px', fontWeight: 'bold', zIndex: 9999, whiteSpace: 'nowrap', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
               {notifToast}
@@ -2797,6 +2805,13 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
   if (role === 'staff' && currentStep === 'shiftInput') {
     return (
       <div className="login-wrapper" style={{ padding: '0.5rem' }}>
+        {isSaving && (
+          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            <div style={{ width: 48, height: 48, borderRadius: '50%', border: '4px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.8s linear infinite' }} />
+            <div style={{ color: 'white', fontSize: 16 }}>保存中...</div>
+          </div>
+        )}
         <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
         <div className="login-card shift-input-card" style={{
           position: 'relative',
@@ -3280,6 +3295,17 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
         {showInstallBanner && <InstallBanner />}
         {showNotifModal && <NotifModal />}
         {showNotifList && <NotifListModal />}
+        {showBatteryGuide && <BatteryGuideModal />}
+        {completionMsg && (
+          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={() => setCompletionMsg('')}>
+            <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '2rem 2.5rem', textAlign: 'center', boxShadow: '0 8px 32px rgba(0,0,0,0.3)', maxWidth: '320px', width: '90%' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>✅</div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#1976D2' }}>{completionMsg}</div>
+              <button onClick={() => setCompletionMsg('')} style={{ marginTop: '1.5rem', backgroundColor: '#1976D2', color: 'white', border: 'none', borderRadius: '8px', padding: '0.6rem 2rem', fontSize: '1rem', cursor: 'pointer', fontWeight: 'bold' }}>OK</button>
+            </div>
+          </div>
+        )}
         <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage, currentHelpManagerNumber)} />
         <div className="login-card" style={{ position: 'relative' }}>
           <BackButton />
@@ -3302,6 +3328,10 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
             <button type="button" onClick={() => showInstallFlow()}
               style={{ background: 'none', border: '1px solid #1a73e8', color: '#1a73e8', borderRadius: '20px', padding: '3px 12px', fontSize: '12px', cursor: 'pointer' }}>
               📲 ホーム画面に追加
+            </button>
+            <button type="button" onClick={() => setShowBatteryGuide(true)}
+              style={{ background: 'none', border: '1px solid #E65100', color: '#E65100', borderRadius: '20px', padding: '3px 10px', fontSize: '11px', cursor: 'pointer' }}>
+              ⚙️ 通知が届かない
             </button>
           </div>
           {notifToast && (

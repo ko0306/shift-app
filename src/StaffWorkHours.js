@@ -415,6 +415,7 @@ useEffect(() => {
 
   const calculateTotalStats = () => {
     let totalMinutes = 0;
+    let totalBreakMinutes = 0;
     let totalSalary = 0;
     let workDays = 0;
 
@@ -423,6 +424,9 @@ useEffect(() => {
         totalMinutes += record.work_minutes;
         workDays++;
       }
+      if (record.break_minutes) {
+        totalBreakMinutes += record.break_minutes;
+      }
       if (record.salary) {
         totalSalary += record.salary;
       }
@@ -430,10 +434,15 @@ useEffect(() => {
 
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
+    const breakHours = Math.floor(totalBreakMinutes / 60);
+    const breakMins = totalBreakMinutes % 60;
 
     return {
       totalHours: hours,
       totalMinutes: minutes,
+      totalBreakHours: breakHours,
+      totalBreakMinutes: breakMins,
+      totalRawBreakMinutes: totalBreakMinutes,
       totalSalary: totalSalary,
       workDays: workDays
     };
@@ -499,18 +508,20 @@ useEffect(() => {
 
   const calculateGroupStats = (data) => {
     let totalMinutes = 0;
+    let totalBreakMinutes = 0;
     let totalSalary = 0;
     let workDays = data.length;
 
     data.forEach(record => {
       if (record.work_minutes) totalMinutes += record.work_minutes;
+      if (record.break_minutes) totalBreakMinutes += record.break_minutes;
       if (record.salary) totalSalary += record.salary;
     });
 
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
 
-    return { hours, minutes, totalSalary, workDays };
+    return { hours, minutes, totalBreakMinutes, totalSalary, workDays };
   };
 
   const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i);
@@ -967,6 +978,14 @@ if (!isAuthenticated && loggedInManagerNumber) {
                 {stats.totalHours}時間{stats.totalMinutes}分
               </div>
             </div>
+            {stats.totalRawBreakMinutes > 0 && (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '0.9rem', color: '#666' }}>総休憩時間</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#FF9800' }}>
+                  {stats.totalBreakHours > 0 ? `${stats.totalBreakHours}時間` : ''}{stats.totalBreakMinutes}分
+                </div>
+              </div>
+            )}
             {stats.totalSalary > 0 && (
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '0.9rem', color: '#666' }}>総給料</div>
