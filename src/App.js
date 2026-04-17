@@ -481,15 +481,41 @@ const [newNotifCount, setNewNotifCount] = useState(0);
     setCandidateError('');
     setCandidates([]);
     try {
-      const res = await fetch(`${GAS_URL}?managerNumber=1234`);
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error || '取得に失敗しました');
-      const pending = (data.candidates || []).filter(c => !c.isDone);
-      if (pending.length === 0) {
-        setCandidateError('未処理の候補シフト期間が見つかりませんでした');
-      } else {
-        setCandidates(pending);
+      const { data: periods, error } = await supabase
+        .from('shift_periods')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw new Error(error.message);
+      if (!periods || periods.length === 0) {
+        setCandidateError('オーナーからのシフト提出依頼がありません');
+        return;
       }
+
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+      const validPeriods = periods.filter(p =>
+        p.period_start && p.period_end && p.period_start <= p.period_end
+      );
+
+      const result = validPeriods.map(p => ({
+        start: p.period_start,
+        end: p.period_end,
+        deadline: p.deadline || '未設定',
+        isDone: p.is_done || false,
+        isExpired: p.deadline && p.deadline < todayStr,
+      }));
+
+      // 期限切れでないものを先に表示
+      const active = result.filter(c => !c.isExpired);
+      const expired = result.filter(c => c.isExpired);
+
+      if (active.length === 0 && expired.length === 0) {
+        setCandidateError('オーナーからのシフト提出依頼がありません');
+        return;
+      }
+      setCandidates([...active, ...expired]);
     } catch (e) {
       setCandidateError(e.message || '取得中にエラーが発生しました');
     } finally {
@@ -891,32 +917,16 @@ const openHelp = (page, managerNumber = '') => {
   // handleNext, getWeekday, handleTimeChange等の関数は元のコードと同じ
  
 const handleNext = async () => {
-  // ログイン時の管理番号を使用
-  const targetManagerNumber = loggedInManagerNumber || managerNumber;
-  
+  // ログイン済みの管理番号を使用（再認証不要）
+  const targetManagerNumber = String(loggedInManagerNumber || managerNumber || '');
+
   if (!targetManagerNumber.trim()) {
     alert('管理番号が取得できませんでした');
     return;
   }
-  
+
   if (!startDate || !endDate || startDate > endDate) {
     alert('正しい開始日・終了日を入力してください');
-    return;
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from('users')
-      .select('manager_number')
-      .eq('manager_number', targetManagerNumber)
-      .single();
-
-    if (error || !data) {
-      alert('管理番号が存在しません。');
-      return;
-    }
-  } catch (err) {
-    alert('管理番号が存在しません。');
     return;
   }
 
@@ -2669,10 +2679,6 @@ if (role === 'staff' && currentStep === 'workHours') {
 
  
 if (role === 'staff' && currentStep === 'shiftPeriod') {
-  // ログイン時の管理番号を自動設定
-  if (loggedInManagerNumber && !managerNumber) {
-    setManagerNumber(loggedInManagerNumber);
-  }
 
   return (
     <div className="login-wrapper">
