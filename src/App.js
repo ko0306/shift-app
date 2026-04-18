@@ -2023,8 +2023,8 @@ if (role === 'clockin') {
           これらの設定をしないとアプリを開いたときだけ通知が届きます
         </div>
         <button onClick={() => { localStorage.setItem('batteryGuideShown', '1'); setShowBatteryGuide(false); }}
-          style={{ width: '100%', padding: '12px', backgroundColor: '#1565C0', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }}>
-          わかった・設定する
+          style={{ width: '100%', padding: '12px', backgroundColor: '#607D8B', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }}>
+          戻る
         </button>
       </div>
     </div>
@@ -2477,7 +2477,6 @@ if (role === 'clockin') {
       <div className="login-wrapper">
         {showInstallBanner && <InstallBanner />}
         {showDeadlineModal && <ShiftDeadlineModal />}
-        {showHelpNotifModal && <HelpNotifModal />}
         {showBatteryGuide && <BatteryGuideModal />}
         {showAndroidWarn && <AndroidWarnModal />}
         {showNotifList && <NotifListModal />}
@@ -2486,7 +2485,7 @@ if (role === 'clockin') {
         <div className="login-card" style={{ position: 'relative' }}>
           <BackButton />
           <HelpButton page="managerMenu" />
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+          <div style={{ display: 'flex', gap: '4px', alignItems: 'stretch', marginBottom: '0.3rem' }}>
             <button type="button" onClick={() => {
               const next = !notifEnabled;
               setNotifEnabled(next);
@@ -2498,15 +2497,15 @@ if (role === 'clockin') {
                 showNotifToast('🔕 通知をオフにしました');
               }
             }}
-              style={{ backgroundColor: notifEnabled ? '#FF9800' : '#9E9E9E', color: 'white', border: 'none', borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
-              {notifEnabled ? '🔔 通知ON（タップでOFF）' : '🔕 通知OFF（タップでON）'}
+              style={{ flex: 1, backgroundColor: notifEnabled ? '#FF9800' : '#9E9E9E', color: 'white', border: 'none', borderRadius: '20px', padding: '5px 4px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer', textAlign: 'center', lineHeight: '1.3' }}>
+              {notifEnabled ? '🔔 通知ON' : '🔕 通知OFF'}
             </button>
             <button type="button" onClick={() => showInstallFlow()}
-              style={{ background: 'none', border: '1px solid #1a73e8', color: '#1a73e8', borderRadius: '20px', padding: '3px 12px', fontSize: '12px', cursor: 'pointer' }}>
-              📲 ホーム画面に追加
+              style={{ flex: 1, background: 'none', border: '1px solid #1a73e8', color: '#1a73e8', borderRadius: '20px', padding: '5px 4px', fontSize: '10px', cursor: 'pointer', textAlign: 'center', lineHeight: '1.3' }}>
+              📲 ホーム画面
             </button>
             <button type="button" onClick={() => setShowBatteryGuide(true)}
-              style={{ background: 'none', border: '1px solid #E65100', color: '#E65100', borderRadius: '20px', padding: '3px 10px', fontSize: '11px', cursor: 'pointer' }}>
+              style={{ flex: 1, background: 'none', border: '1px solid #E65100', color: '#E65100', borderRadius: '20px', padding: '5px 4px', fontSize: '10px', cursor: 'pointer', textAlign: 'center', lineHeight: '1.3' }}>
               ⚙️ 通知が届かない
             </button>
           </div>
@@ -2580,10 +2579,6 @@ if (role === 'clockin') {
               <button onClick={() => { pushToHistory({ role, currentStep, managerAuth, managerStep: '', isLoggedIn: true }); setManagerStep('view'); }} style={{ backgroundColor: '#2E7D32', color: 'white', border: 'none', borderRadius: '14px', padding: '0.9rem 1.1rem', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.8rem', width: '100%', marginTop: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
                 <span style={{ fontSize: '1.7rem', minWidth: '2rem', textAlign: 'center' }}>📋</span>
                 <span><div style={{ fontSize: '1rem', fontWeight: 'bold' }}>シフト確認</div><div style={{ fontSize: '0.73rem', opacity: 0.9, marginTop: '2px' }}>作成済みシフトを表示</div></span>
-              </button>
-              <button onClick={() => setShowHelpNotifModal(true)} style={{ backgroundColor: '#B71C1C', color: 'white', border: 'none', borderRadius: '14px', padding: '0.9rem 1.1rem', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '0.8rem', width: '100%', marginTop: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
-                <span style={{ fontSize: '1.7rem', minWidth: '2rem', textAlign: 'center' }}>🆘</span>
-                <span><div style={{ fontSize: '1rem', fontWeight: 'bold' }}>ヘルプ通知</div><div style={{ fontSize: '0.73rem', opacity: 0.9, marginTop: '2px' }}>急な人手不足を全員へ通知</div></span>
               </button>
             </div>
           )}
@@ -3310,7 +3305,7 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
         <div className="login-card" style={{ position: 'relative' }}>
           <BackButton />
           <HelpButton page="staffMenu" />
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+          <div style={{ display: 'flex', gap: '4px', alignItems: 'stretch', marginBottom: '0.3rem' }}>
             <button type="button" onClick={() => {
               const next = !notifEnabled;
               setNotifEnabled(next);
@@ -3322,15 +3317,15 @@ if (role === 'staff' && currentStep === 'shiftPeriod') {
                 showNotifToast('🔕 通知をオフにしました');
               }
             }}
-              style={{ backgroundColor: notifEnabled ? '#FF9800' : '#9E9E9E', color: 'white', border: 'none', borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
-              {notifEnabled ? '🔔 通知ON（タップでOFF）' : '🔕 通知OFF（タップでON）'}
+              style={{ flex: 1, backgroundColor: notifEnabled ? '#FF9800' : '#9E9E9E', color: 'white', border: 'none', borderRadius: '20px', padding: '5px 4px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer', textAlign: 'center', lineHeight: '1.3' }}>
+              {notifEnabled ? '🔔 通知ON' : '🔕 通知OFF'}
             </button>
             <button type="button" onClick={() => showInstallFlow()}
-              style={{ background: 'none', border: '1px solid #1a73e8', color: '#1a73e8', borderRadius: '20px', padding: '3px 12px', fontSize: '12px', cursor: 'pointer' }}>
-              📲 ホーム画面に追加
+              style={{ flex: 1, background: 'none', border: '1px solid #1a73e8', color: '#1a73e8', borderRadius: '20px', padding: '5px 4px', fontSize: '10px', cursor: 'pointer', textAlign: 'center', lineHeight: '1.3' }}>
+              📲 ホーム画面
             </button>
             <button type="button" onClick={() => setShowBatteryGuide(true)}
-              style={{ background: 'none', border: '1px solid #E65100', color: '#E65100', borderRadius: '20px', padding: '3px 10px', fontSize: '11px', cursor: 'pointer' }}>
+              style={{ flex: 1, background: 'none', border: '1px solid #E65100', color: '#E65100', borderRadius: '20px', padding: '5px 4px', fontSize: '10px', cursor: 'pointer', textAlign: 'center', lineHeight: '1.3' }}>
               ⚙️ 通知が届かない
             </button>
           </div>

@@ -234,7 +234,7 @@ const getHelpContent = (page) => {
         <ul style={{ lineHeight: '1.8' }}>
           <li><strong>名前</strong>：スタッフ名（募集行は赤字で「募集」と表示）</li>
           <li><strong>店舗</strong>：勤務店舗</li>
-          <li><strong>役割</strong>：社員 / アルバイトなど</li>
+          <li><strong>役割</strong>：社員 / スタッフなど</li>
           <li><strong>勤務時間</strong>：開始〜終了時刻（休みの場合は「休み」）</li>
           <li><strong>状態</strong>：出勤（緑）／休み（赤）／募集中（赤）</li>
         </ul>
@@ -335,7 +335,7 @@ const getHelpContent = (page) => {
         <ol style={{ lineHeight: '1.8' }}>
           <li><strong>変更</strong>ボタンをクリックして編集モードを開始</li>
           <li><strong>店舗変更</strong>：ドロップダウンから勤務店舗を選択</li>
-          <li><strong>役割変更</strong>：ドロップダウンから役割（社員・アルバイト等）を選択</li>
+          <li><strong>役割変更</strong>：ドロップダウンから役割（社員・スタッフ等）を選択</li>
           <li><strong>開始・終了時刻</strong>：時・分をそれぞれドロップダウンで選択</li>
           <li>休みの場合は<strong>休みチェックボックス</strong>にチェック（時刻選択が無効になります）</li>
           <li><strong>更新</strong>ボタンをクリックして保存</li>
@@ -679,14 +679,15 @@ const [shiftSettings, setShiftSettings] = useState(() => {
       const storeValue = shift.store;
       const roleValue = shift.role;  // ← 追加
       
+      const displayName = shift.isNew ? '追加行' : getUserName(shift.manager_number);
       if (!storeValue || storeValue.trim() === '') {
-        alert(`${getUserName(shift.manager_number)}の店舗を選択または入力してください`);
+        alert(`${displayName}の店舗を選択または入力してください`);
         setLoading(false);
         return;
       }
 
       if (!roleValue || roleValue.trim() === '') {  // ← 追加
-        alert(`${getUserName(shift.manager_number)}の役割を選択してください`);
+        alert(`${displayName}の役割を選択してください`);
         setLoading(false);
         return;
       }
@@ -709,11 +710,17 @@ const [shiftSettings, setShiftSettings] = useState(() => {
         remarks: shift.remarks || null
       };
 
-      const { error } = await supabase
-        .from('final_shifts')
-        .upsert(updateData, {
-          onConflict: 'date,manager_number'
-        });
+      let error;
+      if (shift.isNew) {
+        updateData.is_boshu = true;
+        const result = await supabase.from('final_shifts').insert(updateData);
+        error = result.error;
+      } else {
+        const result = await supabase
+          .from('final_shifts')
+          .upsert(updateData, { onConflict: 'date,manager_number' });
+        error = result.error;
+      }
 
       if (error) {
         console.error(`${getUserName(shift.manager_number)} の保存エラー:`, error);
@@ -734,6 +741,25 @@ const [shiftSettings, setShiftSettings] = useState(() => {
   } finally {
     setLoading(false);
   }
+};
+
+const handleAddRow = () => {
+  const tempId = `new_${Date.now()}`;
+  setEditingShifts(prev => [...prev, {
+    id: tempId,
+    isNew: true,
+    is_boshu: true,
+    manager_number: null,
+    date: selectedDate,
+    store: shiftSettings.defaultStore,
+    role: shiftSettings.defaultRole,
+    startHour: 9,
+    startMin: 0,
+    endHour: 17,
+    endMin: 0,
+    is_off: false,
+    remarks: ''
+  }]);
 };
 
 const handleTimeSlotClick = (shiftId, slotTime) => {
@@ -879,7 +905,7 @@ const handleTimeSlotClick = (shiftId, slotTime) => {
             setCurrentHelpPage('calendar');
             setShowHelp(true);
           }} />
-          <h2 style={{ fontSize: 'clamp(1.2rem, 5vw, 1.5rem)' }}>シフト確認（店長）</h2>
+          <h2 style={{ fontSize: 'clamp(1.2rem, 5vw, 1.5rem)' }}>シフト確認（オーナー）</h2>
 
           <div style={{
             marginTop: '1rem',
@@ -1660,6 +1686,25 @@ if (isFirstClick) {
               </tbody>
             </table>
           </div>
+        )}
+        {isEditing && (
+          <button
+            onClick={handleAddRow}
+            style={{
+              marginTop: '0.5rem',
+              padding: '0.4rem 0.6rem',
+              backgroundColor: '#4CAF50',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: 'clamp(0.7rem, 2.5vw, 0.85rem)',
+              fontWeight: 'bold',
+              width: '100%'
+            }}
+          >
+            ＋ 行を追加（募集枠）
+          </button>
         )}
       </div>
     </div>

@@ -146,7 +146,7 @@ const getManagerHelpContent = (page) => {
         <ul style={{ lineHeight: '1.8' }}>
           <li><strong>従業員選択</strong>：特定の従業員のみ表示</li>
           <li><strong>店舗選択</strong>：特定の店舗のみ表示</li>
-          <li><strong>役割選択</strong>：社員/アルバイトなど役割でフィルタリング</li>
+          <li><strong>役割選択</strong>：社員/スタッフなど役割でフィルタリング</li>
           <li><strong>期間単位</strong>：年別/月別/日別で集計</li>
           <li><strong>対象期間</strong>：集計する期間を選択（年別集計時は不要）</li>
         </ul>
@@ -931,8 +931,8 @@ const aggregatedData = useMemo(() => {
                         {p.label}
                     </th>
                 ))}
-                <th style={{ padding: '0.4rem 0.6rem', border: '1px solid #ccc', textAlign: 'right', minWidth: '72px', backgroundColor: '#E0F7FA' }}>🚃 交通費</th>
-                <th style={{ padding: '0.4rem 0.6rem', border: '1px solid #ccc', textAlign: 'right', minWidth: '72px', backgroundColor: '#E0F7FA' }}>🚌 応援交通費</th>
+                <th style={{ padding: '0.3rem 0.4rem', border: '1px solid #ccc', textAlign: 'right', minWidth: '52px', backgroundColor: '#E0F7FA', fontSize: '0.78rem' }}>🚃交通費</th>
+                <th style={{ padding: '0.3rem 0.4rem', border: '1px solid #ccc', textAlign: 'right', minWidth: '52px', backgroundColor: '#E0F7FA', fontSize: '0.78rem' }}>🚌応援費</th>
                 <th style={{ padding: '0.4rem 0.6rem', border: '1px solid #ccc', textAlign: 'left', minWidth: '120px', backgroundColor: '#FFFDE7' }}>📝 備考</th>
               </tr>
             </thead>
@@ -951,10 +951,10 @@ const aggregatedData = useMemo(() => {
                             {formatMinutes(data[p.key] || 0)}
                         </td>
                     ))}
-                    <td style={{ padding: '0.3rem 0.6rem', border: '1px solid #eee', textAlign: 'right', backgroundColor: data.totalTransportFee > 0 ? '#E0F7FA' : 'transparent', fontWeight: data.totalTransportFee > 0 ? 'bold' : 'normal', color: data.totalTransportFee > 0 ? '#00796B' : '#999' }}>
+                    <td style={{ padding: '0.3rem 0.4rem', border: '1px solid #eee', textAlign: 'right', fontSize: '0.78rem', backgroundColor: data.totalTransportFee > 0 ? '#E0F7FA' : 'transparent', fontWeight: data.totalTransportFee > 0 ? 'bold' : 'normal', color: data.totalTransportFee > 0 ? '#00796B' : '#999' }}>
                       {data.totalTransportFee > 0 ? `¥${data.totalTransportFee.toLocaleString()}` : '-'}
                     </td>
-                    <td style={{ padding: '0.3rem 0.6rem', border: '1px solid #eee', textAlign: 'right', backgroundColor: data.totalSupportTransportFee > 0 ? '#E0F7FA' : 'transparent', fontWeight: data.totalSupportTransportFee > 0 ? 'bold' : 'normal', color: data.totalSupportTransportFee > 0 ? '#00796B' : '#999' }}>
+                    <td style={{ padding: '0.3rem 0.4rem', border: '1px solid #eee', textAlign: 'right', fontSize: '0.78rem', backgroundColor: data.totalSupportTransportFee > 0 ? '#E0F7FA' : 'transparent', fontWeight: data.totalSupportTransportFee > 0 ? 'bold' : 'normal', color: data.totalSupportTransportFee > 0 ? '#00796B' : '#999' }}>
                       {data.totalSupportTransportFee > 0 ? `¥${data.totalSupportTransportFee.toLocaleString()}` : '-'}
                     </td>
                     <td style={{ padding: '0.3rem 0.6rem', border: '1px solid #eee', fontSize: '0.85rem', color: data.expenseRemarks.length > 0 ? '#333' : '#999', backgroundColor: data.expenseRemarks.length > 0 ? '#FFFDE7' : 'transparent' }}>

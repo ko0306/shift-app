@@ -290,6 +290,7 @@ const [clickCount, setClickCount] = useState({});
   const [currentHelpPage, setCurrentHelpPage] = useState('password');
 const [selectedStore, setSelectedStore] = useState('A');
 const [storeList, setStoreList] = useState(['A', 'B']); // ← 追加
+const [freeStoreInput, setFreeStoreInput] = useState('');
 
 // ← 追加：useEffectの中（fetchUsersを呼んでいるuseEffectの下）に追加
 useEffect(() => {
@@ -498,8 +499,9 @@ const checkAndHandleAction = (actionType) => {
     };
     
     // 店舗情報が設定されている場合のみ追加
-    if (selectedStore) {
-      logData.store = selectedStore;
+    const actualStore = selectedStore === '__free__' ? freeStoreInput.trim() : selectedStore;
+    if (actualStore) {
+      logData.store = actualStore;
     }
     
     const { data: _data, error } = await supabase
@@ -1406,7 +1408,26 @@ if (!isAuthenticated && !loggedInManagerNumber) {
     {storeList.map(store => (
   <option key={store} value={store}>{store}</option>
 ))}
+    <option value="__free__">その他（手入力）</option>
   </select>
+  {selectedStore === '__free__' && (
+    <input
+      type="text"
+      value={freeStoreInput}
+      onChange={(e) => setFreeStoreInput(e.target.value)}
+      placeholder="店舗名を入力"
+      style={{
+        marginTop: '0.5rem',
+        width: '100%',
+        padding: '0.75rem',
+        fontSize: '1.1rem',
+        border: '2px solid #FF9800',
+        borderRadius: '4px',
+        boxSizing: 'border-box',
+        textAlign: 'center'
+      }}
+    />
+  )}
 </div>
 {/* 操作説明 */}
 <div style={{
