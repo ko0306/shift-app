@@ -918,53 +918,54 @@ const aggregatedData = useMemo(() => {
         <div style={{
           border: '1px solid #ddd',
           borderRadius: '8px',
-          overflowX: 'auto', 
+          overflowX: 'auto',
           maxHeight: '400px'
         }}>
-          <table style={{ width: '100%', minWidth: '800px', borderCollapse: 'collapse' }}>
-            <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f5f5f5' }}>
+          <table style={{ width: '100%', minWidth: '800px', borderCollapse: 'separate', borderSpacing: 0 }}>
+            <thead style={{ position: 'sticky', top: 0, zIndex: 2, backgroundColor: '#f5f5f5' }}>
               <tr>
                 <th style={{ padding: '0.4rem 0.6rem', border: '1px solid #ccc', textAlign: 'left', minWidth: '120px' }}>名前</th>
-                <th style={{ padding: '0.4rem 0.6rem', border: '1px solid #ccc', textAlign: 'right', minWidth: '100px' }}>総勤務時間</th>
+                <th style={{ padding: '0.4rem 0.6rem', border: '1px solid #ccc', borderLeft: 'none', textAlign: 'right', minWidth: '140px' }}>総勤務時間</th>
                 {timePeriods.map(p => (
-                    <th key={p.key} style={{ padding: '0.4rem 0.6rem', border: '1px solid #ccc', textAlign: 'right', minWidth: '100px' }}>
+                    <th key={p.key} style={{ padding: '0.4rem 0.6rem', border: '1px solid #ccc', borderLeft: 'none', textAlign: 'right', minWidth: '100px' }}>
                         {p.label}
                     </th>
                 ))}
-                <th style={{ padding: '0.3rem 0.4rem', border: '1px solid #ccc', textAlign: 'right', minWidth: '52px', backgroundColor: '#E0F7FA', fontSize: '0.78rem' }}>🚃交通費</th>
-                <th style={{ padding: '0.3rem 0.4rem', border: '1px solid #ccc', textAlign: 'right', minWidth: '52px', backgroundColor: '#E0F7FA', fontSize: '0.78rem' }}>🚌応援費</th>
-                <th style={{ padding: '0.4rem 0.6rem', border: '1px solid #ccc', textAlign: 'left', minWidth: '120px', backgroundColor: '#FFFDE7' }}>📝 備考</th>
+                <th style={{ padding: '0.3rem 0.4rem', border: '1px solid #ccc', borderLeft: 'none', textAlign: 'center', minWidth: '80px', backgroundColor: '#E0F7FA', fontSize: '0.78rem' }}>🚃交通費<br/>🚌応援費</th>
+                <th style={{ padding: '0.4rem 0.6rem', border: '1px solid #ccc', borderLeft: 'none', textAlign: 'left', minWidth: '120px', backgroundColor: '#FFFDE7' }}>📝 備考</th>
               </tr>
             </thead>
             <tbody>
               {aggregatedData.length > 0 ? (
               aggregatedData.map((data, index) => (
                   <tr key={data.manager_number} style={{ backgroundColor: index % 2 === 0 ? 'white' : '#f9f9f9' }}>
-                    <td style={{ padding: '0.3rem 0.6rem', border: '1px solid #eee' }}>
+                    <td style={{ padding: '0.3rem 0.6rem', borderLeft: '1px solid #ccc', borderRight: '1px solid #eee', borderBottom: '1px solid #eee' }}>
                       {data.name}
                     </td>
-                    <td style={{ padding: '0.3rem 0.6rem', border: '1px solid #eee', textAlign: 'right', fontWeight: 'bold' }}>
+                    <td style={{ padding: '0.3rem 0.6rem', borderRight: '1px solid #eee', borderBottom: '1px solid #eee', textAlign: 'right', fontWeight: 'bold' }}>
                       {formatMinutes(data.totalMinutes)}
                     </td>
                     {timePeriods.map(p => (
-                        <td key={p.key} style={{ padding: '0.3rem 0.6rem', border: '1px solid #eee', textAlign: 'right' }}>
+                        <td key={p.key} style={{ padding: '0.3rem 0.6rem', borderRight: '1px solid #eee', borderBottom: '1px solid #eee', textAlign: 'right' }}>
                             {formatMinutes(data[p.key] || 0)}
                         </td>
                     ))}
-                    <td style={{ padding: '0.3rem 0.4rem', border: '1px solid #eee', textAlign: 'right', fontSize: '0.78rem', backgroundColor: data.totalTransportFee > 0 ? '#E0F7FA' : 'transparent', fontWeight: data.totalTransportFee > 0 ? 'bold' : 'normal', color: data.totalTransportFee > 0 ? '#00796B' : '#999' }}>
-                      {data.totalTransportFee > 0 ? `¥${data.totalTransportFee.toLocaleString()}` : '-'}
+                    <td style={{ padding: '0.3rem 0.4rem', borderRight: '1px solid #eee', borderBottom: '1px solid #eee', textAlign: 'center', fontSize: '0.78rem', backgroundColor: (data.totalTransportFee > 0 || data.totalSupportTransportFee > 0) ? '#E0F7FA' : 'transparent' }}>
+                      <div style={{ color: data.totalTransportFee > 0 ? '#00796B' : '#999', fontWeight: data.totalTransportFee > 0 ? 'bold' : 'normal' }}>
+                        {data.totalTransportFee > 0 ? `¥${data.totalTransportFee.toLocaleString()}` : '-'}
+                      </div>
+                      <div style={{ color: data.totalSupportTransportFee > 0 ? '#00796B' : '#999', fontWeight: data.totalSupportTransportFee > 0 ? 'bold' : 'normal', borderTop: '1px solid #ddd', marginTop: '2px', paddingTop: '2px' }}>
+                        {data.totalSupportTransportFee > 0 ? `¥${data.totalSupportTransportFee.toLocaleString()}` : '-'}
+                      </div>
                     </td>
-                    <td style={{ padding: '0.3rem 0.4rem', border: '1px solid #eee', textAlign: 'right', fontSize: '0.78rem', backgroundColor: data.totalSupportTransportFee > 0 ? '#E0F7FA' : 'transparent', fontWeight: data.totalSupportTransportFee > 0 ? 'bold' : 'normal', color: data.totalSupportTransportFee > 0 ? '#00796B' : '#999' }}>
-                      {data.totalSupportTransportFee > 0 ? `¥${data.totalSupportTransportFee.toLocaleString()}` : '-'}
-                    </td>
-                    <td style={{ padding: '0.3rem 0.6rem', border: '1px solid #eee', fontSize: '0.85rem', color: data.expenseRemarks.length > 0 ? '#333' : '#999', backgroundColor: data.expenseRemarks.length > 0 ? '#FFFDE7' : 'transparent' }}>
+                    <td style={{ padding: '0.3rem 0.6rem', borderRight: '1px solid #ccc', borderBottom: '1px solid #eee', fontSize: '0.85rem', color: data.expenseRemarks.length > 0 ? '#333' : '#999', backgroundColor: data.expenseRemarks.length > 0 ? '#FFFDE7' : 'transparent' }}>
                       {data.expenseRemarks.length > 0 ? data.expenseRemarks.join(' / ') : '-'}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={2 + timePeriods.length} style={{ textAlign: 'center', padding: '1rem', color: '#666' }}>
+                  <td colSpan={4 + timePeriods.length} style={{ textAlign: 'center', padding: '1rem', color: '#666' }}>
                     選択した条件に一致するデータがありません。
                   </td>
                 </tr>

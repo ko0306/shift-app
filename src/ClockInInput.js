@@ -797,7 +797,7 @@ try {
   });
 } catch (e) { console.error('通知エラー:', e); }
 try {
-  await supabase.from('notifications').insert([{ title: notifTitle, body: notifBody, target_manager_number: null }]);
+  await supabase.from('notifications').insert([{ title: notifTitle, body: notifBody, target_manager_number: '0000' }]);
 } catch (e) { console.error('通知保存エラー:', e); }
 
 setMessage('修正を申請しました');
