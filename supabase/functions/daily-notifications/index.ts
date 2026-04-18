@@ -89,19 +89,16 @@ Deno.serve(async (req) => {
     }
   }
 
-  // === 2. 1時間前シフトリマインダー（30分おきに実行） ===
-  // 現在時刻の45〜75分後に開始するシフトを検索（精度±15分）
+  // === 2. 1時間前シフトリマインダー（毎時0分に実行） ===
+  // 次の時間帯（currentHour+1:00〜59）に開始するシフトを検索
   {
-    const nowMinutes = nowJST.getHours() * 60 + nowJST.getMinutes();
-    const targetStartMin = nowMinutes + 45;
-    const targetEndMin   = nowMinutes + 75;
+    const nextHour = currentHour + 1;
 
-    // 日をまたぐ場合（深夜）はスキップ
-    if (targetEndMin < 24 * 60) {
-      const toHHMM = (totalMin: number) =>
-        `${pad(Math.floor(totalMin / 60))}:${pad(totalMin % 60)}:00`;
-      const rangeStart = toHHMM(targetStartMin);
-      const rangeEnd   = toHHMM(targetEndMin);
+    // 深夜日またぎはスキップ
+    if (nextHour < 24) {
+      const nextHourStr = pad(nextHour);
+      const rangeStart = `${nextHourStr}:00:00`;
+      const rangeEnd   = `${nextHourStr}:59:59`;
 
       const { data: todayShifts, error: todayErr } = await supabase
         .from('final_shifts')
