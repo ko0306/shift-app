@@ -931,7 +931,7 @@ const aggregatedData = useMemo(() => {
                         {p.label}
                     </th>
                 ))}
-                <th style={{ padding: '0.3rem 0.4rem', border: '1px solid #ccc', borderLeft: 'none', textAlign: 'center', minWidth: '80px', backgroundColor: '#E0F7FA', fontSize: '0.78rem' }}>🚃交通費<br/>🚌応援費</th>
+                <th style={{ padding: '0.2rem 0.3rem', border: '1px solid #ccc', borderLeft: 'none', textAlign: 'center', minWidth: '58px', width: '58px', backgroundColor: '#E0F7FA', fontSize: '0.72rem' }}>🚃交通費<br/>🚌応援費</th>
                 <th style={{ padding: '0.4rem 0.6rem', border: '1px solid #ccc', borderLeft: 'none', textAlign: 'left', minWidth: '120px', backgroundColor: '#FFFDE7' }}>📝 備考</th>
               </tr>
             </thead>
@@ -950,7 +950,7 @@ const aggregatedData = useMemo(() => {
                             {formatMinutes(data[p.key] || 0)}
                         </td>
                     ))}
-                    <td style={{ padding: '0.3rem 0.4rem', borderRight: '1px solid #eee', borderBottom: '1px solid #eee', textAlign: 'center', fontSize: '0.78rem', backgroundColor: (data.totalTransportFee > 0 || data.totalSupportTransportFee > 0) ? '#E0F7FA' : 'transparent' }}>
+                    <td style={{ padding: '0.2rem 0.3rem', borderRight: '1px solid #eee', borderBottom: '1px solid #eee', textAlign: 'center', fontSize: '0.72rem', width: '58px', backgroundColor: (data.totalTransportFee > 0 || data.totalSupportTransportFee > 0) ? '#E0F7FA' : 'transparent' }}>
                       <div style={{ color: data.totalTransportFee > 0 ? '#00796B' : '#999', fontWeight: data.totalTransportFee > 0 ? 'bold' : 'normal' }}>
                         {data.totalTransportFee > 0 ? `¥${data.totalTransportFee.toLocaleString()}` : '-'}
                       </div>
