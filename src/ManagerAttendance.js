@@ -2510,8 +2510,7 @@ const changeDate = (delta) => {
     <th style={{ padding: '0.75rem', border: '1px solid #ddd', backgroundColor: '#E8EAF6' }} rowSpan="2">休憩時間</th>
     <th style={{ padding: '0.75rem', border: '1px solid #ddd', backgroundColor: '#E8EAF6' }} rowSpan="2">労働時間</th>
    <th style={{ padding: '0.4rem', border: '1px solid #ddd', backgroundColor: '#FFFDE7', minWidth: '90px', fontSize: '0.85rem' }} rowSpan="2">📝 備考</th>
-<th style={{ padding: '0.4rem', border: '1px solid #ddd', backgroundColor: '#E0F7FA', minWidth: '70px', fontSize: '0.85rem' }} rowSpan="2">🚃 交通費</th>
-<th style={{ padding: '0.4rem', border: '1px solid #ddd', backgroundColor: '#E0F7FA', minWidth: '70px', fontSize: '0.85rem' }} rowSpan="2">🚌 応援<br/>交通費</th>
+<th style={{ padding: '0.4rem', border: '1px solid #ddd', backgroundColor: '#E0F7FA', minWidth: '80px', fontSize: '0.85rem', textAlign: 'center' }} rowSpan="2">🚃交通費<br/>🚌応援費</th>
   </tr>
   <tr>
     <th style={{ padding: '0.5rem', border: '1px solid #ddd', fontSize: '0.85rem', backgroundColor: '#E8EAF6' }}>シフト</th>
@@ -2671,16 +2670,17 @@ const changeDate = (delta) => {
   />
 </td>
 
-{/* 交通費 */}
-<td style={{ 
-  padding: '0.3rem', 
-  border: '1px solid #ddd', 
+{/* 交通費・応援交通費（統合） */}
+<td style={{
+  padding: '0.3rem',
+  border: '1px solid #ddd',
   textAlign: 'center',
   backgroundColor: '#E0F7FA',
   verticalAlign: 'top'
 }} rowSpan="2">
+  <div style={{ fontSize: '0.65rem', color: '#00796B', marginBottom: '2px', fontWeight: 'bold' }}>🚃交通費</div>
   {record.transport_fee !== '' && record.transport_fee != null && (
-    <div style={{ fontSize: '0.7rem', color: '#999', marginBottom: '2px' }}>
+    <div style={{ fontSize: '0.65rem', color: '#999', marginBottom: '2px' }}>
       承認済: ¥{Number(record.transport_fee).toLocaleString()}
     </div>
   )}
@@ -2707,18 +2707,9 @@ const changeDate = (delta) => {
       color: '#00796B'
     }}
   />
-</td>
-
-{/* 応援交通費 */}
-<td style={{ 
-  padding: '0.3rem', 
-  border: '1px solid #ddd', 
-  textAlign: 'center',
-  backgroundColor: '#E0F7FA',
-  verticalAlign: 'top'
-}} rowSpan="2">
+  <div style={{ fontSize: '0.65rem', color: '#00796B', marginTop: '6px', marginBottom: '2px', fontWeight: 'bold', borderTop: '1px solid #B2EBF2', paddingTop: '4px' }}>🚌応援費</div>
   {record.support_transport_fee !== '' && record.support_transport_fee != null && (
-    <div style={{ fontSize: '0.7rem', color: '#999', marginBottom: '2px' }}>
+    <div style={{ fontSize: '0.65rem', color: '#999', marginBottom: '2px' }}>
       承認済: ¥{Number(record.support_transport_fee).toLocaleString()}
     </div>
   )}
