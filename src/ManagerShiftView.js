@@ -425,6 +425,9 @@ function ManagerShiftView({ onBack }) {
   const [showHelp, setShowHelp] = useState(false);
   const [currentHelpPage, setCurrentHelpPage] = useState('calendar');
 const [selectingTimeFor, setSelectingTimeFor] = useState(null); // {shiftId: string, firstSlot: string | null}
+const [showNotifConfirm, setShowNotifConfirm] = useState(false);
+const [notifSending, setNotifSending] = useState(false);
+const [notifResult, setNotifResult] = useState(null); // null | 'success' | 'error'
 
 // 既存のuseStateの後に追加
 const [shiftSettings, setShiftSettings] = useState(() => {
@@ -730,16 +733,38 @@ const [shiftSettings, setShiftSettings] = useState(() => {
       }
     }
 
-    alert('シフトを更新しました');
     setIsEditing(false);
     setShowTimeline(false);
     setCurrentHelpPage('shiftView');
     fetchShiftData(selectedDate);
-    
+    setShowNotifConfirm(true);
+
   } catch (error) {
     alert(`エラーが発生しました: ${error.message}`);
   } finally {
     setLoading(false);
+  }
+};
+
+const handleSendNotification = async () => {
+  setNotifSending(true);
+  try {
+    const dateLabel = selectedDate
+      ? `${selectedDate.replace(/-/g, '/')} `
+      : '';
+    const { error } = await supabase.functions.invoke('send-push-notification', {
+      body: {
+        title: '📅 シフトが更新されました',
+        body: `${dateLabel}のシフトが変更されました。アプリでご確認ください。`
+      }
+    });
+    if (error) throw error;
+    setNotifResult('success');
+  } catch (e) {
+    console.error('通知送信エラー:', e);
+    setNotifResult('error');
+  } finally {
+    setNotifSending(false);
   }
 };
 
@@ -1075,6 +1100,106 @@ const handleTimeSlotClick = (shiftId, slotTime) => {
   return (
     <div className="fullscreen-table" style={{ padding: '0.5rem', boxSizing: 'border-box', overflow: 'hidden' }}>
       <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} content={getHelpContent(currentHelpPage)} />
+
+      {/* シフト更新後の通知確認モーダル */}
+      {showNotifConfirm && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          zIndex: 9000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '1rem'
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            padding: '1.5rem',
+            maxWidth: '340px',
+            width: '100%',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+            textAlign: 'center'
+          }}>
+            {notifResult === null && !notifSending && (
+              <>
+                <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>✅</div>
+                <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '0.5rem' }}>シフトを更新しました</div>
+                <div style={{ color: '#555', fontSize: '14px', marginBottom: '1.5rem' }}>
+                  全員にプッシュ通知を送りますか？
+                </div>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button
+                    onClick={() => { setShowNotifConfirm(false); setNotifResult(null); }}
+                    style={{
+                      flex: 1, padding: '0.75rem',
+                      backgroundColor: '#eee', border: 'none',
+                      borderRadius: '10px', fontSize: '14px',
+                      cursor: 'pointer', fontWeight: 'bold'
+                    }}
+                  >
+                    送らない
+                  </button>
+                  <button
+                    onClick={handleSendNotification}
+                    style={{
+                      flex: 1, padding: '0.75rem',
+                      backgroundColor: '#1976D2', color: 'white',
+                      border: 'none', borderRadius: '10px',
+                      fontSize: '14px', cursor: 'pointer', fontWeight: 'bold'
+                    }}
+                  >
+                    全員に通知する
+                  </button>
+                </div>
+              </>
+            )}
+            {notifSending && (
+              <div style={{ padding: '1rem', color: '#555', fontSize: '14px' }}>
+                📤 通知を送信中...
+              </div>
+            )}
+            {notifResult === 'success' && (
+              <>
+                <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📣</div>
+                <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '0.5rem' }}>通知を送信しました！</div>
+                <div style={{ color: '#555', fontSize: '13px', marginBottom: '1.5rem' }}>
+                  通知が有効なスタッフ全員に届きます。
+                </div>
+                <button
+                  onClick={() => { setShowNotifConfirm(false); setNotifResult(null); }}
+                  style={{
+                    width: '100%', padding: '0.75rem',
+                    backgroundColor: '#43A047', color: 'white',
+                    border: 'none', borderRadius: '10px',
+                    fontSize: '14px', cursor: 'pointer', fontWeight: 'bold'
+                  }}
+                >
+                  閉じる
+                </button>
+              </>
+            )}
+            {notifResult === 'error' && (
+              <>
+                <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⚠️</div>
+                <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '0.5rem' }}>通知の送信に失敗しました</div>
+                <div style={{ color: '#c62828', fontSize: '13px', marginBottom: '1.5rem' }}>
+                  シフトの保存は完了しています。<br />通知は後ほど再試行してください。
+                </div>
+                <button
+                  onClick={() => { setShowNotifConfirm(false); setNotifResult(null); }}
+                  style={{
+                    width: '100%', padding: '0.75rem',
+                    backgroundColor: '#eee', border: 'none',
+                    borderRadius: '10px', fontSize: '14px',
+                    cursor: 'pointer', fontWeight: 'bold'
+                  }}
+                >
+                  閉じる
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
       {isPortrait && isEditing && (
         <div style={{
           position: 'fixed',
