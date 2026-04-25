@@ -117,7 +117,30 @@ const HelpModal = ({ isOpen, onClose, content }) => {
         >
           ×
         </button>
-        <div style={{ padding: '2rem', paddingTop: '0' }}>
+        <div style={{ padding: '1rem 2rem 0.5rem', borderBottom: '1px solid #eee' }}>
+          <button
+            onClick={() => window.open('/manual.pptx', '_blank')}
+            style={{
+              backgroundColor: '#1976D2',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '10px 20px',
+              cursor: 'pointer',
+              fontSize: '15px',
+              fontWeight: 'bold',
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              boxShadow: '0 2px 6px rgba(25,118,210,0.3)'
+            }}
+          >
+            📖 説明書を見る
+          </button>
+        </div>
+        <div style={{ padding: '2rem', paddingTop: '1.5rem' }}>
           {content}
         </div>
       </div>
@@ -140,7 +163,8 @@ const getHelpContent = (page, managerNumber = '') => {
       <strong>💡 ポイント：</strong>
       <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem' }}>
         <li>管理番号は各自に割り当てられた番号です</li>
-        <li>パスワードを忘れた場合は「パスワード変更」から変更できます</li>
+        <li>パスワードを忘れた場合はオーナー様に連絡してください（オーナー様がパスワードをリセットできます）</li>
+        <li>パスワードを覚えている場合は「パスワード変更」から自分で変更できます</li>
         <li>パスワード入力欄の右側の目のマークを押すと、入力した文字の表示・非表示を切り替えられます</li>
       </ul>
     </div>
@@ -152,7 +176,7 @@ const getHelpContent = (page, managerNumber = '') => {
         <ol style={{ lineHeight: '1.8' }}>
           <li><strong>パスワード認証</strong>を行います（パスワードは管理者に確認してください）</li>
           <li><strong>管理番号</strong>を入力して「次へ」ボタンをクリックします</li>
-          <li><strong>該当するボタンを長押し</strong>（約0.8秒）して記録します
+          <li><strong>該当するボタンをダブルクリック</strong>（素早く2回タップ）して記録します
             <ul style={{ marginTop: '0.5rem', paddingLeft: '1.5rem' }}>
               <li>🟢 出勤：勤務開始時に押します</li>
               <li>🔵 退勤：勤務終了時に押します</li>
@@ -165,7 +189,7 @@ const getHelpContent = (page, managerNumber = '') => {
         <div style={{ backgroundColor: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
           <strong>💡 ポイント：</strong>
           <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem' }}>
-            <li>ボタンは必ず長押しして記録してください（誤操作防止のため）</li>
+            <li>ボタンは必ずダブルクリック（素早く2回タップ）して記録してください（誤操作防止のため）</li>
             <li>記録後は画面下部の「最近の記録」で確認できます</li>
             <li>修正が必要な場合は履歴から該当日を選んで修正申請できます</li>
             <li>修正は承認が必要です（申請中/承認済のステータスで確認できます）</li>
