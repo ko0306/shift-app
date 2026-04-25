@@ -65,7 +65,7 @@ const HelpModal = ({ isOpen, onClose, content }) => {
         </button>
         <div style={{ padding: '1rem 2rem 0.5rem', borderBottom: '1px solid #eee' }}>
           <button
-            onClick={() => window.open('/manual.pptx', '_blank')}
+            onClick={() => window.open('/manual.pdf', '_blank')}
             style={{
               backgroundColor: '#1976D2',
               color: 'white',
