@@ -2129,7 +2129,7 @@ const changeDate = (delta) => {
     }}>
       <div style={{ textAlign: 'center' }}>
         <div style={{ fontSize: '0.75rem', color: '#999', marginBottom: '0.25rem' }}>申請前</div>
-        <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#E53935', textDecoration: selectedExpense.previous?.transport_fee !== selectedExpense.transport_fee ? 'line-through' : 'none', color: '#888' }}>
+        <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#888', textDecoration: selectedExpense.previous?.transport_fee !== selectedExpense.transport_fee ? 'line-through' : 'none' }}>
           {selectedExpense.previous?.transport_fee != null && selectedExpense.previous?.transport_fee !== ''
             ? `¥${Number(selectedExpense.previous.transport_fee).toLocaleString()}`
             : '¥0'}
