@@ -240,12 +240,11 @@ const [showDeleted, setShowDeleted] = useState(false);
 
     const { error } = await supabase
       .from('users')
-      .insert([{ 
-        name, 
-        manager_number: number, 
+      .insert([{
+        name,
+        manager_number: number,
         user_password: hashedPassword,
-        plain_password: password,
-        is_deleted: false 
+        is_deleted: false
       }]);
 
     if (error) {
@@ -317,9 +316,8 @@ const [showDeleted, setShowDeleted] = useState(false);
       
       const { error } = await supabase
         .from('users')
-        .update({ 
+        .update({
           user_password: hashedPassword,
-          plain_password: newPasswordForEdit  // 平文パスワードも保存
         })
         .eq('id', user.id);
 
@@ -378,7 +376,7 @@ const handleRestore = async (user) => {
 
         <label>パスワード:</label>
         <input
-          type="text"
+          type="password"
           value={password}
           onChange={e => setPassword(e.target.value)}
           placeholder="6文字以上"
@@ -460,7 +458,6 @@ const handleRestore = async (user) => {
                   <tr>
                     <th style={{ borderBottom: '1px solid #ccc', padding: '0.5rem' }}>管理番号</th>
                     <th style={{ borderBottom: '1px solid #ccc', padding: '0.5rem' }}>名前</th>
-                    <th style={{ borderBottom: '1px solid #ccc', padding: '0.5rem' }}>パスワード</th>
                     <th style={{ borderBottom: '1px solid #ccc', padding: '0.5rem' }}></th>
                   </tr>
                 </thead>
@@ -472,9 +469,6 @@ const handleRestore = async (user) => {
                       }}>
                         <td style={{ padding: '0.5rem', borderBottom: '1px solid #eee' }}>{user.manager_number}</td>
                         <td style={{ padding: '0.5rem', borderBottom: '1px solid #eee' }}>{user.name}</td>
-                        <td style={{ padding: '0.5rem', borderBottom: '1px solid #eee' }}>
-                          {user.plain_password || '未設定'}
-                        </td>
                         <td style={{ padding: '0.5rem', borderBottom: '1px solid #eee' }}>
                           <div style={{ display: 'flex', gap: '0.3rem' }}>
                             <button onClick={() => {
@@ -521,7 +515,7 @@ const handleRestore = async (user) => {
                           <td colSpan="4" style={{ padding: '1rem' }}>
                             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexDirection: 'column' }}>
                               <input
-                                type="text"
+                                type="password"
                                 placeholder="新しいパスワード（6文字以上）"
                                 value={newPasswordForEdit}
                                 onChange={(e) => setNewPasswordForEdit(e.target.value)}
@@ -625,7 +619,6 @@ const handleRestore = async (user) => {
             <tr>
               <th style={{ borderBottom: '1px solid #ccc', padding: '0.5rem', color: '#666' }}>管理番号</th>
               <th style={{ borderBottom: '1px solid #ccc', padding: '0.5rem', color: '#666' }}>名前</th>
-              <th style={{ borderBottom: '1px solid #ccc', padding: '0.5rem', color: '#666' }}>パスワード</th>
               <th style={{ borderBottom: '1px solid #ccc', padding: '0.5rem' }}></th>
             </tr>
           </thead>
@@ -637,9 +630,6 @@ const handleRestore = async (user) => {
               }}>
                 <td style={{ padding: '0.5rem', borderBottom: '1px solid #eee', color: '#666' }}>{user.manager_number}</td>
                 <td style={{ padding: '0.5rem', borderBottom: '1px solid #eee', color: '#666' }}>{user.name}</td>
-                <td style={{ padding: '0.5rem', borderBottom: '1px solid #eee', color: '#666' }}>
-                  {user.plain_password || '未設定'}
-                </td>
                 <td style={{ padding: '0.5rem', borderBottom: '1px solid #eee' }}>
                   <button onClick={() => handleRestore(user)} style={{
                     backgroundColor: '#4CAF50',
