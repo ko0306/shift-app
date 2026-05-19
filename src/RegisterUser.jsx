@@ -167,8 +167,7 @@ const getHelpContent = () => {
         <strong>🔒 セキュリティについて：</strong>
         <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem', marginBottom: 0 }}>
           <li>登録したパスワードは一覧に表示されません（セキュリティのため）</li>
-          <li>登録後はスタッフに管理番号とパスワードを<strong>口頭</strong>で伝えてください</li>
-          <li>パスワードを忘れた場合は<strong>PW変更</strong>ボタンで新しいパスワードに再設定できます</li>
+          <li>スタッフに管理番号と初期パスワードを伝えたら、ログイン後に「パスワード変更」で新しいパスワードに変更するよう案内してください</li>
         </ul>
       </div>
 
