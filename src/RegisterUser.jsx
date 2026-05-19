@@ -163,12 +163,21 @@ const getHelpContent = () => {
         </ul>
       </div>
 
+      <div style={{ backgroundColor: '#e8f5e9', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
+        <strong>🔒 セキュリティについて：</strong>
+        <ul style={{ marginTop: '0.5rem', paddingLeft: '1.2rem', marginBottom: 0 }}>
+          <li>登録したパスワードは一覧に表示されません（セキュリティのため）</li>
+          <li>登録後はスタッフに管理番号とパスワードを<strong>口頭</strong>で伝えてください</li>
+          <li>パスワードを忘れた場合は<strong>PW変更</strong>ボタンで新しいパスワードに再設定できます</li>
+        </ul>
+      </div>
+
       <h3 style={{ color: '#1976D2', marginTop: '1.5rem' }}>登録済みスタッフを確認する：</h3>
       <ol style={{ lineHeight: '1.8' }}>
         <li><strong>番号確認</strong>ボタンをクリック</li>
         <li>登録されているスタッフの一覧が表示されます</li>
         <li><strong>更新</strong>ボタンで最新の一覧に更新できます</li>
-        <li><strong>パスワード変更</strong>ボタンで各スタッフのパスワードを変更できます</li>
+        <li>スタッフがパスワードを忘れた場合は<strong>PW変更</strong>ボタンで再設定してください</li>
       </ol>
 
       <h3 style={{ color: '#1976D2', marginTop: '1.5rem' }}>スタッフを削除する：</h3>
