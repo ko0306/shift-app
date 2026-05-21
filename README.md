@@ -1,6 +1,117 @@
-# Getting Started with Create React App
+# オゾシフ（OzoShift）
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+スマホ完結型のシフト・勤怠管理PWAアプリです。
+飲食・小売・サービス業の中小店舗向けに設計されています。
+
+---
+
+## 主な機能
+
+| 機能 | 説明 |
+|------|------|
+| シフト希望提出 | スタッフがスマホから希望日・希望時間を提出 |
+| シフト作成 | オーナーがスタッフの希望を見ながらシフトを確定 |
+| 勤怠入力（打刻） | 出勤・退勤・休憩のダブルクリック打刻 |
+| 打刻履歴・修正申請 | スタッフが履歴確認・修正申請、オーナーが承認 |
+| 就労時間集計 | オーナーが月次の就労時間を確定・確認 |
+| プッシュ通知 | シフトリマインダー・打刻不備アラートなど |
+
+---
+
+## 技術スタック
+
+- **フロントエンド**: React（Create React App）/ PWA
+- **バックエンド**: Supabase（PostgreSQL + REST API + Edge Functions）
+- **デプロイ**: Cloudflare Pages
+- **プッシュ通知**: Web Push API（VAPID）
+
+---
+
+## 新店舗へのセットアップ手順
+
+### 1. このリポジトリをクローン
+
+```bash
+git clone https://github.com/joudencompany/ozoshift.git
+cd ozoshift
+npm install
+```
+
+### 2. Supabase プロジェクトを作成
+
+1. [https://supabase.com](https://supabase.com) でプロジェクト作成
+2. Settings → API から以下を取得：
+   - Project URL
+   - anon / public キー
+
+### 3. 接続情報を設定
+
+`src/supabaseClient.js` を編集：
+
+```js
+const supabaseUrl = 'https://xxxxxxxxxx.supabase.co';  // ← 書き換え
+const supabaseAnonKey = 'eyJ...';                        // ← 書き換え
+```
+
+`public/service-worker.js` の3〜4行目も同様に書き換え：
+
+```js
+const SUPABASE_URL = 'https://xxxxxxxxxx.supabase.co';  // ← 書き換え
+const SUPABASE_ANON_KEY = 'eyJ...';                      // ← 書き換え
+```
+
+### 4. GitHub にプッシュして Cloudflare Pages でデプロイ
+
+```bash
+git remote set-url origin https://github.com/{ユーザー名}/{リポジトリ名}.git
+git push -u origin main
+```
+
+Cloudflare Pages の設定：
+- Framework preset: `Create React App`
+- Build command: `npm run build`
+- Build output directory: `build`
+
+---
+
+## 開発環境での起動
+
+```bash
+npm install
+npm start
+# → http://localhost:3000
+```
+
+---
+
+## ディレクトリ構成
+
+```
+src/
+├── App.js               # メインアプリ・ルーティング
+├── supabaseClient.js    # Supabase接続設定 ★要書き換え
+├── RegisterUser.jsx     # 新人登録・スタッフ管理（オーナー）
+├── ManagerCreate.jsx    # シフト作成（オーナー）
+├── ManagerAttendance.js # 勤怠管理・承認（オーナー）
+├── StaffShiftView.js    # シフト確認（スタッフ）
+├── StaffShiftEdit.js    # シフト変更（スタッフ）
+├── StaffWorkHours.js    # 就労時間確認（スタッフ）
+├── ClockInInput.js      # 勤怠打刻
+├── PasswordReset.js     # パスワード変更
+└── ShiftAnalysis.js     # シフト分析
+public/
+├── service-worker.js    # PWA・プッシュ通知 ★要書き換え
+├── manifest.json        # PWA設定
+└── _redirects           # SPAルーティング（Cloudflare Pages用）
+```
+
+---
+
+© OZNONIX. All rights reserved.
+
+---
+
+## Original CRA Info
 
 ## Available Scripts
 
